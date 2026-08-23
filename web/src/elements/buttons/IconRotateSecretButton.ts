@@ -78,10 +78,12 @@ export function IconRotateSecretButton({
 
         if (!confirmed) return;
 
-        // Handing the secret to its own field leaves the rest of an open form untouched. Without
-        // one, whatever is showing the secret has to reload to catch up.
+        // The field takes the new value directly, so it is right even before the refresh lands.
         if (secret && apply) apply(secret);
-        else invoker.dispatchEvent(new AKRefreshEvent());
+
+        // Anything else showing the old secret, such as the page behind this form, would go on
+        // offering it for copying.
+        invoker.dispatchEvent(new AKRefreshEvent());
 
         showMessage({
             message: msg(str`Successfully rotated ${entityLabel}.`, {

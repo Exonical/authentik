@@ -16,7 +16,7 @@ Currently, only authentication requests are supported.
 
 ### Shared secret
 
-Leave **Shared secret** empty on create and authentik generates one. The provider's overview page shows it behind a reveal toggle.
+Leave **Shared secret** empty on create and authentik generates one. Edit the provider to read it, behind a reveal toggle.
 
 To replace it, edit the provider and click the rotate icon next to **Shared secret**. The outpost picks up the new secret within a few seconds, and RADIUS clients still using the old one are rejected until you update them. See [Secret rotation](../../../sys-mgmt/secret-rotation.md) for the rest.
 
