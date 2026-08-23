@@ -31,7 +31,7 @@ import { taskCard } from "#components/tasks/taskCard";
 
 import { OAuth2DCRForm } from "#admin/providers/oauth2/OAuth2DCRForm";
 import { OAuth2ProviderFormPage } from "#admin/providers/oauth2/OAuth2ProviderForm";
-import { clientSecretRotation } from "#admin/providers/oauth2/OAuth2ProviderRotateSecret";
+import { clientSecretRotation } from "#admin/providers/SecretRotation";
 
 import {
     ClientTypeEnum,
@@ -276,9 +276,6 @@ export class OAuth2ProviderViewPage extends AKElement {
                                 html`${provider.clientId}
                                 ${IconCopyButton({
                                     source: provider.clientId ?? null,
-                                    buttonLabel: msg("Copy client ID", {
-                                        id: "providers.oauth2.client-id.copy-button.label",
-                                    }),
                                     entityLabel: msg("Client ID"),
                                 })}`,
                             ],

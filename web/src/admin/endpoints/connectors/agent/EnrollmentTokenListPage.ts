@@ -9,7 +9,7 @@ import "#components/ak-status-label";
 import { aki } from "#common/api/client";
 
 import { IconEnrollmentTokenCopyButton } from "#elements/buttons/IconEnrollmentTokenCopyButton";
-import { IconEnrollmentTokenRotateButton } from "#elements/buttons/IconEnrollmentTokenRotateButton";
+import { IconEnrollmentTokenRotateButton } from "#elements/buttons/IconTokenRotateButton";
 import { IconEditButton, ModalInvokerButton } from "#elements/dialogs";
 import { IconPermissionButton } from "#elements/dialogs/components/IconPermissionButton";
 import { PaginatedResponse, Table, TableColumn, Timestamp } from "#elements/table/Table";

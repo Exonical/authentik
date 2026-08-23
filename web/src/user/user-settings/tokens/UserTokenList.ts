@@ -12,7 +12,7 @@ import { formatIntentLabel } from "#common/labels";
 import { formatElapsedTime } from "#common/temporal";
 
 import { IconTokenCopyButton } from "#elements/buttons/IconTokenCopyButton";
-import { IconTokenRotateButton } from "#elements/buttons/IconTokenRotateButton";
+import { IconCoreTokenRotateButton } from "#elements/buttons/IconTokenRotateButton";
 import { PaginatedResponse, Table, TableColumn } from "#elements/table/Table";
 import { SlottedTemplateResult } from "#elements/types";
 
@@ -176,7 +176,7 @@ export class UserTokenList extends Table<Token> {
                         </pf-tooltip>
                     </button>
                 </ak-forms-modal>
-                ${IconTokenCopyButton(item)} ${IconTokenRotateButton(item.identifier)}
+                ${IconTokenCopyButton(item)} ${IconCoreTokenRotateButton(item.identifier)}
             `,
         ];
     }

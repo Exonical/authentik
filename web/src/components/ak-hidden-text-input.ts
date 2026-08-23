@@ -94,11 +94,7 @@ export class AkHiddenTextInput<T extends InputLike = HTMLInputElement>
     @property({ type: Boolean, attribute: "readonly" })
     public readOnly: boolean = false;
 
-    /**
-     * Extra controls rendered after the reveal and copy buttons, such as a rotate button.
-     *
-     * @property
-     */
+    /** Extra controls rendered after the reveal and copy buttons. */
     @property({ attribute: false })
     public actions: SlottedTemplateResult = nothing;
 

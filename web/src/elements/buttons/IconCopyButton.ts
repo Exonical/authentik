@@ -15,9 +15,7 @@ export interface IconCopyButtonProps {
     tooltipLabel?: string;
     entityLabel?: string;
     description?: SlottedTemplateResult;
-    /**
-     * Render as a bordered input-group control instead of a plain icon, for use next to an input.
-     */
+    /** Render as a bordered input-group control, for use next to an input. */
     control?: boolean;
 }
 

@@ -15,9 +15,7 @@ import { AKElement } from "#elements/Base";
 import { IconRotateSecretButton } from "#elements/buttons/IconRotateSecretButton";
 import { SlottedTemplateResult } from "#elements/types";
 
-import renderDescriptionList from "#components/DescriptionList";
-
-import { sharedSecretRotation } from "#admin/providers/radius/RadiusProviderRotateSecret";
+import { sharedSecretRotation } from "#admin/providers/SecretRotation";
 
 import { ModelEnum, ProvidersApi, RadiusProvider } from "@goauthentik/api";
 
@@ -74,16 +72,6 @@ export class RadiusProviderViewPage extends AKElement {
         }
     }
 
-    renderSharedSecret(provider: RadiusProvider): SlottedTemplateResult {
-        return html`<ak-hidden-text-input
-            value=${ifDefined(provider.sharedSecret)}
-            input-hint="code"
-            readonly
-            copyable
-            .actions=${IconRotateSecretButton(sharedSecretRotation(provider.pk), true)}
-        ></ak-hidden-text-input>`;
-    }
-
     render(): SlottedTemplateResult {
         if (!this.provider) {
             return nothing;
@@ -107,25 +95,71 @@ export class RadiusProviderViewPage extends AKElement {
                         <div class="pf-u-w-75">
                             <div class="pf-c-card">
                                 <div class="pf-c-card__body">
-                                    ${renderDescriptionList(
-                                        [
-                                            [msg("Name"), this.provider.name],
-                                            [
-                                                msg("Assigned to application"),
-                                                html`<ak-provider-related-application
-                                                    .provider=${this.provider}
-                                                ></ak-provider-related-application>`,
-                                            ],
-                                            [msg("Client Networks"), this.provider.clientNetworks],
-                                            [
-                                                msg("Shared secret", {
-                                                    id: "providers.radius.shared-secret.label",
-                                                }),
-                                                this.renderSharedSecret(this.provider),
-                                            ],
-                                        ],
-                                        { threecolumn: true },
-                                    )}
+                                    <dl class="pf-c-description-list pf-m-3-col-on-lg">
+                                        <div class="pf-c-description-list__group">
+                                            <dt class="pf-c-description-list__term">
+                                                <span class="pf-c-description-list__text"
+                                                    >${msg("Name")}</span
+                                                >
+                                            </dt>
+                                            <dd class="pf-c-description-list__description">
+                                                <div class="pf-c-description-list__text">
+                                                    ${this.provider.name}
+                                                </div>
+                                            </dd>
+                                        </div>
+                                        <div class="pf-c-description-list__group">
+                                            <dt class="pf-c-description-list__term">
+                                                <span class="pf-c-description-list__text"
+                                                    >${msg("Assigned to application")}</span
+                                                >
+                                            </dt>
+                                            <dd class="pf-c-description-list__description">
+                                                <div class="pf-c-description-list__text">
+                                                    <ak-provider-related-application
+                                                        .provider=${this.provider}
+                                                    ></ak-provider-related-application>
+                                                </div>
+                                            </dd>
+                                        </div>
+                                        <div class="pf-c-description-list__group">
+                                            <dt class="pf-c-description-list__term">
+                                                <span class="pf-c-description-list__text"
+                                                    >${msg("Client Networks")}</span
+                                                >
+                                            </dt>
+                                            <dd class="pf-c-description-list__description">
+                                                <div class="pf-c-description-list__text">
+                                                    ${this.provider.clientNetworks}
+                                                </div>
+                                            </dd>
+                                        </div>
+                                        <div class="pf-c-description-list__group">
+                                            <dt class="pf-c-description-list__term">
+                                                <span class="pf-c-description-list__text"
+                                                    >${msg("Shared secret", {
+                                                        id: "providers.radius.shared-secret.label",
+                                                    })}</span
+                                                >
+                                            </dt>
+                                            <dd class="pf-c-description-list__description">
+                                                <div class="pf-c-description-list__text">
+                                                    <ak-hidden-text-input
+                                                        value=${ifDefined(
+                                                            this.provider.sharedSecret,
+                                                        )}
+                                                        input-hint="code"
+                                                        readonly
+                                                        copyable
+                                                        .actions=${IconRotateSecretButton(
+                                                            sharedSecretRotation(this.provider.pk),
+                                                            true,
+                                                        )}
+                                                    ></ak-hidden-text-input>
+                                                </div>
+                                            </dd>
+                                        </div>
+                                    </dl>
                                 </div>
                                 <div class="pf-c-card__footer">
                                     <ak-forms-modal>

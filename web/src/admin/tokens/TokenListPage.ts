@@ -11,7 +11,7 @@ import { aki } from "#common/api/client";
 import { formatIntentLabel } from "#common/labels";
 
 import { IconTokenCopyButton } from "#elements/buttons/IconTokenCopyButton";
-import { IconTokenRotateButton } from "#elements/buttons/IconTokenRotateButton";
+import { IconCoreTokenRotateButton } from "#elements/buttons/IconTokenRotateButton";
 import { IconEditButton, ModalInvokerButton } from "#elements/dialogs";
 import { IconPermissionButton } from "#elements/dialogs/components/IconPermissionButton";
 import { PaginatedResponse, TableColumn, Timestamp } from "#elements/table/Table";
@@ -111,7 +111,7 @@ export class TokenListPage extends TablePage<Token> {
                     model: ModelEnum.AuthentikCoreToken,
                     objectPk: item.pk,
                 })}
-                ${IconTokenCopyButton(item)} ${IconTokenRotateButton(item.identifier)}
+                ${IconTokenCopyButton(item)} ${IconCoreTokenRotateButton(item.identifier)}
             </div>`,
         ];
     }

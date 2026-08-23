@@ -27,7 +27,7 @@ import { ifPresent } from "#elements/utils/attributes";
 import { AKLabel } from "#components/ak-label";
 
 import { generatedPlaceholder } from "#admin/providers/BaseProviderForm";
-import { clientSecretRotation } from "#admin/providers/oauth2/OAuth2ProviderRotateSecret";
+import { clientSecretRotation } from "#admin/providers/SecretRotation";
 
 import {
     ClientTypeEnum,

@@ -41,9 +41,6 @@ export class AkTextInput extends HorizontalLightComponent<string> {
     @property({ type: String, useDefault: true })
     public pattern: string = "";
 
-    /**
-     * Render a copy-to-clipboard button next to the input.
-     */
     @property({ type: Boolean, reflect: true })
     public copyable = false;
 
@@ -93,18 +90,16 @@ export class AkTextInput extends HorizontalLightComponent<string> {
             ?autofocus=${this.autofocus}
             ${this.autofocusTarget.toRef()}
         />`;
-        if (!this.copyable) {
-            return input;
-        }
-        return html`<div style="display: flex;" part="control">
-            ${input}
-            ${IconCopyButton({
-                source: this.value || null,
-                buttonLabel: msg("Copy value"),
-                entityLabel: this.label ?? msg("Value", { id: "forms.copy.entity-label" }),
-                control: true,
-            })}
-        </div>`;
+        return this.copyable
+            ? html`<div style="display: flex;" part="control">
+                  ${input}
+                  ${IconCopyButton({
+                      source: this.value || null,
+                      entityLabel: this.label ?? undefined,
+                      control: true,
+                  })}
+              </div>`
+            : input;
     }
 }
 

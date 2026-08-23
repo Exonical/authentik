@@ -16,7 +16,7 @@ import { IconRotateSecretButton } from "#elements/buttons/IconRotateSecretButton
 import { ifPresent } from "#elements/utils/attributes";
 
 import { generatedPlaceholder } from "#admin/providers/BaseProviderForm";
-import { sharedSecretRotation } from "#admin/providers/radius/RadiusProviderRotateSecret";
+import { sharedSecretRotation } from "#admin/providers/SecretRotation";
 
 import {
     CurrentBrand,

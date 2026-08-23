@@ -15,7 +15,7 @@ import { docLink } from "#common/global";
 
 import { AKElement } from "#elements/Base";
 import { IconTokenCopyButton } from "#elements/buttons/IconTokenCopyButton";
-import { IconTokenRotateButton } from "#elements/buttons/IconTokenRotateButton";
+import { IconCoreTokenRotateButton } from "#elements/buttons/IconTokenRotateButton";
 import { SlottedTemplateResult } from "#elements/types";
 
 import { setPageDetails } from "#components/ak-page-navbar";
@@ -251,7 +251,7 @@ export class OutpostViewPage extends AKElement {
                         </label>
                         <div>
                             ${IconTokenCopyButton(this.outpost?.tokenIdentifier)}
-                            ${IconTokenRotateButton(this.outpost?.tokenIdentifier)}
+                            ${IconCoreTokenRotateButton(this.outpost?.tokenIdentifier)}
                         </div>
                     </div>
                     <h3>
