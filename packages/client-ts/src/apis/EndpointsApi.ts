@@ -1409,7 +1409,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * EnrollmentToken Viewset
+     * Tokens that enroll a device with an agent connector, granting it a device token
      */
     async endpointsAgentsEnrollmentTokensCreateRaw(
         requestParameters: EndpointsAgentsEnrollmentTokensCreateRequest,
@@ -1425,7 +1425,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * EnrollmentToken Viewset
+     * Tokens that enroll a device with an agent connector, granting it a device token
      */
     async endpointsAgentsEnrollmentTokensCreate(
         requestParameters: EndpointsAgentsEnrollmentTokensCreateRequest,
@@ -1479,7 +1479,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * EnrollmentToken Viewset
+     * Tokens that enroll a device with an agent connector, granting it a device token
      */
     async endpointsAgentsEnrollmentTokensDestroyRaw(
         requestParameters: EndpointsAgentsEnrollmentTokensDestroyRequest,
@@ -1493,7 +1493,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * EnrollmentToken Viewset
+     * Tokens that enroll a device with an agent connector, granting it a device token
      */
     async endpointsAgentsEnrollmentTokensDestroy(
         requestParameters: EndpointsAgentsEnrollmentTokensDestroyRequest,
@@ -1556,7 +1556,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * EnrollmentToken Viewset
+     * Tokens that enroll a device with an agent connector, granting it a device token
      */
     async endpointsAgentsEnrollmentTokensListRaw(
         requestParameters: EndpointsAgentsEnrollmentTokensListRequest,
@@ -1572,7 +1572,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * EnrollmentToken Viewset
+     * Tokens that enroll a device with an agent connector, granting it a device token
      */
     async endpointsAgentsEnrollmentTokensList(
         requestParameters: EndpointsAgentsEnrollmentTokensListRequest = {},
@@ -1631,7 +1631,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * EnrollmentToken Viewset
+     * Tokens that enroll a device with an agent connector, granting it a device token
      */
     async endpointsAgentsEnrollmentTokensPartialUpdateRaw(
         requestParameters: EndpointsAgentsEnrollmentTokensPartialUpdateRequest,
@@ -1647,7 +1647,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * EnrollmentToken Viewset
+     * Tokens that enroll a device with an agent connector, granting it a device token
      */
     async endpointsAgentsEnrollmentTokensPartialUpdate(
         requestParameters: EndpointsAgentsEnrollmentTokensPartialUpdateRequest,
@@ -1701,7 +1701,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * EnrollmentToken Viewset
+     * Tokens that enroll a device with an agent connector, granting it a device token
      */
     async endpointsAgentsEnrollmentTokensRetrieveRaw(
         requestParameters: EndpointsAgentsEnrollmentTokensRetrieveRequest,
@@ -1717,7 +1717,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * EnrollmentToken Viewset
+     * Tokens that enroll a device with an agent connector, granting it a device token
      */
     async endpointsAgentsEnrollmentTokensRetrieve(
         requestParameters: EndpointsAgentsEnrollmentTokensRetrieveRequest,
@@ -1853,7 +1853,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * EnrollmentToken Viewset
+     * Tokens that enroll a device with an agent connector, granting it a device token
      */
     async endpointsAgentsEnrollmentTokensUpdateRaw(
         requestParameters: EndpointsAgentsEnrollmentTokensUpdateRequest,
@@ -1869,7 +1869,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * EnrollmentToken Viewset
+     * Tokens that enroll a device with an agent connector, granting it a device token
      */
     async endpointsAgentsEnrollmentTokensUpdate(
         requestParameters: EndpointsAgentsEnrollmentTokensUpdateRequest,

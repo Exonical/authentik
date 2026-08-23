@@ -10,8 +10,8 @@ import "@patternfly/elements/pf-tooltip/pf-tooltip.js";
 import { aki } from "#common/api/client";
 import { formatIntentLabel } from "#common/labels";
 
+import { IconTokenRotateButton } from "#elements/buttons/IconRotateSecretButton";
 import { IconTokenCopyButton } from "#elements/buttons/IconTokenCopyButton";
-import { IconCoreTokenRotateButton } from "#elements/buttons/IconTokenRotateButton";
 import { IconEditButton, ModalInvokerButton } from "#elements/dialogs";
 import { IconPermissionButton } from "#elements/dialogs/components/IconPermissionButton";
 import { showAPIErrorMessage } from "#elements/messages/MessageContainer";
@@ -158,7 +158,7 @@ export class AdminUserTokenList extends Table<Token> {
                     model: ModelEnum.AuthentikCoreToken,
                     objectPk: item.pk,
                 })}
-                ${IconTokenCopyButton(item)} ${IconCoreTokenRotateButton(item.identifier)}
+                ${IconTokenCopyButton(item)} ${IconTokenRotateButton(item.identifier)}
             </div>`,
         ];
     }

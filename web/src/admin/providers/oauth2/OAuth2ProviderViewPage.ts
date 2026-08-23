@@ -265,8 +265,6 @@ export class OAuth2ProviderViewPage extends AKElement {
                                     copyable
                                 ></ak-text-input>`,
                             ],
-                            // Rotating lives in the edit form: it applies immediately, which is
-                            // more than a read-only summary should be able to do.
                             ...(provider.clientType === ClientTypeEnum.Public
                                 ? []
                                 : [

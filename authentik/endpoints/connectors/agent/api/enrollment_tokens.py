@@ -44,7 +44,7 @@ class EnrollmentTokenSerializer(ModelSerializer):
 
 
 class EnrollmentTokenViewSet(RotatableSecretMixin, UsedByMixin, ModelViewSet):
-    """EnrollmentToken Viewset"""
+    """Tokens that enroll a device with an agent connector, granting it a device token"""
 
     queryset = EnrollmentToken.objects.all().prefetch_related("device_group")
     serializer_class = EnrollmentTokenSerializer

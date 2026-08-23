@@ -9,7 +9,7 @@ import "#components/ak-status-label";
 import { aki } from "#common/api/client";
 
 import { IconEnrollmentTokenCopyButton } from "#elements/buttons/IconEnrollmentTokenCopyButton";
-import { IconEnrollmentTokenRotateButton } from "#elements/buttons/IconTokenRotateButton";
+import { IconRotateSecretButton } from "#elements/buttons/IconRotateSecretButton";
 import { IconEditButton, ModalInvokerButton } from "#elements/dialogs";
 import { IconPermissionButton } from "#elements/dialogs/components/IconPermissionButton";
 import { PaginatedResponse, Table, TableColumn, Timestamp } from "#elements/table/Table";
@@ -100,7 +100,13 @@ export class EnrollmentTokenListPage extends Table<EnrollmentToken> {
                     objectPk: item.tokenUuid,
                 })}
                 ${IconEnrollmentTokenCopyButton(item.tokenUuid)}
-                ${IconEnrollmentTokenRotateButton(item.tokenUuid)}
+                ${IconRotateSecretButton({
+                    rotate: () =>
+                        aki(EndpointsApi).endpointsAgentsEnrollmentTokensRotateSecretCreate({
+                            tokenUuid: item.tokenUuid,
+                        }),
+                    entityLabel: msg("token", { id: "tokens.rotate.entity" }),
+                })}
             </div>`,
         ];
     }

@@ -5,6 +5,10 @@ import { ModelForm } from "#elements/forms/ModelForm";
 
 import { msg } from "@lit/localize";
 
+/** Binds a rotate call to a provider that exists. New providers have no secret to rotate yet. */
+export const rotateWhenSaved = <T>(pk: number | undefined, rotate: (id: number) => Promise<T>) =>
+    pk ? () => rotate(pk) : undefined;
+
 /** Placeholder for a credential the server generates when left empty on create. */
 export const generatedPlaceholder = (provider: { pk?: number }) =>
     provider.pk

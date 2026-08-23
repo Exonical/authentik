@@ -6,7 +6,6 @@ import "#elements/CodeMirror";
 import "#elements/Tabs";
 import "#elements/buttons/ModalButton";
 import "#elements/buttons/SpinnerButton/index";
-import "#components/ak-hidden-text-input";
 
 import { aki } from "#common/api/client";
 import { EVENT_REFRESH } from "#common/constants";
@@ -19,7 +18,6 @@ import { ModelEnum, ProvidersApi, RadiusProvider } from "@goauthentik/api";
 import { msg } from "@lit/localize";
 import { CSSResult, html, nothing, PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import { ifDefined } from "lit/directives/if-defined.js";
 
 import PFButton from "@patternfly/patternfly/components/Button/button.css";
 import PFCard from "@patternfly/patternfly/components/Card/card.css";
@@ -128,27 +126,6 @@ export class RadiusProviderViewPage extends AKElement {
                                             <dd class="pf-c-description-list__description">
                                                 <div class="pf-c-description-list__text">
                                                     ${this.provider.clientNetworks}
-                                                </div>
-                                            </dd>
-                                        </div>
-                                        <div class="pf-c-description-list__group">
-                                            <dt class="pf-c-description-list__term">
-                                                <span class="pf-c-description-list__text"
-                                                    >${msg("Shared secret", {
-                                                        id: "providers.radius.shared-secret.label",
-                                                    })}</span
-                                                >
-                                            </dt>
-                                            <dd class="pf-c-description-list__description">
-                                                <div class="pf-c-description-list__text">
-                                                    <ak-hidden-text-input
-                                                        value=${ifDefined(
-                                                            this.provider.sharedSecret,
-                                                        )}
-                                                        input-hint="code"
-                                                        readonly
-                                                        copyable
-                                                    ></ak-hidden-text-input>
                                                 </div>
                                             </dd>
                                         </div>

@@ -27,7 +27,7 @@ import { ifPresent } from "#elements/utils/attributes";
 
 import { AKLabel } from "#components/ak-label";
 
-import { generatedPlaceholder } from "#admin/providers/BaseProviderForm";
+import { generatedPlaceholder, rotateWhenSaved } from "#admin/providers/BaseProviderForm";
 
 import {
     ClientTypeEnum,
@@ -47,10 +47,6 @@ import {
 import { msg } from "@lit/localize";
 import { html } from "lit";
 import { ifDefined } from "lit/directives/if-defined.js";
-
-/** Providers only have a secret to rotate once they exist. */
-const rotateClientSecret = (pk?: number) =>
-    pk ? () => aki(ProvidersApi).providersOauth2RotateSecretCreate({ id: pk }) : undefined;
 
 export const clientTypeOptions: RadioOption<ClientTypeEnum>[] = [
     {
@@ -249,7 +245,9 @@ export function renderForm({
                     placeholder=${ifDefined(generatedPlaceholder(provider))}
                     input-hint="code"
                     copyable
-                    .rotate=${rotateClientSecret(provider.pk)}
+                    .rotate=${rotateWhenSaved(provider.pk, (id) =>
+                        aki(ProvidersApi).providersOauth2RotateSecretCreate({ id }),
+                    )}
                     .errorMessages=${errors.clientSecret}
                     ?hidden=${!showClientSecret}
                 >

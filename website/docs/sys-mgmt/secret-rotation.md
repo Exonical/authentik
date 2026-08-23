@@ -4,37 +4,37 @@ description: "Replace a secret that authentik generated with a freshly generated
 authentik_version: "2026.11.0"
 ---
 
-authentik generates secrets for the objects that need one: client secrets, shared secrets, and token keys. Any of them can be replaced with a newly generated value, without recreating the object it belongs to.
+authentik generates the secrets it hands out: client secrets, shared secrets, and token keys. Each one comes from the same generator as every other, so you get a secret of known strength without reaching for `openssl rand` and pasting the result into a form.
+
+Any of them can be replaced later, from the Admin interface or the API.
 
 ## What can be rotated
 
-| Object                 | Field         | Where                                                                                                    |
-| ---------------------- | ------------- | -------------------------------------------------------------------------------------------------------- |
-| OAuth2/OpenID provider | Client secret | Edit the provider, next to **Client Secret**                                                             |
-| RADIUS provider        | Shared secret | Edit the provider, next to **Shared secret**                                                             |
-| Token, app password    | Key           | **Directory** > **Tokens and App passwords**, a user's token list, and the outpost and SCIM source pages |
-| Agent enrollment token | Key           | The enrollment token list of the agent connector                                                         |
+| Object                 | Field         | Where                                                                         |
+| ---------------------- | ------------- | ----------------------------------------------------------------------------- |
+| OAuth2/OpenID provider | Client secret | Edit the provider                                                             |
+| RADIUS provider        | Shared secret | Edit the provider                                                             |
+| Token, app password    | Key           | **Directory** > **Tokens and App passwords**, and any page that shows a token |
+| Agent enrollment token | Key           | The enrollment token list                                                     |
 
-Click the rotate icon next to the value, then confirm. Rotating requires the same `change` permission on the object as editing it does.
+Click the rotate icon next to the value and confirm. Rotating takes the same `change` permission on the object as editing it does, and is recorded as a [`secret_rotate`](./events/event-actions.md#secret_rotate) event.
 
-## What happens
+A client ID is generated the same way but cannot be rotated. Clients are configured with it as an identifier, so replacing it renames the client rather than re-securing it.
 
-The old value stops working, and everything using it has to be updated with the new one. Rotating applies as soon as you confirm, so closing an edit form without saving does not undo it.
+:::danger Rotating cannot be undone
+The new secret applies the moment you confirm. Closing the form without saving does not bring the old one back.
+:::
 
-Each rotation is recorded as a [`secret_rotate`](./events/event-actions.md#secret_rotate) event. The event names the object and the field, never the value.
+## Getting the new value
 
-Where the new value is readable, the field shows it and you can copy it from there. Token keys are the exception: they are only handed out through their own view-key endpoint, which needs the `view_token_key` permission and logs an access event, so a rotation returns nothing to copy. Copy the key from the list afterwards.
+The field shows the new secret as soon as it is generated, ready to copy.
 
-Rotating a secret that authentik generated does not touch secrets you supplied yourself, such as an OAuth source's consumer secret or an LDAP bind password. Change those by editing the object.
+Token keys work differently. A key is never part of an API response, this one included, so that reading a key stays an audited act of its own. Use the copy button next to the token, which fetches the key and records that access.
 
-## Consequences per protocol
+## Automatic rotation
 
-Rotating breaks running clients until they are updated, and how that failure looks depends on the protocol:
+Rotation is not only something you click. An API token that reaches the end of its lifetime has its key replaced instead of being deleted, through the same code path, recording the same event.
 
-- [OAuth2/OpenID providers](../add-secure-apps/providers/oauth2/create-oauth2-provider.md#rotate-the-client-secret): clients authenticating with the old secret are rejected, and ID tokens signed with it no longer validate when the provider has no signing key.
-- [RADIUS providers](../add-secure-apps/providers/radius/index.mdx#shared-secret): the outpost picks up the new secret within a few seconds, and clients still using the old one are rejected.
-- Outpost tokens: the outpost is redeployed with the new key. A manually deployed outpost has to be updated with it.
+## Secrets authentik does not generate
 
-## Generated values
-
-Leave a generated field empty when creating an object and authentik fills it in, in the Admin interface and the API alike. The value comes from the model default, so it is the same whether the object is created through the Admin interface, the API, or a blueprint.
+Secrets that belong to another system, such as an OAuth source's consumer secret or an LDAP bind password, are yours to set. Change those by editing the object.

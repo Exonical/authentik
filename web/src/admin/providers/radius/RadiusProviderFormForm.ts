@@ -16,7 +16,7 @@ import { aki } from "#common/api/client";
 
 import { ifPresent } from "#elements/utils/attributes";
 
-import { generatedPlaceholder } from "#admin/providers/BaseProviderForm";
+import { generatedPlaceholder, rotateWhenSaved } from "#admin/providers/BaseProviderForm";
 
 import {
     CurrentBrand,
@@ -29,10 +29,6 @@ import {
 import { msg } from "@lit/localize";
 import { html } from "lit";
 import { ifDefined } from "lit/directives/if-defined.js";
-
-/** Providers only have a secret to rotate once they exist. */
-const rotateSharedSecret = (pk?: number) =>
-    pk ? () => aki(ProvidersApi).providersRadiusRotateSecretCreate({ id: pk }) : undefined;
 
 const mfaSupportHelp = msg(
     "When enabled, code-based multi-factor authentication can be used by appending a semicolon and the TOTP code to the password. This should only be enabled if all users that will bind to this provider have a TOTP device configured, as otherwise a password may incorrectly be rejected if it contains a semicolon.",
@@ -106,7 +102,9 @@ export function renderForm({ provider, errors, brand }: RADIUSProviderFormProps)
                     placeholder=${ifDefined(generatedPlaceholder(provider))}
                     input-hint="code"
                     copyable
-                    .rotate=${rotateSharedSecret(provider.pk)}
+                    .rotate=${rotateWhenSaved(provider.pk, (id) =>
+                        aki(ProvidersApi).providersRadiusRotateSecretCreate({ id }),
+                    )}
                 ></ak-hidden-text-input>
                 <ak-text-input
                     name="clientNetworks"

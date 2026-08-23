@@ -11,8 +11,8 @@ import { aki } from "#common/api/client";
 import { formatIntentLabel } from "#common/labels";
 import { formatElapsedTime } from "#common/temporal";
 
+import { IconTokenRotateButton } from "#elements/buttons/IconRotateSecretButton";
 import { IconTokenCopyButton } from "#elements/buttons/IconTokenCopyButton";
-import { IconCoreTokenRotateButton } from "#elements/buttons/IconTokenRotateButton";
 import { PaginatedResponse, Table, TableColumn } from "#elements/table/Table";
 import { SlottedTemplateResult } from "#elements/types";
 
@@ -176,7 +176,7 @@ export class UserTokenList extends Table<Token> {
                         </pf-tooltip>
                     </button>
                 </ak-forms-modal>
-                ${IconTokenCopyButton(item)} ${IconCoreTokenRotateButton(item.identifier)}
+                ${IconTokenCopyButton(item)} ${IconTokenRotateButton(item.identifier)}
             `,
         ];
     }

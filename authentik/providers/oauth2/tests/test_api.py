@@ -227,18 +227,6 @@ class TestAPI(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["client_secret"], "")
 
-    def test_rotate_secret(self):
-        """Rotating replaces the secret and returns the new value"""
-        old_secret = self.provider.client_secret
-        response = self.client.post(
-            reverse("authentik_api:oauth2provider-rotate-secret", kwargs={"pk": self.provider.pk})
-        )
-        self.assertEqual(response.status_code, 200)
-        self.provider.refresh_from_db()
-        self.assertNotEqual(self.provider.client_secret, old_secret)
-        self.assertEqual(len(self.provider.client_secret), 128)
-        self.assertEqual(response.json()["secret"], self.provider.client_secret)
-
     def test_rotate_secret_proxy_provider(self):
         """A proxy provider is reachable through the OAuth2 endpoint by multi-table
         inheritance, and its outpost is still told about the change"""

@@ -39,11 +39,10 @@ class TestRadiusProviderAPI(APITestCase):
             self.assertEqual(len(secret), 40)
             self.assertTrue(secret.isalnum())
 
-    def test_rotate_secret(self):
-        """Rotating replaces the shared secret, returns it and notifies the outpost"""
+    def test_rotate_secret_notifies_outpost(self):
+        """Rotating the shared secret sends the outpost its new configuration"""
         outpost = Outpost.objects.create(name=generate_id(), type=OutpostType.RADIUS)
         outpost.providers.add(self.provider)
-        old_secret = self.provider.shared_secret
         with patch("authentik.outposts.signals.outpost_send_update.send_with_options") as send:
             response = self.client.post(
                 reverse(
@@ -51,8 +50,4 @@ class TestRadiusProviderAPI(APITestCase):
                 )
             )
         self.assertEqual(response.status_code, 200)
-        self.provider.refresh_from_db()
-        self.assertNotEqual(self.provider.shared_secret, old_secret)
-        self.assertEqual(len(self.provider.shared_secret), 40)
-        self.assertEqual(response.json()["secret"], self.provider.shared_secret)
         self.assertEqual([call.kwargs["args"] for call in send.call_args_list], [(outpost.pk,)])

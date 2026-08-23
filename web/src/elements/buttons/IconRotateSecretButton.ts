@@ -1,6 +1,7 @@
 import "#elements/dialogs/ak-modal";
 import "@patternfly/elements/pf-tooltip/pf-tooltip.js";
 
+import { aki } from "#common/api/client";
 import { AKRefreshEvent } from "#common/events";
 import { MessageLevel } from "#common/messages";
 
@@ -8,20 +9,10 @@ import { renderConfirmation } from "#elements/dialogs/utils";
 import { showAPIErrorMessage, showMessage } from "#elements/messages/MessageContainer";
 import { SlottedTemplateResult } from "#elements/types";
 
-import { RotatedSecret } from "@goauthentik/api";
+import { CoreApi, RotatedSecret } from "@goauthentik/api";
 
 import { msg, str } from "@lit/localize";
 import { html, nothing } from "lit";
-
-/** Rotation reads the same way for every secret, so the warning is not written per call site. */
-const rotateWarning = msg(
-    "The old value stops working. Everything using it has to be updated with the new one.",
-    { id: "secret-rotate.confirm.warning" },
-);
-
-const rotateFormWarning = msg("Rotating applies immediately, even if you don't save this form.", {
-    id: "secret-rotate.confirm.unsaved",
-});
 
 export interface RotateSecretProps {
     /** Calls the rotate endpoint. */
@@ -35,11 +26,11 @@ export interface RotateSecretProps {
 }
 
 /**
- * An icon button that asks for confirmation before replacing a secret with a newly generated one.
- * The confirmation opens in the top layer, so it also works inside a form modal.
+ * An icon button that replaces a secret with a newly generated one, after confirmation. The
+ * confirmation opens in the top layer, so it also works inside a form modal.
  *
  * Prefer the `rotate` property of {@linkcode AkHiddenTextInput}; this is for secrets with no field
- * to sit next to, such as a table cell.
+ * of their own to sit next to, such as a table cell.
  */
 export function IconRotateSecretButton({
     rotate,
@@ -57,8 +48,18 @@ export function IconRotateSecretButton({
         let secret: string | null | undefined;
 
         const confirmed = await renderConfirmation(
-            html`<p>${rotateWarning}</p>
-                ${invoker.closest("form") ? html`<p>${rotateFormWarning}</p>` : nothing}`,
+            html`<p>
+                    ${msg("Everything using the old value has to be updated with the new one.", {
+                        id: "secret-rotate.confirm.warning",
+                    })}
+                </p>
+                ${invoker.closest("form")
+                    ? html`<p>
+                          ${msg("Rotating applies immediately, even if you don't save this form.", {
+                              id: "secret-rotate.confirm.unsaved",
+                          })}
+                      </p>`
+                    : nothing}`,
             async () => {
                 try {
                     secret = (await rotate()).secret;
@@ -101,3 +102,10 @@ export function IconRotateSecretButton({
         </pf-tooltip>
     </button>`;
 }
+
+/** Rotates a token's key. No rotate response carries it, so the copy button fetches it after. */
+export const IconTokenRotateButton = (identifier: string) =>
+    IconRotateSecretButton({
+        rotate: () => aki(CoreApi).coreTokensRotateSecretCreate({ identifier }),
+        entityLabel: msg("token", { id: "tokens.rotate.entity" }),
+    });

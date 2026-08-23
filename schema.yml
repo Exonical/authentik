@@ -6026,7 +6026,8 @@ paths:
   /endpoints/agents/enrollment_tokens/:
     get:
       operationId: endpoints_agents_enrollment_tokens_list
-      description: EnrollmentToken Viewset
+      description: Tokens that enroll a device with an agent connector, granting it
+        a device token
       parameters:
       - in: query
         name: connector
@@ -6059,7 +6060,8 @@ paths:
           $ref: '#/components/responses/GenericErrorResponse'
     post:
       operationId: endpoints_agents_enrollment_tokens_create
-      description: EnrollmentToken Viewset
+      description: Tokens that enroll a device with an agent connector, granting it
+        a device token
       tags:
       - endpoints
       requestBody:
@@ -6084,7 +6086,8 @@ paths:
   /endpoints/agents/enrollment_tokens/{token_uuid}/:
     get:
       operationId: endpoints_agents_enrollment_tokens_retrieve
-      description: EnrollmentToken Viewset
+      description: Tokens that enroll a device with an agent connector, granting it
+        a device token
       parameters:
       - in: path
         name: token_uuid
@@ -6110,7 +6113,8 @@ paths:
           $ref: '#/components/responses/GenericErrorResponse'
     put:
       operationId: endpoints_agents_enrollment_tokens_update
-      description: EnrollmentToken Viewset
+      description: Tokens that enroll a device with an agent connector, granting it
+        a device token
       parameters:
       - in: path
         name: token_uuid
@@ -6142,7 +6146,8 @@ paths:
           $ref: '#/components/responses/GenericErrorResponse'
     patch:
       operationId: endpoints_agents_enrollment_tokens_partial_update
-      description: EnrollmentToken Viewset
+      description: Tokens that enroll a device with an agent connector, granting it
+        a device token
       parameters:
       - in: path
         name: token_uuid
@@ -6173,7 +6178,8 @@ paths:
           $ref: '#/components/responses/GenericErrorResponse'
     delete:
       operationId: endpoints_agents_enrollment_tokens_destroy
-      description: EnrollmentToken Viewset
+      description: Tokens that enroll a device with an agent connector, granting it
+        a device token
       parameters:
       - in: path
         name: token_uuid

@@ -14,8 +14,8 @@ import { aki } from "#common/api/client";
 import { docLink } from "#common/global";
 
 import { AKElement } from "#elements/Base";
+import { IconTokenRotateButton } from "#elements/buttons/IconRotateSecretButton";
 import { IconTokenCopyButton } from "#elements/buttons/IconTokenCopyButton";
-import { IconCoreTokenRotateButton } from "#elements/buttons/IconTokenRotateButton";
 import { SlottedTemplateResult } from "#elements/types";
 
 import { setPageDetails } from "#components/ak-page-navbar";
@@ -29,7 +29,7 @@ import { embeddedOutpostManaged, outpostTypeToLabel } from "#admin/outposts/util
 import { ModelEnum, Outpost, OutpostHealth, OutpostsApi, OutpostTypeEnum } from "@goauthentik/api";
 
 import { msg, str } from "@lit/localize";
-import { CSSResult, PropertyValues } from "lit";
+import { CSSResult, nothing, PropertyValues } from "lit";
 import { html } from "lit-html";
 import { guard } from "lit-html/directives/guard.js";
 import { customElement, property } from "lit/decorators.js";
@@ -251,7 +251,9 @@ export class OutpostViewPage extends AKElement {
                         </label>
                         <div>
                             ${IconTokenCopyButton(this.outpost?.tokenIdentifier)}
-                            ${IconCoreTokenRotateButton(this.outpost?.tokenIdentifier)}
+                            ${this.outpost
+                                ? IconTokenRotateButton(this.outpost.tokenIdentifier)
+                                : nothing}
                         </div>
                     </div>
                     <h3>

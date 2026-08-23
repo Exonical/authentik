@@ -1208,7 +1208,7 @@ class Token(SerializerModel, ManagedModel, ExpiringModel):
 
     def expire_action(self, *args, **kwargs):
         """Handler which is called when this object is expired."""
-        from authentik.core.secrets import rotate_secret
+        from authentik.core.api.secrets import rotate_secret
 
         if (
             self.intent

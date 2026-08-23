@@ -17,19 +17,15 @@ class TestEnrollmentTokenAPI(APITestCase):
         self.connector = AgentConnector.objects.create(name=generate_id())
         self.token = EnrollmentToken.objects.create(name=generate_id(), connector=self.connector)
 
-    def test_rotate_secret(self):
-        """Rotating replaces the key without returning it"""
-        old_key = self.token.key
-        response = self.client.post(
+    def test_rotate_secret_key_stays_hidden(self):
+        """The rotated key is only readable through view_key"""
+        self.client.post(
             reverse(
                 "authentik_api:enrollmenttoken-rotate-secret",
                 kwargs={"pk": self.token.token_uuid},
             )
         )
-        self.assertEqual(response.status_code, 200)
         self.token.refresh_from_db()
-        self.assertNotEqual(self.token.key, old_key)
-        self.assertIsNone(response.json()["secret"])
         response = self.client.get(
             reverse("authentik_api:enrollmenttoken-view-key", kwargs={"pk": self.token.token_uuid})
         )

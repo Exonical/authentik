@@ -151,16 +151,30 @@ export function renderDialog(
     return resolvers.promise;
 }
 
+/**
+ * Renders a modal dialog with the given template.
+ *
+ * @param renderable The template to render inside the modal.
+ * @param init Initialization options for the modal.
+ *
+ * @returns A promise that resolves when the modal is closed.
+ */
+export function renderModal(renderable: unknown, init?: DialogInit): Promise<void> {
+    return renderDialog(
+        html`<ak-modal size=${ifPresent(init?.size)} headline=${ifPresent(init?.headline)}
+            >${renderable}</ak-modal
+        >`,
+        init,
+    );
+}
+
 export interface ConfirmationInit extends DialogInit {
-    /** Headline of the confirmation. */
-    headline: string;
     /** Label of the confirming button, e.g. "Rotate". */
     action: string;
 }
 
 /**
- * Renders a confirmation dialog for a destructive action, running `confirm` when the person
- * accepts.
+ * Renders a confirmation for a destructive action, running `confirm` when the person accepts.
  *
  * @remarks
  * A rejected `confirm` leaves the dialog open so the person can try again; reporting it is the
@@ -171,12 +185,11 @@ export interface ConfirmationInit extends DialogInit {
 export function renderConfirmation(
     body: unknown,
     confirm: () => Promise<unknown>,
-    { headline, action, ...init }: ConfirmationInit,
+    { action, ...init }: ConfirmationInit,
 ): Promise<boolean> {
     let confirmed = false;
 
     const dialogOf = (event: Event) => (event.currentTarget as HTMLElement).closest("dialog");
-    const close = (event: Event) => dialogOf(event)?.close();
 
     const accept = (event: Event) => {
         // Read the dialog before awaiting: event targets inside a shadow tree are cleared once
@@ -193,33 +206,21 @@ export function renderConfirmation(
         );
     };
 
-    return renderDialog(
-        html`<ak-modal headline=${headline}>
-            <div class="pf-c-content">${body}</div>
-            <button slot="actions" type="button" class="pf-c-button pf-m-link" @click=${close}>
+    return renderModal(
+        html`<div class="pf-c-content">${body}</div>
+            <button
+                slot="actions"
+                type="button"
+                class="pf-c-button pf-m-link"
+                @click=${(event: Event) => dialogOf(event)?.close()}
+            >
                 ${msg("Cancel")}
             </button>
             <button slot="actions" type="button" class="pf-c-button pf-m-danger" @click=${accept}>
                 ${action}
-            </button>
-        </ak-modal>`,
+            </button>`,
         init,
     ).then(() => confirmed);
-}
-
-/**
- * Renders a modal dialog with the given template.
- *
- * @param renderable The template to render inside the modal.
- * @param init Initialization options for the modal.
- *
- * @returns A promise that resolves when the modal is closed.
- */
-export function renderModal(renderable: unknown, init?: DialogInit): Promise<void> {
-    return renderDialog(
-        html`<ak-modal size=${ifPresent(init?.size)}>${renderable}</ak-modal>`,
-        init,
-    );
 }
 
 //#endregion
