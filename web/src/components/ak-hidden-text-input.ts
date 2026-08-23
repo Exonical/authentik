@@ -165,7 +165,6 @@ export class AkHiddenTextInput<T extends InputLike = HTMLInputElement>
 
         return IconRotateSecretButton({
             rotate: this.rotate,
-            entityLabel: this.label ?? undefined,
             apply: this.#applyRotated,
             control: true,
         });
@@ -175,7 +174,6 @@ export class AkHiddenTextInput<T extends InputLike = HTMLInputElement>
         return IconCopyButton({
             source: this.value ?? null,
             buttonLabel: msg("Copy value"),
-            entityLabel: this.label ?? undefined,
             control: true,
         });
     }

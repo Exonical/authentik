@@ -11,14 +11,12 @@ import { SlottedTemplateResult } from "#elements/types";
 
 import { CoreApi, RotatedSecret } from "@goauthentik/api";
 
-import { msg, str } from "@lit/localize";
+import { msg } from "@lit/localize";
 import { html, nothing } from "lit";
 
 export interface RotateSecretProps {
     /** Calls the rotate endpoint. */
     rotate: () => Promise<RotatedSecret>;
-    /** What is being rotated, e.g. "Client Secret". Names the button and every message. */
-    entityLabel?: string;
     /** Hands the new secret to the field that owns it, instead of reloading the page around it. */
     apply?: (secret: string) => void;
     /** Render as a bordered input-group control, for use next to an input. */
@@ -34,11 +32,10 @@ export interface RotateSecretProps {
  */
 export function IconRotateSecretButton({
     rotate,
-    entityLabel = msg("secret", { id: "secret-rotate.entity" }),
     apply,
     control = false,
 }: RotateSecretProps): SlottedTemplateResult {
-    const headline = msg(str`Rotate ${entityLabel}`, { id: "secret-rotate.confirm.header" });
+    const headline = msg("Rotate secret", { id: "secret-rotate.confirm.header" });
 
     const open = async (event: Event) => {
         // Read the invoker before any await: event targets inside a shadow tree are cleared once
@@ -86,9 +83,7 @@ export function IconRotateSecretButton({
         invoker.dispatchEvent(new AKRefreshEvent());
 
         showMessage({
-            message: msg(str`Successfully rotated ${entityLabel}.`, {
-                id: "secret-rotate.success",
-            }),
+            message: msg("Successfully rotated secret.", { id: "secret-rotate.success" }),
             level: MessageLevel.success,
         });
     };
@@ -109,5 +104,4 @@ export function IconRotateSecretButton({
 export const IconTokenRotateButton = (identifier: string) =>
     IconRotateSecretButton({
         rotate: () => aki(CoreApi).coreTokensRotateSecretCreate({ identifier }),
-        entityLabel: msg("token", { id: "tokens.rotate.entity" }),
     });

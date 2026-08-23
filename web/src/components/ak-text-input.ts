@@ -96,7 +96,7 @@ export class AkTextInput extends HorizontalLightComponent<string> {
             input,
             IconCopyButton({
                 source: this.value || null,
-                entityLabel: this.label ?? undefined,
+                buttonLabel: msg("Copy value"),
                 control: true,
             }),
         );

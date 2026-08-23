@@ -105,7 +105,6 @@ export class EnrollmentTokenListPage extends Table<EnrollmentToken> {
                         aki(EndpointsApi).endpointsAgentsEnrollmentTokensRotateSecretCreate({
                             tokenUuid: item.tokenUuid,
                         }),
-                    entityLabel: msg("token", { id: "tokens.rotate.entity" }),
                 })}
             </div>`,
         ];
