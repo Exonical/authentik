@@ -7,7 +7,7 @@ import {
 } from "./HorizontalLightComponent.js";
 
 import { IconCopyButton } from "#elements/buttons/IconCopyButton";
-import { IconRotateSecretButton } from "#elements/buttons/IconRotateSecretButton";
+import { IconRotateSecretButton, RotatedSecret } from "#elements/buttons/IconRotateSecretButton";
 import { SlottedTemplateResult } from "#elements/types";
 import { ifPresent } from "#elements/utils/attributes";
 
@@ -104,11 +104,7 @@ export class AkHiddenTextInput<T extends InputLike = HTMLInputElement>
      * rotate control next to the copy button, labelled from this field's own `label`.
      */
     @property({ attribute: false })
-    public rotate?: () => Promise<unknown>;
-
-    /** What stops working once the value is rotated, shown in the confirmation. */
-    @property({ type: String, attribute: "rotate-warning" })
-    public rotateWarning: string | null = null;
+    public rotate?: () => Promise<RotatedSecret>;
 
     /**
      * @property
@@ -152,6 +148,20 @@ export class AkHiddenTextInput<T extends InputLike = HTMLInputElement>
         />`;
     }
 
+    /**
+     * Shows the rotated secret. Assigning the property is not enough on its own: an input the user
+     * has typed into ignores later value attributes, and this field is often one of them.
+     */
+    #applyRotated = (secret: string): void => {
+        this.value = secret;
+
+        this.updateComplete.then(() => {
+            const input = this.querySelector("input");
+
+            if (input) input.value = secret;
+        });
+    };
+
     protected renderRotateButton() {
         if (!this.rotate) return nothing;
 
@@ -159,7 +169,7 @@ export class AkHiddenTextInput<T extends InputLike = HTMLInputElement>
             {
                 rotate: this.rotate,
                 entityLabel: this.label ?? msg("secret", { id: "secret-rotate.entity.fallback" }),
-                warning: this.rotateWarning,
+                apply: this.#applyRotated,
             },
             true,
         );

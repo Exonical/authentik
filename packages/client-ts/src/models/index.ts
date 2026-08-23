@@ -766,6 +766,7 @@ export * from "./RoleAssignedObjectPermission";
 export * from "./RoleModelPermission";
 export * from "./RoleObjectPermission";
 export * from "./RoleRequest";
+export * from "./RotatedSecret";
 export * from "./SAMLBindingsEnum";
 export * from "./SAMLLogoutMethods";
 export * from "./SAMLMetadata";

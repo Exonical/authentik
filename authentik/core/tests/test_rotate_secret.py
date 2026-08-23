@@ -23,14 +23,14 @@ class TestRotateSecret(APITestCase):
         )
 
     def test_rotate(self):
-        """Rotating replaces the key, does not return it, and is audited once without the secret"""
+        """Rotating replaces the key, withholds it, and is audited once without the secret"""
         self.client.force_login(self.admin)
         old_key = self.token.key
         response = self.client.post(self.url)
         self.assertEqual(response.status_code, 200)
         self.token.refresh_from_db()
         self.assertNotEqual(self.token.key, old_key)
-        self.assertNotIn("key", response.json())
+        self.assertIsNone(response.json()["secret"])
         events = Event.objects.filter(context__model__pk=self.token.pk.hex)
         self.assertEqual([event.action for event in events], [EventAction.SECRET_ROTATE])
         event = events.first()

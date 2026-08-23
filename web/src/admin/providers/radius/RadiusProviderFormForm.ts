@@ -107,10 +107,6 @@ export function renderForm({ provider, errors, brand }: RADIUSProviderFormProps)
                     input-hint="code"
                     copyable
                     .rotate=${rotateSharedSecret(provider.pk)}
-                    rotate-warning=${msg(
-                        "The current shared secret stops working as soon as the outpost picks up the change, usually within seconds. Update every RADIUS client with the new secret afterwards.",
-                        { id: "providers.radius.shared-secret.rotate.description" },
-                    )}
                 ></ak-hidden-text-input>
                 <ak-text-input
                     name="clientNetworks"

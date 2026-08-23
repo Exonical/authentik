@@ -54,5 +54,5 @@ class TestRadiusProviderAPI(APITestCase):
         self.provider.refresh_from_db()
         self.assertNotEqual(self.provider.shared_secret, old_secret)
         self.assertEqual(len(self.provider.shared_secret), 40)
-        self.assertEqual(response.json()["shared_secret"], self.provider.shared_secret)
+        self.assertEqual(response.json()["secret"], self.provider.shared_secret)
         self.assertEqual([call.kwargs["args"] for call in send.call_args_list], [(outpost.pk,)])

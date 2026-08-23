@@ -250,10 +250,6 @@ export function renderForm({
                     input-hint="code"
                     copyable
                     .rotate=${rotateClientSecret(provider.pk)}
-                    rotate-warning=${msg(
-                        "The current client secret stops working immediately. Clients authenticating with it are rejected, and if this provider has no signing key, ID tokens signed with it no longer validate. Update every client with the new secret afterwards.",
-                        { id: "providers.oauth2.client-secret.rotate.description" },
-                    )}
                     .errorMessages=${errors.clientSecret}
                     ?hidden=${!showClientSecret}
                 >

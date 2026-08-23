@@ -29,7 +29,7 @@ class TestEnrollmentTokenAPI(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.token.refresh_from_db()
         self.assertNotEqual(self.token.key, old_key)
-        self.assertNotIn("key", response.json())
+        self.assertIsNone(response.json()["secret"])
         response = self.client.get(
             reverse("authentik_api:enrollmenttoken-view-key", kwargs={"pk": self.token.token_uuid})
         )

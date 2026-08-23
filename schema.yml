@@ -4371,7 +4371,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Token'
+                $ref: '#/components/schemas/RotatedSecret'
           description: ''
         '400':
           $ref: '#/components/responses/ValidationErrorResponse'
@@ -6216,7 +6216,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EnrollmentToken'
+                $ref: '#/components/schemas/RotatedSecret'
           description: ''
         '400':
           $ref: '#/components/responses/ValidationErrorResponse'
@@ -19140,7 +19140,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OAuth2Provider'
+                $ref: '#/components/schemas/RotatedSecret'
           description: ''
         '400':
           $ref: '#/components/responses/ValidationErrorResponse'
@@ -19838,7 +19838,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RadiusProvider'
+                $ref: '#/components/schemas/RotatedSecret'
           description: ''
         '400':
           $ref: '#/components/responses/ValidationErrorResponse'
@@ -56974,6 +56974,17 @@ components:
           minLength: 1
       required:
       - name
+    RotatedSecret:
+      type: object
+      description: The newly generated secret, or null when the field is not readable
+        on the object
+      properties:
+        secret:
+          type: string
+          readOnly: true
+          nullable: true
+      required:
+      - secret
     SAMLBindingsEnum:
       enum:
       - redirect

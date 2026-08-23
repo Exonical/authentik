@@ -2,14 +2,22 @@
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
+from rest_framework.fields import CharField
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from authentik.core.api.utils import PassiveSerializer
 from authentik.events.middleware import audit_ignore
 from authentik.events.models import Event, EventAction
 from authentik.events.utils import model_to_dict
 from authentik.rbac.filters import ObjectFilter
 from authentik.rbac.permissions import ObjectPermissions
+
+
+class RotatedSecretSerializer(PassiveSerializer):
+    """The newly generated secret, or null when the field is not readable on the object"""
+
+    secret = CharField(read_only=True, allow_null=True)
 
 
 class RotateSecretPermissions(ObjectPermissions):
@@ -25,7 +33,15 @@ class RotatableSecretMixin:
 
     rotatable_secret: str
 
-    @extend_schema(request=None)
+    def rotated_secret(self, instance) -> str | None:
+        """The new value, but only for secrets a read of the object would return anyway.
+        Token keys, for instance, are kept behind their own `view_..._key` endpoint."""
+        field = self.get_serializer().fields.get(self.rotatable_secret)
+        if not field or field.write_only:
+            return None
+        return getattr(instance, self.rotatable_secret)
+
+    @extend_schema(request=None, responses={200: RotatedSecretSerializer})
     @action(
         detail=True,
         methods=["POST"],
@@ -47,4 +63,4 @@ class RotatableSecretMixin:
             model=model_to_dict(instance),
             field=field,
         ).from_http(request)
-        return Response(self.get_serializer(instance).data)
+        return Response(RotatedSecretSerializer({"secret": self.rotated_secret(instance)}).data)

@@ -1,6 +1,6 @@
 import { aki } from "#common/api/client";
 
-import { IconRotateSecretButton } from "#elements/buttons/IconRotateSecretButton";
+import { IconRotateSecretButton, RotatedSecret } from "#elements/buttons/IconRotateSecretButton";
 import { SlottedTemplateResult } from "#elements/types";
 
 import { CoreApi, EndpointsApi } from "@goauthentik/api";
@@ -13,17 +13,13 @@ import { guard } from "lit-html/directives/guard.js";
  */
 export function IconTokenRotateButton(
     identifier: string | null | undefined,
-    rotate: () => Promise<unknown>,
+    rotate: () => Promise<RotatedSecret>,
 ): SlottedTemplateResult {
     return guard([identifier], () =>
         identifier
             ? IconRotateSecretButton({
                   rotate,
                   entityLabel: msg("token", { id: "tokens.rotate.entity" }),
-                  warning: msg(
-                      "The current key stops working immediately. Anything using this token has to be updated with the new key, which can be copied afterwards.",
-                      { id: "tokens.rotate.description" },
-                  ),
               })
             : null,
     );

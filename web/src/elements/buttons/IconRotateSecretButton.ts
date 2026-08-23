@@ -2,22 +2,38 @@ import "#elements/dialogs/ak-modal";
 import "@patternfly/elements/pf-tooltip/pf-tooltip.js";
 
 import { parseAPIResponseError, pluckErrorDetail } from "#common/errors/network";
+import { AKRefreshEvent } from "#common/events";
 import { MessageLevel } from "#common/messages";
 
-import { renderDialog } from "#elements/dialogs/utils";
+import { renderConfirmation } from "#elements/dialogs/utils";
 import { showMessage } from "#elements/messages/MessageContainer";
 import { SlottedTemplateResult } from "#elements/types";
 
 import { msg, str } from "@lit/localize";
 import { html, nothing } from "lit";
 
+/** The API's rotate response. `secret` is null for secrets that reads never hand out. */
+export interface RotatedSecret {
+    secret?: string | null;
+}
+
+/** Rotation reads the same way for every secret, so the warning is not written per call site. */
+const rotateWarning = msg(
+    "The old value stops working. Everything using it has to be updated with the new one.",
+    { id: "secret-rotate.confirm.warning" },
+);
+
+const rotateFormWarning = msg("Rotating applies immediately, even if you don't save this form.", {
+    id: "secret-rotate.confirm.unsaved",
+});
+
 export interface RotateSecretProps {
-    /** Calls the rotate endpoint. On success a refresh event is dispatched from the button. */
-    rotate: () => Promise<unknown>;
+    /** Calls the rotate endpoint. */
+    rotate: () => Promise<RotatedSecret>;
     /** What is being rotated, e.g. "Client Secret". Names the button and every message. */
     entityLabel: string;
-    /** What stops working once the secret is replaced, shown in the confirmation. */
-    warning?: string | null;
+    /** Hands the new secret to the field that owns it, instead of reloading the page around it. */
+    apply?: (secret: string) => void;
 }
 
 /**
@@ -25,90 +41,69 @@ export interface RotateSecretProps {
  * The confirmation opens in the top layer, so it also works inside a form modal.
  * Pass `control` to render it as a bordered input-group control next to an input.
  *
- * Prefer the `rotate` property of {@linkcode AkHiddenTextInput} over calling this directly; it
- * only makes sense on its own where a secret has no field to sit next to, such as a table cell.
+ * Prefer the `rotate` property of {@linkcode AkHiddenTextInput}; this is for secrets with no field
+ * to sit next to, such as a table cell.
  */
 export function IconRotateSecretButton(
-    { rotate, entityLabel, warning }: RotateSecretProps,
+    { rotate, entityLabel, apply }: RotateSecretProps,
     control = false,
 ): SlottedTemplateResult {
-    const header = msg(str`Rotate ${entityLabel}`, { id: "secret-rotate.confirm.header" });
+    const headline = msg(str`Rotate ${entityLabel}`, { id: "secret-rotate.confirm.header" });
 
-    // Resolve the dialog before any await: event targets inside a shadow tree are cleared once
-    // dispatch finishes.
-    const dialogOf = (event: Event) => (event.currentTarget as HTMLElement).closest("dialog");
-    const close = (event: Event) => dialogOf(event)?.close();
-
-    const open = (event: Event) => {
+    const open = async (event: Event) => {
+        // Read the invoker before any await: event targets inside a shadow tree are cleared once
+        // dispatch finishes.
         const invoker = event.currentTarget as HTMLElement;
-        const inForm = !!invoker.closest("form");
 
-        let rotated = false;
+        let secret: string | null | undefined;
 
-        const confirm = (click: Event) => {
-            const dialog = dialogOf(click);
-
-            return rotate().then(
-                () => {
-                    rotated = true;
-                    dialog?.close("submitted");
-                },
-                async (error: unknown) =>
+        const confirmed = await renderConfirmation(
+            html`<p>${rotateWarning}</p>
+                ${invoker.closest("form") ? html`<p>${rotateFormWarning}</p>` : nothing}`,
+            async () => {
+                try {
+                    secret = (await rotate()).secret;
+                } catch (error) {
                     showMessage({
                         message: msg(
                             str`Failed to rotate ${entityLabel}: ${pluckErrorDetail(await parseAPIResponseError(error))}`,
                             { id: "secret-rotate.error" },
                         ),
                         level: MessageLevel.error,
-                    }),
-            );
-        };
+                    });
 
-        return renderDialog(
-            html`<ak-modal headline=${header}>
-                <div class="pf-c-content">
-                    ${warning ? html`<p>${warning}</p>` : nothing}
-                    ${inForm
-                        ? html`<p>
-                              ${msg(
-                                  "Rotating applies immediately, even if you don't save this form.",
-                                  { id: "secret-rotate.confirm.unsaved" },
-                              )}
-                          </p>`
-                        : nothing}
-                </div>
-                <button slot="actions" type="button" class="pf-c-button pf-m-link" @click=${close}>
-                    ${msg("Cancel")}
-                </button>
-                <button
-                    slot="actions"
-                    type="button"
-                    class="pf-c-button pf-m-danger"
-                    @click=${confirm}
-                >
-                    ${msg("Rotate", { id: "secret-rotate.confirm.action" })}
-                </button>
-            </ak-modal>`,
-            { invokerElement: invoker },
-        ).then(() => {
-            if (!rotated) return;
+                    throw error;
+                }
+            },
+            {
+                headline,
+                action: msg("Rotate", { id: "secret-rotate.confirm.action" }),
+                invokerElement: invoker,
+            },
+        );
 
-            showMessage({
-                message: msg(str`Successfully rotated ${entityLabel}.`, {
-                    id: "secret-rotate.success",
-                }),
-                level: MessageLevel.success,
-            });
+        if (!confirmed) return;
+
+        // Handing the secret to its own field leaves the rest of an open form untouched. Without
+        // one, whatever is showing the secret has to reload to catch up.
+        if (secret && apply) apply(secret);
+        else invoker.dispatchEvent(new AKRefreshEvent());
+
+        showMessage({
+            message: msg(str`Successfully rotated ${entityLabel}.`, {
+                id: "secret-rotate.success",
+            }),
+            level: MessageLevel.success,
         });
     };
 
     return html`<button
         class="pf-c-button ${control ? "pf-m-control" : "pf-m-plain"}"
         type="button"
-        aria-label=${header}
+        aria-label=${headline}
         @click=${open}
     >
-        <pf-tooltip position="top" content=${header}>
+        <pf-tooltip position="top" content=${headline}>
             <i class="fas fa-sync-alt" aria-hidden="true"></i>
         </pf-tooltip>
     </button>`;

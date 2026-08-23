@@ -224,6 +224,7 @@ import {
     type RadiusProviderRequest,
     RadiusProviderRequestToJSON,
 } from "../models/RadiusProviderRequest";
+import { type RotatedSecret, RotatedSecretFromJSON } from "../models/RotatedSecret";
 import { type SAMLBindingsEnum } from "../models/SAMLBindingsEnum";
 import { type SAMLLogoutMethods } from "../models/SAMLLogoutMethods";
 import { type SAMLMetadata, SAMLMetadataFromJSON } from "../models/SAMLMetadata";
@@ -5455,13 +5456,13 @@ export class ProvidersApi extends runtime.BaseAPI {
     async providersOauth2RotateSecretCreateRaw(
         requestParameters: ProvidersOauth2RotateSecretCreateRequest,
         initOverrides?: RequestInit | runtime.InitOverrideFunction,
-    ): Promise<runtime.ApiResponse<OAuth2Provider>> {
+    ): Promise<runtime.ApiResponse<RotatedSecret>> {
         const requestOptions =
             await this.providersOauth2RotateSecretCreateRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) =>
-            OAuth2ProviderFromJSON(jsonValue),
+            RotatedSecretFromJSON(jsonValue),
         );
     }
 
@@ -5471,7 +5472,7 @@ export class ProvidersApi extends runtime.BaseAPI {
     async providersOauth2RotateSecretCreate(
         requestParameters: ProvidersOauth2RotateSecretCreateRequest,
         initOverrides?: RequestInit | runtime.InitOverrideFunction,
-    ): Promise<OAuth2Provider> {
+    ): Promise<RotatedSecret> {
         const response = await this.providersOauth2RotateSecretCreateRaw(
             requestParameters,
             initOverrides,
@@ -7062,13 +7063,13 @@ export class ProvidersApi extends runtime.BaseAPI {
     async providersRadiusRotateSecretCreateRaw(
         requestParameters: ProvidersRadiusRotateSecretCreateRequest,
         initOverrides?: RequestInit | runtime.InitOverrideFunction,
-    ): Promise<runtime.ApiResponse<RadiusProvider>> {
+    ): Promise<runtime.ApiResponse<RotatedSecret>> {
         const requestOptions =
             await this.providersRadiusRotateSecretCreateRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) =>
-            RadiusProviderFromJSON(jsonValue),
+            RotatedSecretFromJSON(jsonValue),
         );
     }
 
@@ -7078,7 +7079,7 @@ export class ProvidersApi extends runtime.BaseAPI {
     async providersRadiusRotateSecretCreate(
         requestParameters: ProvidersRadiusRotateSecretCreateRequest,
         initOverrides?: RequestInit | runtime.InitOverrideFunction,
-    ): Promise<RadiusProvider> {
+    ): Promise<RotatedSecret> {
         const response = await this.providersRadiusRotateSecretCreateRaw(
             requestParameters,
             initOverrides,

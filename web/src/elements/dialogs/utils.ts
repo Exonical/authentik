@@ -10,6 +10,7 @@ import { DialogInit } from "#elements/dialogs/shared";
 import { RouteChangeEvent } from "#elements/router/events";
 import { ifPresent } from "#elements/utils/attributes";
 
+import { msg } from "@lit/localize";
 import { html, render } from "lit";
 
 //#region Rendering
@@ -148,6 +149,68 @@ export function renderDialog(
     setDialogCountAttribute(1, ownerDocument);
 
     return resolvers.promise;
+}
+
+export interface ConfirmationInit extends DialogInit {
+    /** Headline of the confirmation. */
+    headline: string;
+    /** Label of the confirming button, e.g. "Rotate". */
+    action: string;
+    /** PatternFly modifier for the confirming button. */
+    actionLevel?: string;
+}
+
+/**
+ * Renders a confirmation dialog, running `confirm` when the person accepts.
+ *
+ * @remarks
+ * A rejected `confirm` leaves the dialog open so the person can try again; reporting it is the
+ * caller's job, since only the caller knows what failed.
+ *
+ * @returns Whether the action ran and succeeded.
+ */
+export function renderConfirmation(
+    body: unknown,
+    confirm: () => Promise<unknown>,
+    { headline, action, actionLevel = "pf-m-danger", ...init }: ConfirmationInit,
+): Promise<boolean> {
+    let confirmed = false;
+
+    const dialogOf = (event: Event) => (event.currentTarget as HTMLElement).closest("dialog");
+    const close = (event: Event) => dialogOf(event)?.close();
+
+    const accept = (event: Event) => {
+        // Read the dialog before awaiting: event targets inside a shadow tree are cleared once
+        // dispatch finishes.
+        const dialog = dialogOf(event);
+
+        return confirm().then(
+            () => {
+                confirmed = true;
+                dialog?.close();
+            },
+            // Reported by the caller; the dialog stays open for another try.
+            () => undefined,
+        );
+    };
+
+    return renderDialog(
+        html`<ak-modal headline=${headline}>
+            <div class="pf-c-content">${body}</div>
+            <button slot="actions" type="button" class="pf-c-button pf-m-link" @click=${close}>
+                ${msg("Cancel")}
+            </button>
+            <button
+                slot="actions"
+                type="button"
+                class="pf-c-button ${actionLevel}"
+                @click=${accept}
+            >
+                ${action}
+            </button>
+        </ak-modal>`,
+        init,
+    ).then(() => confirmed);
 }
 
 /**

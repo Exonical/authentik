@@ -237,7 +237,7 @@ class TestAPI(APITestCase):
         self.provider.refresh_from_db()
         self.assertNotEqual(self.provider.client_secret, old_secret)
         self.assertEqual(len(self.provider.client_secret), 128)
-        self.assertEqual(response.json()["client_secret"], self.provider.client_secret)
+        self.assertEqual(response.json()["secret"], self.provider.client_secret)
 
     def test_rotate_secret_proxy_provider(self):
         """A proxy provider is reachable through the OAuth2 endpoint by multi-table

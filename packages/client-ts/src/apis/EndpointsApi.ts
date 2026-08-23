@@ -154,6 +154,7 @@ import {
     type PatchedGoogleChromeConnectorRequest,
     PatchedGoogleChromeConnectorRequestToJSON,
 } from "../models/PatchedGoogleChromeConnectorRequest";
+import { type RotatedSecret, RotatedSecretFromJSON } from "../models/RotatedSecret";
 import { type TokenView, TokenViewFromJSON } from "../models/TokenView";
 import { type TypeCreate, TypeCreateFromJSON } from "../models/TypeCreate";
 import { type UsedBy, UsedByFromJSON } from "../models/UsedBy";
@@ -1775,7 +1776,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     async endpointsAgentsEnrollmentTokensRotateSecretCreateRaw(
         requestParameters: EndpointsAgentsEnrollmentTokensRotateSecretCreateRequest,
         initOverrides?: RequestInit | runtime.InitOverrideFunction,
-    ): Promise<runtime.ApiResponse<EnrollmentToken>> {
+    ): Promise<runtime.ApiResponse<RotatedSecret>> {
         const requestOptions =
             await this.endpointsAgentsEnrollmentTokensRotateSecretCreateRequestOpts(
                 requestParameters,
@@ -1783,7 +1784,7 @@ export class EndpointsApi extends runtime.BaseAPI {
         const response = await this.request(requestOptions, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) =>
-            EnrollmentTokenFromJSON(jsonValue),
+            RotatedSecretFromJSON(jsonValue),
         );
     }
 
@@ -1793,7 +1794,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     async endpointsAgentsEnrollmentTokensRotateSecretCreate(
         requestParameters: EndpointsAgentsEnrollmentTokensRotateSecretCreateRequest,
         initOverrides?: RequestInit | runtime.InitOverrideFunction,
-    ): Promise<EnrollmentToken> {
+    ): Promise<RotatedSecret> {
         const response = await this.endpointsAgentsEnrollmentTokensRotateSecretCreateRaw(
             requestParameters,
             initOverrides,

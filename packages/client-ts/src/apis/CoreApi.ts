@@ -92,6 +92,7 @@ import {
 import { type PatchedTokenRequest, PatchedTokenRequestToJSON } from "../models/PatchedTokenRequest";
 import { type PatchedUserRequest, PatchedUserRequestToJSON } from "../models/PatchedUserRequest";
 import { type PolicyTestResult, PolicyTestResultFromJSON } from "../models/PolicyTestResult";
+import { type RotatedSecret, RotatedSecretFromJSON } from "../models/RotatedSecret";
 import { type SessionUser, SessionUserFromJSON } from "../models/SessionUser";
 import { type Token, TokenFromJSON } from "../models/Token";
 import { type TokenRequest, TokenRequestToJSON } from "../models/TokenRequest";
@@ -4318,12 +4319,14 @@ export class CoreApi extends runtime.BaseAPI {
     async coreTokensRotateSecretCreateRaw(
         requestParameters: CoreTokensRotateSecretCreateRequest,
         initOverrides?: RequestInit | runtime.InitOverrideFunction,
-    ): Promise<runtime.ApiResponse<Token>> {
+    ): Promise<runtime.ApiResponse<RotatedSecret>> {
         const requestOptions =
             await this.coreTokensRotateSecretCreateRequestOpts(requestParameters);
         const response = await this.request(requestOptions, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => TokenFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            RotatedSecretFromJSON(jsonValue),
+        );
     }
 
     /**
@@ -4332,7 +4335,7 @@ export class CoreApi extends runtime.BaseAPI {
     async coreTokensRotateSecretCreate(
         requestParameters: CoreTokensRotateSecretCreateRequest,
         initOverrides?: RequestInit | runtime.InitOverrideFunction,
-    ): Promise<Token> {
+    ): Promise<RotatedSecret> {
         const response = await this.coreTokensRotateSecretCreateRaw(
             requestParameters,
             initOverrides,
