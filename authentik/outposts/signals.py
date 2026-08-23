@@ -1,5 +1,7 @@
 """authentik outpost signals"""
 
+from uuid import UUID
+
 from django.core.cache import cache
 from django.db.models.signals import m2m_changed, post_save, pre_delete, pre_save
 from django.dispatch import receiver
@@ -121,11 +123,14 @@ for subclass in OutpostModel.__subclasses__():
 @receiver(post_save, sender=Token)
 def outpost_token_post_save(sender, instance: Token, created: bool, **_):
     """Redeploy managed outposts when their token changes, as the key is part of their config"""
-    if created or not (instance.managed or "").startswith("goauthentik.io/outpost/"):
+    if created:
         return
-    for outpost in Outpost.objects.filter(
-        pk=instance.identifier.removeprefix("ak-outpost-").removesuffix("-api")
-    ):
+    try:
+        # Outpost tokens are named after their outpost, see `Outpost.token_identifier`
+        pk = UUID(instance.identifier.removeprefix("ak-outpost-").removesuffix("-api"))
+    except ValueError:
+        return
+    for outpost in Outpost.objects.filter(pk=pk):
         outpost_controller.send_with_options(
             args=(outpost.pk,),
             rel_obj=outpost.service_connection,

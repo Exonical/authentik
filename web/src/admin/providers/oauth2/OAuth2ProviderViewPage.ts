@@ -236,20 +236,6 @@ export class OAuth2ProviderViewPage extends AKElement {
         </main>`;
     }
 
-    renderClientSecret(provider: OAuth2Provider): DescriptionPair {
-        return [
-            msg("Client secret", { id: "providers.oauth2.client-secret.label" }),
-            // Rotating lives in the edit form: it takes effect immediately, which is more than
-            // this read-only summary should be able to do.
-            html`<ak-hidden-text-input
-                value=${ifDefined(provider.clientSecret)}
-                input-hint="code"
-                readonly
-                copyable
-            ></ak-hidden-text-input>`,
-        ];
-    }
-
     renderTabOverview(provider: OAuth2Provider): SlottedTemplateResult {
         return html`${provider.assignedApplicationName
                 ? nothing
@@ -279,9 +265,23 @@ export class OAuth2ProviderViewPage extends AKElement {
                                     copyable
                                 ></ak-text-input>`,
                             ],
+                            // Rotating lives in the edit form: it applies immediately, which is
+                            // more than a read-only summary should be able to do.
                             ...(provider.clientType === ClientTypeEnum.Public
                                 ? []
-                                : [this.renderClientSecret(provider)]),
+                                : [
+                                      [
+                                          msg("Client secret", {
+                                              id: "providers.oauth2.client-secret.label",
+                                          }),
+                                          html`<ak-hidden-text-input
+                                              value=${ifDefined(provider.clientSecret)}
+                                              input-hint="code"
+                                              readonly
+                                              copyable
+                                          ></ak-hidden-text-input>`,
+                                      ] satisfies DescriptionPair,
+                                  ]),
                             [
                                 msg("Redirect URIs"),
                                 (provider.redirectUris || []).length > 0

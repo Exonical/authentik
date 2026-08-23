@@ -2,14 +2,16 @@ import "./ak-visibility-toggle.js";
 
 import type { VisibilityToggleProps } from "./ak-visibility-toggle.js";
 import {
+    controlGroup,
     HorizontalLightComponent,
     HorizontalLightComponentProps,
 } from "./HorizontalLightComponent.js";
 
 import { IconCopyButton } from "#elements/buttons/IconCopyButton";
-import { IconRotateSecretButton, RotatedSecret } from "#elements/buttons/IconRotateSecretButton";
-import { SlottedTemplateResult } from "#elements/types";
+import { IconRotateSecretButton } from "#elements/buttons/IconRotateSecretButton";
 import { ifPresent } from "#elements/utils/attributes";
+
+import { RotatedSecret } from "@goauthentik/api";
 
 import { msg } from "@lit/localize";
 import { css, html, nothing } from "lit";
@@ -95,10 +97,6 @@ export class AkHiddenTextInput<T extends InputLike = HTMLInputElement>
     @property({ type: Boolean, attribute: "readonly" })
     public readOnly: boolean = false;
 
-    /** Extra controls rendered after the reveal and copy buttons. */
-    @property({ attribute: false })
-    public actions: SlottedTemplateResult = nothing;
-
     /**
      * Replaces the value with a newly generated one, after confirmation. Setting it renders a
      * rotate control next to the copy button, labelled from this field's own `label`.
@@ -165,14 +163,12 @@ export class AkHiddenTextInput<T extends InputLike = HTMLInputElement>
     protected renderRotateButton() {
         if (!this.rotate) return nothing;
 
-        return IconRotateSecretButton(
-            {
-                rotate: this.rotate,
-                entityLabel: this.label ?? msg("secret", { id: "secret-rotate.entity.fallback" }),
-                apply: this.#applyRotated,
-            },
-            true,
-        );
+        return IconRotateSecretButton({
+            rotate: this.rotate,
+            entityLabel: this.label ?? undefined,
+            apply: this.#applyRotated,
+            control: true,
+        });
     }
 
     protected renderCopyButton() {
@@ -190,19 +186,19 @@ export class AkHiddenTextInput<T extends InputLike = HTMLInputElement>
             this.value = (ev.target as T).value;
         };
 
-        return html`<div style="display: flex;" part="control">
-            ${this.renderInputField(setValue, code)}
-            <ak-visibility-toggle
+        return controlGroup(
+            this.renderInputField(setValue, code),
+            html`<ak-visibility-toggle
                 part="toggle"
                 style="flex: 0 0 auto; align-self: flex-start"
                 ?open=${this.revealed}
                 show-message=${this.showMessage}
                 hide-message=${this.hideMessage}
                 @click=${() => (this.revealed = !this.revealed)}
-            ></ak-visibility-toggle>
-            ${this.copyable ? this.renderCopyButton() : nothing} ${this.renderRotateButton()}
-            ${this.actions}
-        </div>`;
+            ></ak-visibility-toggle>`,
+            this.copyable ? this.renderCopyButton() : nothing,
+            this.renderRotateButton(),
+        );
     }
 }
 

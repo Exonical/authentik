@@ -27,6 +27,10 @@ export interface HorizontalLightComponentProps<T> extends AKElementProps {
     inputHint?: string;
 }
 
+/** Groups an input with the controls that sit against it, e.g. reveal or copy buttons. */
+export const controlGroup = (...controls: unknown[]) =>
+    html`<div style="display: flex;" part="control">${controls}</div>`;
+
 export abstract class HorizontalLightComponent<T>
     extends AKElement
     implements HorizontalLightComponentProps<T>

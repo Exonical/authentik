@@ -288,12 +288,6 @@ export abstract class ModelForm<
 
     /**
      * Refreshes the instance by re-calling `loadInstance` with the current `instancePk`.
-     *
-     * @remarks
-     * A form that is already showing reloads in place, without its loading state. Swapping the
-     * fields out for a spinner would take the user's unsaved input with them, and refreshes reach
-     * open forms from anything that changes the object behind their back, such as rotating a
-     * secret. Fields the user has not touched pick up the new values as usual.
      */
     @listen(AKRefreshEvent)
     public refresh = async (): Promise<void> => {
@@ -303,7 +297,7 @@ export abstract class ModelForm<
         }
 
         this.error = null;
-        this.loading = !this.instance;
+        this.loading = true;
 
         return this.loadInstance(this.instancePk)
             .then((instance) => this.assignInstance(instance))

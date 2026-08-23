@@ -156,12 +156,11 @@ export interface ConfirmationInit extends DialogInit {
     headline: string;
     /** Label of the confirming button, e.g. "Rotate". */
     action: string;
-    /** PatternFly modifier for the confirming button. */
-    actionLevel?: string;
 }
 
 /**
- * Renders a confirmation dialog, running `confirm` when the person accepts.
+ * Renders a confirmation dialog for a destructive action, running `confirm` when the person
+ * accepts.
  *
  * @remarks
  * A rejected `confirm` leaves the dialog open so the person can try again; reporting it is the
@@ -172,7 +171,7 @@ export interface ConfirmationInit extends DialogInit {
 export function renderConfirmation(
     body: unknown,
     confirm: () => Promise<unknown>,
-    { headline, action, actionLevel = "pf-m-danger", ...init }: ConfirmationInit,
+    { headline, action, ...init }: ConfirmationInit,
 ): Promise<boolean> {
     let confirmed = false;
 
@@ -200,12 +199,7 @@ export function renderConfirmation(
             <button slot="actions" type="button" class="pf-c-button pf-m-link" @click=${close}>
                 ${msg("Cancel")}
             </button>
-            <button
-                slot="actions"
-                type="button"
-                class="pf-c-button ${actionLevel}"
-                @click=${accept}
-            >
+            <button slot="actions" type="button" class="pf-c-button pf-m-danger" @click=${accept}>
                 ${action}
             </button>
         </ak-modal>`,

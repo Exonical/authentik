@@ -33,14 +33,6 @@ class RotatableSecretMixin:
 
     rotatable_secret: str
 
-    def rotated_secret(self, instance) -> str | None:
-        """The new value, but only for secrets a read of the object would return anyway.
-        Token keys, for instance, are kept behind their own `view_..._key` endpoint."""
-        field = self.get_serializer().fields.get(self.rotatable_secret)
-        if not field or field.write_only:
-            return None
-        return getattr(instance, self.rotatable_secret)
-
     @extend_schema(request=None, responses={200: RotatedSecretSerializer})
     @action(
         detail=True,
@@ -52,15 +44,19 @@ class RotatableSecretMixin:
         """Replace the secret with a newly generated value. The old value stops working
         immediately."""
         instance = self.get_object()
-        field = self.rotatable_secret
-        setattr(instance, field, instance._meta.get_field(field).get_default())
+        name = self.rotatable_secret
+        setattr(instance, name, instance._meta.get_field(name).get_default())
         # The audit middleware would log a second, less specific model_updated event
         with audit_ignore():
-            instance.save(update_fields=[field])
+            instance.save(update_fields=[name])
         Event.new(
             EventAction.SECRET_ROTATE,
             app=instance._meta.app_config.name,
             model=model_to_dict(instance),
-            field=field,
+            field=name,
         ).from_http(request)
-        return Response(RotatedSecretSerializer({"secret": self.rotated_secret(instance)}).data)
+        # Hand the new value back only when a read would return it anyway; token keys stay behind
+        # their own view_key endpoint.
+        field = self.get_serializer().fields.get(name)
+        secret = getattr(instance, name) if field and not field.write_only else None
+        return Response(RotatedSecretSerializer({"secret": secret}).data)

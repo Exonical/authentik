@@ -1,4 +1,4 @@
-import { HorizontalLightComponent } from "./HorizontalLightComponent.js";
+import { controlGroup, HorizontalLightComponent } from "./HorizontalLightComponent.js";
 
 import { IconCopyButton } from "#elements/buttons/IconCopyButton";
 import { ifPresent } from "#elements/utils/attributes";
@@ -90,16 +90,16 @@ export class AkTextInput extends HorizontalLightComponent<string> {
             ?autofocus=${this.autofocus}
             ${this.autofocusTarget.toRef()}
         />`;
-        return this.copyable
-            ? html`<div style="display: flex;" part="control">
-                  ${input}
-                  ${IconCopyButton({
-                      source: this.value || null,
-                      entityLabel: this.label ?? undefined,
-                      control: true,
-                  })}
-              </div>`
-            : input;
+        if (!this.copyable) return input;
+
+        return controlGroup(
+            input,
+            IconCopyButton({
+                source: this.value || null,
+                entityLabel: this.label ?? undefined,
+                control: true,
+            }),
+        );
     }
 }
 
