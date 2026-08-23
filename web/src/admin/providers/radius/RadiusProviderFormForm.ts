@@ -12,22 +12,27 @@ import "#elements/LicenseNotice";
 
 import { propertyMappingsProvider, propertyMappingsSelector } from "./RadiusProviderFormHelpers.js";
 
-import { IconRotateSecretButton } from "#elements/buttons/IconRotateSecretButton";
+import { aki } from "#common/api/client";
+
 import { ifPresent } from "#elements/utils/attributes";
 
 import { generatedPlaceholder } from "#admin/providers/BaseProviderForm";
-import { sharedSecretRotation } from "#admin/providers/SecretRotation";
 
 import {
     CurrentBrand,
     FlowDesignationEnum,
+    ProvidersApi,
     RadiusProvider,
     ValidationError,
 } from "@goauthentik/api";
 
 import { msg } from "@lit/localize";
-import { html, nothing } from "lit";
+import { html } from "lit";
 import { ifDefined } from "lit/directives/if-defined.js";
+
+/** Providers only have a secret to rotate once they exist. */
+const rotateSharedSecret = (pk?: number) =>
+    pk ? () => aki(ProvidersApi).providersRadiusRotateSecretCreate({ id: pk }) : undefined;
 
 const mfaSupportHelp = msg(
     "When enabled, code-based multi-factor authentication can be used by appending a semicolon and the TOTP code to the password. This should only be enabled if all users that will bind to this provider have a TOTP device configured, as otherwise a password may incorrectly be rejected if it contains a semicolon.",
@@ -101,9 +106,11 @@ export function renderForm({ provider, errors, brand }: RADIUSProviderFormProps)
                     placeholder=${ifDefined(generatedPlaceholder(provider))}
                     input-hint="code"
                     copyable
-                    .actions=${provider.pk
-                        ? IconRotateSecretButton(sharedSecretRotation(provider.pk), true)
-                        : nothing}
+                    .rotate=${rotateSharedSecret(provider.pk)}
+                    rotate-warning=${msg(
+                        "The current shared secret stops working as soon as the outpost picks up the change, usually within seconds. Update every RADIUS client with the new secret afterwards.",
+                        { id: "providers.radius.shared-secret.rotate.description" },
+                    )}
                 ></ak-hidden-text-input>
                 <ak-text-input
                     name="clientNetworks"

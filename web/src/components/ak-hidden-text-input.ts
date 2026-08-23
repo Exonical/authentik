@@ -7,6 +7,7 @@ import {
 } from "./HorizontalLightComponent.js";
 
 import { IconCopyButton } from "#elements/buttons/IconCopyButton";
+import { IconRotateSecretButton } from "#elements/buttons/IconRotateSecretButton";
 import { SlottedTemplateResult } from "#elements/types";
 import { ifPresent } from "#elements/utils/attributes";
 
@@ -99,6 +100,17 @@ export class AkHiddenTextInput<T extends InputLike = HTMLInputElement>
     public actions: SlottedTemplateResult = nothing;
 
     /**
+     * Replaces the value with a newly generated one, after confirmation. Setting it renders a
+     * rotate control next to the copy button, labelled from this field's own `label`.
+     */
+    @property({ attribute: false })
+    public rotate?: () => Promise<unknown>;
+
+    /** What stops working once the value is rotated, shown in the confirmation. */
+    @property({ type: String, attribute: "rotate-warning" })
+    public rotateWarning: string | null = null;
+
+    /**
      * @property
      * @attribute
      */
@@ -140,11 +152,24 @@ export class AkHiddenTextInput<T extends InputLike = HTMLInputElement>
         />`;
     }
 
+    protected renderRotateButton() {
+        if (!this.rotate) return nothing;
+
+        return IconRotateSecretButton(
+            {
+                rotate: this.rotate,
+                entityLabel: this.label ?? msg("secret", { id: "secret-rotate.entity.fallback" }),
+                warning: this.rotateWarning,
+            },
+            true,
+        );
+    }
+
     protected renderCopyButton() {
         return IconCopyButton({
             source: this.value ?? null,
             buttonLabel: msg("Copy value"),
-            entityLabel: msg("Token"),
+            entityLabel: this.label ?? undefined,
             control: true,
         });
     }
@@ -165,7 +190,8 @@ export class AkHiddenTextInput<T extends InputLike = HTMLInputElement>
                 hide-message=${this.hideMessage}
                 @click=${() => (this.revealed = !this.revealed)}
             ></ak-visibility-toggle>
-            ${this.copyable ? this.renderCopyButton() : nothing} ${this.actions}
+            ${this.copyable ? this.renderCopyButton() : nothing} ${this.renderRotateButton()}
+            ${this.actions}
         </div>`;
     }
 }

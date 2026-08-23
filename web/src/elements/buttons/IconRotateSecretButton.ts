@@ -14,10 +14,10 @@ import { html, nothing } from "lit";
 export interface RotateSecretProps {
     /** Calls the rotate endpoint. On success a refresh event is dispatched from the button. */
     rotate: () => Promise<unknown>;
-    header: string;
-    body: SlottedTemplateResult;
-    successMessage: string;
-    errorMessage: string;
+    /** What is being rotated, e.g. "Client Secret". Names the button and every message. */
+    entityLabel: string;
+    /** What stops working once the secret is replaced, shown in the confirmation. */
+    warning?: string | null;
 }
 
 /**
@@ -25,13 +25,15 @@ export interface RotateSecretProps {
  * The confirmation opens in the top layer, so it also works inside a form modal.
  * Pass `control` to render it as a bordered input-group control next to an input.
  *
- * Inside a form, the rotated field picks up the new secret while the rest of the form keeps
- * whatever the user has typed into it.
+ * Prefer the `rotate` property of {@linkcode AkHiddenTextInput} over calling this directly; it
+ * only makes sense on its own where a secret has no field to sit next to, such as a table cell.
  */
 export function IconRotateSecretButton(
-    { rotate, header, body, successMessage, errorMessage }: RotateSecretProps,
+    { rotate, entityLabel, warning }: RotateSecretProps,
     control = false,
 ): SlottedTemplateResult {
+    const header = msg(str`Rotate ${entityLabel}`, { id: "secret-rotate.confirm.header" });
+
     // Resolve the dialog before any await: event targets inside a shadow tree are cleared once
     // dispatch finishes.
     const dialogOf = (event: Event) => (event.currentTarget as HTMLElement).closest("dialog");
@@ -42,8 +44,10 @@ export function IconRotateSecretButton(
         const inForm = !!invoker.closest("form");
 
         let rotated = false;
+
         const confirm = (click: Event) => {
             const dialog = dialogOf(click);
+
             return rotate().then(
                 () => {
                     rotated = true;
@@ -52,7 +56,8 @@ export function IconRotateSecretButton(
                 async (error: unknown) =>
                     showMessage({
                         message: msg(
-                            str`${errorMessage}: ${pluckErrorDetail(await parseAPIResponseError(error))}`,
+                            str`Failed to rotate ${entityLabel}: ${pluckErrorDetail(await parseAPIResponseError(error))}`,
+                            { id: "secret-rotate.error" },
                         ),
                         level: MessageLevel.error,
                     }),
@@ -62,14 +67,12 @@ export function IconRotateSecretButton(
         return renderDialog(
             html`<ak-modal headline=${header}>
                 <div class="pf-c-content">
-                    ${body}
+                    ${warning ? html`<p>${warning}</p>` : nothing}
                     ${inForm
                         ? html`<p>
                               ${msg(
                                   "Rotating applies immediately, even if you don't save this form.",
-                                  {
-                                      id: "secret-rotate.confirm.unsaved",
-                                  },
+                                  { id: "secret-rotate.confirm.unsaved" },
                               )}
                           </p>`
                         : nothing}
@@ -88,9 +91,14 @@ export function IconRotateSecretButton(
             </ak-modal>`,
             { invokerElement: invoker },
         ).then(() => {
-            if (rotated) {
-                showMessage({ message: successMessage, level: MessageLevel.success });
-            }
+            if (!rotated) return;
+
+            showMessage({
+                message: msg(str`Successfully rotated ${entityLabel}.`, {
+                    id: "secret-rotate.success",
+                }),
+                level: MessageLevel.success,
+            });
         });
     };
 

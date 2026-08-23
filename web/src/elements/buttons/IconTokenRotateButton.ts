@@ -6,7 +6,6 @@ import { SlottedTemplateResult } from "#elements/types";
 import { CoreApi, EndpointsApi } from "@goauthentik/api";
 
 import { msg } from "@lit/localize";
-import { html } from "lit";
 import { guard } from "lit-html/directives/guard.js";
 
 /**
@@ -20,17 +19,11 @@ export function IconTokenRotateButton(
         identifier
             ? IconRotateSecretButton({
                   rotate,
-                  header: msg("Rotate token", { id: "tokens.rotate.header" }),
-                  body: html`<p>
-                      ${msg(
-                          "The current key stops working immediately. Anything using this token has to be updated with the new key, which can be copied afterwards.",
-                          { id: "tokens.rotate.description" },
-                      )}
-                  </p>`,
-                  successMessage: msg("Successfully rotated token.", {
-                      id: "tokens.rotate.success",
-                  }),
-                  errorMessage: msg("Failed to rotate token", { id: "tokens.rotate.error" }),
+                  entityLabel: msg("token", { id: "tokens.rotate.entity" }),
+                  warning: msg(
+                      "The current key stops working immediately. Anything using this token has to be updated with the new key, which can be copied afterwards.",
+                      { id: "tokens.rotate.description" },
+                  ),
               })
             : null,
     );

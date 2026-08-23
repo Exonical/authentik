@@ -20,14 +20,14 @@ import { propertyMappingsProvider, propertyMappingsSelector } from "./OAuth2Prov
 import { oauth2ProvidersProvider, oauth2ProvidersSelector } from "./OAuth2ProvidersProvider.js";
 import { oauth2SourcesProvider, oauth2SourcesSelector } from "./OAuth2Sources.js";
 
-import { IconRotateSecretButton } from "#elements/buttons/IconRotateSecretButton";
+import { aki } from "#common/api/client";
+
 import { RadioOption } from "#elements/forms/Radio";
 import { ifPresent } from "#elements/utils/attributes";
 
 import { AKLabel } from "#components/ak-label";
 
 import { generatedPlaceholder } from "#admin/providers/BaseProviderForm";
-import { clientSecretRotation } from "#admin/providers/SecretRotation";
 
 import {
     ClientTypeEnum,
@@ -37,6 +37,7 @@ import {
     MatchingModeEnum,
     OAuth2Provider,
     OAuth2ProviderLogoutMethodEnum,
+    ProvidersApi,
     RedirectURI,
     RedirectURITypeEnum,
     SubModeEnum,
@@ -44,8 +45,12 @@ import {
 } from "@goauthentik/api";
 
 import { msg } from "@lit/localize";
-import { html, nothing } from "lit";
+import { html } from "lit";
 import { ifDefined } from "lit/directives/if-defined.js";
+
+/** Providers only have a secret to rotate once they exist. */
+const rotateClientSecret = (pk?: number) =>
+    pk ? () => aki(ProvidersApi).providersOauth2RotateSecretCreate({ id: pk }) : undefined;
 
 export const clientTypeOptions: RadioOption<ClientTypeEnum>[] = [
     {
@@ -244,9 +249,11 @@ export function renderForm({
                     placeholder=${ifDefined(generatedPlaceholder(provider))}
                     input-hint="code"
                     copyable
-                    .actions=${provider.pk
-                        ? IconRotateSecretButton(clientSecretRotation(provider.pk), true)
-                        : nothing}
+                    .rotate=${rotateClientSecret(provider.pk)}
+                    rotate-warning=${msg(
+                        "The current client secret stops working immediately. Clients authenticating with it are rejected, and if this provider has no signing key, ID tokens signed with it no longer validate. Update every client with the new secret afterwards.",
+                        { id: "providers.oauth2.client-secret.rotate.description" },
+                    )}
                     .errorMessages=${errors.clientSecret}
                     ?hidden=${!showClientSecret}
                 >

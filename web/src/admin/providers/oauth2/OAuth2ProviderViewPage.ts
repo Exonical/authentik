@@ -16,13 +16,12 @@ import "#elements/Divider";
 import "#admin/policies/BoundPoliciesList";
 import "../../../elements/forms/ConfirmationForm";
 import "#components/ak-hidden-text-input";
+import "#components/ak-text-input";
 
 import { aki } from "#common/api/client";
 import { EVENT_REFRESH } from "#common/constants";
 
 import { AKElement } from "#elements/Base";
-import { IconCopyButton } from "#elements/buttons/IconCopyButton";
-import { IconRotateSecretButton } from "#elements/buttons/IconRotateSecretButton";
 import { modalInvoker } from "#elements/dialogs";
 import { SlottedTemplateResult } from "#elements/types";
 
@@ -31,7 +30,6 @@ import { taskCard } from "#components/tasks/taskCard";
 
 import { OAuth2DCRForm } from "#admin/providers/oauth2/OAuth2DCRForm";
 import { OAuth2ProviderFormPage } from "#admin/providers/oauth2/OAuth2ProviderForm";
-import { clientSecretRotation } from "#admin/providers/SecretRotation";
 
 import {
     ClientTypeEnum,
@@ -241,12 +239,13 @@ export class OAuth2ProviderViewPage extends AKElement {
     renderClientSecret(provider: OAuth2Provider): DescriptionPair {
         return [
             msg("Client secret", { id: "providers.oauth2.client-secret.label" }),
+            // Rotating lives in the edit form: it takes effect immediately, which is more than
+            // this read-only summary should be able to do.
             html`<ak-hidden-text-input
                 value=${ifDefined(provider.clientSecret)}
                 input-hint="code"
                 readonly
                 copyable
-                .actions=${IconRotateSecretButton(clientSecretRotation(provider.pk), true)}
             ></ak-hidden-text-input>`,
         ];
     }
@@ -273,11 +272,12 @@ export class OAuth2ProviderViewPage extends AKElement {
                             [msg("Client Type"), html`${TypeToLabel(provider.clientType)}`],
                             [
                                 msg("Client ID"),
-                                html`${provider.clientId}
-                                ${IconCopyButton({
-                                    source: provider.clientId ?? null,
-                                    entityLabel: msg("Client ID"),
-                                })}`,
+                                html`<ak-text-input
+                                    value=${ifDefined(provider.clientId)}
+                                    input-hint="code"
+                                    readonly
+                                    copyable
+                                ></ak-text-input>`,
                             ],
                             ...(provider.clientType === ClientTypeEnum.Public
                                 ? []

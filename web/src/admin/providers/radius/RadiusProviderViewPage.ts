@@ -12,10 +12,7 @@ import { aki } from "#common/api/client";
 import { EVENT_REFRESH } from "#common/constants";
 
 import { AKElement } from "#elements/Base";
-import { IconRotateSecretButton } from "#elements/buttons/IconRotateSecretButton";
 import { SlottedTemplateResult } from "#elements/types";
-
-import { sharedSecretRotation } from "#admin/providers/SecretRotation";
 
 import { ModelEnum, ProvidersApi, RadiusProvider } from "@goauthentik/api";
 
@@ -151,10 +148,6 @@ export class RadiusProviderViewPage extends AKElement {
                                                         input-hint="code"
                                                         readonly
                                                         copyable
-                                                        .actions=${IconRotateSecretButton(
-                                                            sharedSecretRotation(this.provider.pk),
-                                                            true,
-                                                        )}
                                                     ></ak-hidden-text-input>
                                                 </div>
                                             </dd>
