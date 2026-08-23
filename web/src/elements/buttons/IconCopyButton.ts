@@ -15,6 +15,10 @@ export interface IconCopyButtonProps {
     tooltipLabel?: string;
     entityLabel?: string;
     description?: SlottedTemplateResult;
+    /**
+     * Render as a bordered input-group control instead of a plain icon, for use next to an input.
+     */
+    control?: boolean;
 }
 
 export function IconCopyButton({
@@ -23,6 +27,7 @@ export function IconCopyButton({
     tooltipLabel = buttonLabel,
     entityLabel,
     description,
+    control = false,
 }: IconCopyButtonProps): SlottedTemplateResult {
     const doCopy = (event: PointerEvent) => {
         if (typeof source !== "function") {
@@ -47,7 +52,7 @@ export function IconCopyButton({
     };
 
     return html`<button
-        class="pf-c-button pf-m-plain"
+        class="pf-c-button ${control ? "pf-m-control" : "pf-m-plain"}"
         type="button"
         @click=${doCopy}
         aria-label=${buttonLabel}

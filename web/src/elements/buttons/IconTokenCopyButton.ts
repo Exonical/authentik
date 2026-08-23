@@ -9,15 +9,6 @@ import { CoreApi, Token } from "@goauthentik/api";
 import { msg, str } from "@lit/localize";
 import { guard } from "lit-html/directives/guard.js";
 
-/**
- * Fetches a token's key, which is logged as a secret_view event.
- */
-export function fetchTokenKey(identifier: string): Promise<string> {
-    return aki(CoreApi)
-        .coreTokensViewKeyRetrieve({ identifier })
-        .then((tokenView) => tokenView.key);
-}
-
 export function IconTokenCopyButton(tokenLike?: Token | string | null): SlottedTemplateResult {
     return guard([tokenLike], () => {
         if (!tokenLike) {
@@ -42,7 +33,9 @@ export function IconTokenCopyButton(tokenLike?: Token | string | null): SlottedT
                 return Promise.resolve(new Blob([""], { type: "text/plain" }));
             }
 
-            return fetchTokenKey(identifier).then((key) => new Blob([key], { type: "text/plain" }));
+            return aki(CoreApi)
+                .coreTokensViewKeyRetrieve({ identifier })
+                .then((tokenView) => new Blob([tokenView.key], { type: "text/plain" }));
         };
 
         return IconCopyButton({

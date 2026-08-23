@@ -15,7 +15,7 @@ import "#elements/buttons/SpinnerButton/index";
 import "#elements/Divider";
 import "#admin/policies/BoundPoliciesList";
 import "../../../elements/forms/ConfirmationForm";
-import "#components/ak-secret-value";
+import "#components/ak-hidden-text-input";
 
 import { aki } from "#common/api/client";
 import { EVENT_REFRESH } from "#common/constants";
@@ -241,12 +241,13 @@ export class OAuth2ProviderViewPage extends AKElement {
     renderClientSecret(provider: OAuth2Provider): DescriptionPair {
         return [
             msg("Client secret", { id: "providers.oauth2.client-secret.label" }),
-            html`<ak-secret-value
+            html`<ak-hidden-text-input
                 value=${ifDefined(provider.clientSecret)}
-                entity-label=${msg("Client secret", { id: "providers.oauth2.client-secret.label" })}
-            >
-                ${IconRotateSecretButton(clientSecretRotation(provider.pk))}
-            </ak-secret-value>`,
+                input-hint="code"
+                readonly
+                copyable
+                .actions=${IconRotateSecretButton(clientSecretRotation(provider.pk), true)}
+            ></ak-hidden-text-input>`,
         ];
     }
 

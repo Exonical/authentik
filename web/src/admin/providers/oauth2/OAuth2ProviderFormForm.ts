@@ -20,7 +20,7 @@ import { propertyMappingsProvider, propertyMappingsSelector } from "./OAuth2Prov
 import { oauth2ProvidersProvider, oauth2ProvidersSelector } from "./OAuth2ProvidersProvider.js";
 import { oauth2SourcesProvider, oauth2SourcesSelector } from "./OAuth2Sources.js";
 
-import { RotateSecretButton } from "#elements/buttons/IconRotateSecretButton";
+import { IconRotateSecretButton } from "#elements/buttons/IconRotateSecretButton";
 import { RadioOption } from "#elements/forms/Radio";
 import { ifPresent } from "#elements/utils/attributes";
 
@@ -244,13 +244,13 @@ export function renderForm({
                     placeholder=${ifDefined(generatedPlaceholder(provider))}
                     input-hint="code"
                     copyable
+                    .actions=${provider.pk
+                        ? IconRotateSecretButton(clientSecretRotation(provider.pk), true)
+                        : nothing}
                     .errorMessages=${errors.clientSecret}
                     ?hidden=${!showClientSecret}
                 >
                 </ak-hidden-text-input>
-                ${provider.pk && showClientSecret
-                    ? RotateSecretButton(clientSecretRotation(provider.pk))
-                    : nothing}
                 <ak-form-element-horizontal label=${msg("Grant Types")} required name="grantTypes">
                     <ak-checkbox-group
                         name="users"

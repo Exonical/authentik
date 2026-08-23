@@ -6,7 +6,7 @@ import "#elements/CodeMirror";
 import "#elements/Tabs";
 import "#elements/buttons/ModalButton";
 import "#elements/buttons/SpinnerButton/index";
-import "#components/ak-secret-value";
+import "#components/ak-hidden-text-input";
 
 import { aki } from "#common/api/client";
 import { EVENT_REFRESH } from "#common/constants";
@@ -75,12 +75,13 @@ export class RadiusProviderViewPage extends AKElement {
     }
 
     renderSharedSecret(provider: RadiusProvider): SlottedTemplateResult {
-        return html`<ak-secret-value
+        return html`<ak-hidden-text-input
             value=${ifDefined(provider.sharedSecret)}
-            entity-label=${msg("Shared secret", { id: "providers.radius.shared-secret.label" })}
-        >
-            ${IconRotateSecretButton(sharedSecretRotation(provider.pk))}
-        </ak-secret-value>`;
+            input-hint="code"
+            readonly
+            copyable
+            .actions=${IconRotateSecretButton(sharedSecretRotation(provider.pk), true)}
+        ></ak-hidden-text-input>`;
     }
 
     render(): SlottedTemplateResult {

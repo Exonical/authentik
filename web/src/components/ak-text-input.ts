@@ -102,6 +102,7 @@ export class AkTextInput extends HorizontalLightComponent<string> {
                 source: this.value || null,
                 buttonLabel: msg("Copy value"),
                 entityLabel: this.label ?? msg("Value", { id: "forms.copy.entity-label" }),
+                control: true,
             })}
         </div>`;
     }

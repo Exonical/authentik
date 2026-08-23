@@ -43,14 +43,6 @@ export class VisibilityToggle extends AKElement implements VisibilityToggleProps
     disabled = false;
 
     /**
-     * Render as a plain icon button instead of a bordered form control.
-     * @property
-     * @attribute
-     */
-    @property({ type: Boolean, reflect: true })
-    plain = false;
-
-    /**
      * @property
      * @attribute
      */
@@ -79,7 +71,7 @@ export class VisibilityToggle extends AKElement implements VisibilityToggleProps
             title=${label}
             @click=${onClick}
             ?disabled=${this.disabled}
-            class="pf-c-button ${this.plain ? "pf-m-plain" : "pf-m-control"}"
+            class="pf-c-button pf-m-control"
             type="button"
         >
             <i class="fas ${icon}" aria-hidden="true"></i>

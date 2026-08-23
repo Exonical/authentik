@@ -12,7 +12,7 @@ import "#elements/LicenseNotice";
 
 import { propertyMappingsProvider, propertyMappingsSelector } from "./RadiusProviderFormHelpers.js";
 
-import { RotateSecretButton } from "#elements/buttons/IconRotateSecretButton";
+import { IconRotateSecretButton } from "#elements/buttons/IconRotateSecretButton";
 import { ifPresent } from "#elements/utils/attributes";
 
 import { generatedPlaceholder } from "#admin/providers/BaseProviderForm";
@@ -101,8 +101,10 @@ export function renderForm({ provider, errors, brand }: RADIUSProviderFormProps)
                     placeholder=${ifDefined(generatedPlaceholder(provider))}
                     input-hint="code"
                     copyable
+                    .actions=${provider.pk
+                        ? IconRotateSecretButton(sharedSecretRotation(provider.pk), true)
+                        : nothing}
                 ></ak-hidden-text-input>
-                ${provider.pk ? RotateSecretButton(sharedSecretRotation(provider.pk)) : nothing}
                 <ak-text-input
                     name="clientNetworks"
                     label=${msg("Client Networks")}

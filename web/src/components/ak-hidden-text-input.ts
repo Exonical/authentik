@@ -7,6 +7,7 @@ import {
 } from "./HorizontalLightComponent.js";
 
 import { IconCopyButton } from "#elements/buttons/IconCopyButton";
+import { SlottedTemplateResult } from "#elements/types";
 import { ifPresent } from "#elements/utils/attributes";
 
 import { msg } from "@lit/localize";
@@ -94,6 +95,14 @@ export class AkHiddenTextInput<T extends InputLike = HTMLInputElement>
     public readOnly: boolean = false;
 
     /**
+     * Extra controls rendered after the reveal and copy buttons, such as a rotate button.
+     *
+     * @property
+     */
+    @property({ attribute: false })
+    public actions: SlottedTemplateResult = nothing;
+
+    /**
      * @property
      * @attribute
      */
@@ -140,6 +149,7 @@ export class AkHiddenTextInput<T extends InputLike = HTMLInputElement>
             source: this.value ?? null,
             buttonLabel: msg("Copy value"),
             entityLabel: msg("Token"),
+            control: true,
         });
     }
 
@@ -159,7 +169,7 @@ export class AkHiddenTextInput<T extends InputLike = HTMLInputElement>
                 hide-message=${this.hideMessage}
                 @click=${() => (this.revealed = !this.revealed)}
             ></ak-visibility-toggle>
-            ${this.copyable ? this.renderCopyButton() : nothing}
+            ${this.copyable ? this.renderCopyButton() : nothing} ${this.actions}
         </div>`;
     }
 }
