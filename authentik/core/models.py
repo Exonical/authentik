@@ -1208,7 +1208,7 @@ class Token(SerializerModel, ManagedModel, ExpiringModel):
 
     def expire_action(self, *args, **kwargs):
         """Handler which is called when this object is expired."""
-        from authentik.events.models import Event, EventAction
+        from authentik.core.secrets import rotate_secret
 
         if (
             self.intent
@@ -1222,14 +1222,9 @@ class Token(SerializerModel, ManagedModel, ExpiringModel):
             super().expire_action(*args, **kwargs)
             return
 
-        self.key = default_token_key()
         self.expires = default_token_duration()
         self.save(*args, **kwargs)
-        Event.new(
-            action=EventAction.SECRET_ROTATE,
-            token=self,
-            message=f"Token {self.identifier}'s secret was rotated.",
-        ).save()
+        rotate_secret(self, "key")
 
 
 class PropertyMapping(SerializerModel, ManagedModel):

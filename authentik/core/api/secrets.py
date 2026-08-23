@@ -1,4 +1,4 @@
-"""rotate_secret mixin"""
+"""API mixins for authentik-generated secrets"""
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
@@ -7,11 +7,25 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from authentik.core.api.utils import PassiveSerializer
-from authentik.events.middleware import audit_ignore
-from authentik.events.models import Event, EventAction
-from authentik.events.utils import model_to_dict
+from authentik.core.secrets import rotate_secret
 from authentik.rbac.filters import ObjectFilter
 from authentik.rbac.permissions import ObjectPermissions
+
+
+class GeneratedFieldsMixin:
+    """Serializer mixin for fields authentik generates. Sending one blank on create means
+    "generate it", the same as leaving it out, which is what the Admin interface does."""
+
+    generated_fields: tuple[str, ...] = ()
+
+    def to_internal_value(self, data):
+        if not self.instance and isinstance(data, dict):
+            blank = [field for field in self.generated_fields if data.get(field) == ""]
+            if blank:
+                data = data.copy()
+                for field in blank:
+                    del data[field]
+        return super().to_internal_value(data)
 
 
 class RotatedSecretSerializer(PassiveSerializer):
@@ -28,8 +42,7 @@ class RotateSecretPermissions(ObjectPermissions):
 
 
 class RotatableSecretMixin:
-    """Mixin to add a rotate_secret endpoint which regenerates one secret field in place,
-    using that field's own model default."""
+    """Viewset mixin adding a rotate_secret endpoint for one generated field"""
 
     rotatable_secret: str
 
@@ -45,18 +58,9 @@ class RotatableSecretMixin:
         immediately."""
         instance = self.get_object()
         name = self.rotatable_secret
-        setattr(instance, name, instance._meta.get_field(name).get_default())
-        # The audit middleware would log a second, less specific model_updated event
-        with audit_ignore():
-            instance.save(update_fields=[name])
-        Event.new(
-            EventAction.SECRET_ROTATE,
-            app=instance._meta.app_config.name,
-            model=model_to_dict(instance),
-            field=name,
-        ).from_http(request)
+        value = rotate_secret(instance, name, request)
         # Hand the new value back only when a read would return it anyway; token keys stay behind
         # their own view_key endpoint.
         field = self.get_serializer().fields.get(name)
-        secret = getattr(instance, name) if field and not field.write_only else None
-        return Response(RotatedSecretSerializer({"secret": secret}).data)
+        readable = field and not field.write_only
+        return Response(RotatedSecretSerializer({"secret": value if readable else None}).data)

@@ -10,12 +10,13 @@ from rest_framework.fields import ReadOnlyField, SerializerMethodField
 from rest_framework.viewsets import GenericViewSet
 
 from authentik.core.api.object_types import TypesMixin
+from authentik.core.api.secrets import GeneratedFieldsMixin
 from authentik.core.api.used_by import UsedByMixin
 from authentik.core.api.utils import MetaNameSerializer, ModelSerializer
 from authentik.core.models import Provider
 
 
-class ProviderSerializer(ModelSerializer, MetaNameSerializer):
+class ProviderSerializer(GeneratedFieldsMixin, ModelSerializer, MetaNameSerializer):
     """Provider Serializer"""
 
     assigned_application_slug = ReadOnlyField(source="application.slug", allow_null=True)
@@ -34,16 +35,6 @@ class ProviderSerializer(ModelSerializer, MetaNameSerializer):
         if obj.__class__ == Provider:
             return ""
         return obj.component
-
-    def to_internal_value(self, data):
-        # A blank generated credential on create means "generate one", the same as omitting it
-        if not self.instance and isinstance(data, dict):
-            blank = [f for f in getattr(self.Meta, "generated_fields", []) if data.get(f) == ""]
-            if blank:
-                data = data.copy()
-                for field in blank:
-                    del data[field]
-        return super().to_internal_value(data)
 
     class Meta:
         model = Provider

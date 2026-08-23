@@ -19,7 +19,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from authentik.core.api.providers import ProviderSerializer
-from authentik.core.api.rotate_secret import RotatableSecretMixin
+from authentik.core.api.secrets import RotatableSecretMixin
 from authentik.core.api.used_by import UsedByMixin
 from authentik.core.api.utils import PassiveSerializer, PropertyMappingPreviewSerializer
 from authentik.core.models import Provider
@@ -48,6 +48,8 @@ class RedirectURISerializer(PassiveSerializer):
 
 class OAuth2ProviderSerializer(ProviderSerializer):
     """OAuth2Provider Serializer"""
+
+    generated_fields = ("client_id", "client_secret")
 
     redirect_uris = RedirectURISerializer(many=True, source="_redirect_uris")
 
@@ -110,7 +112,6 @@ class OAuth2ProviderSerializer(ProviderSerializer):
             "jwt_federation_providers",
         ]
         extra_kwargs = ProviderSerializer.Meta.extra_write_kwargs
-        generated_fields = ["client_id", "client_secret"]
 
 
 class OAuth2ProviderSetupURLs(PassiveSerializer):

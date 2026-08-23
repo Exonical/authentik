@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
 from authentik.core.api.providers import ProviderSerializer
-from authentik.core.api.rotate_secret import RotatableSecretMixin
+from authentik.core.api.secrets import RotatableSecretMixin
 from authentik.core.api.used_by import UsedByMixin
 from authentik.core.api.utils import ModelSerializer, PassiveSerializer
 from authentik.core.apps import AppAccessWithoutBindings
@@ -40,6 +40,8 @@ class RadiusProviderSerializer(
 ):
     """RadiusProvider Serializer"""
 
+    generated_fields = ("shared_secret",)
+
     outpost_set = ListField(child=CharField(), read_only=True, source="outpost_set.all")
 
     class Meta:
@@ -54,7 +56,6 @@ class RadiusProviderSerializer(
             "certificate",
         ]
         extra_kwargs = ProviderSerializer.Meta.extra_write_kwargs
-        generated_fields = ["shared_secret"]
 
 
 class RadiusProviderViewSet(RotatableSecretMixin, UsedByMixin, ModelViewSet):

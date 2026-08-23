@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from authentik.blueprints.v1.importer import SERIALIZER_CONTEXT_BLUEPRINT
-from authentik.core.api.rotate_secret import RotatableSecretMixin
+from authentik.core.api.secrets import RotatableSecretMixin
 from authentik.core.api.tokens import TokenViewSerializer
 from authentik.core.api.used_by import UsedByMixin
 from authentik.core.api.utils import ModelSerializer
