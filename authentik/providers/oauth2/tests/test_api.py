@@ -217,6 +217,18 @@ class TestAPI(APITestCase):
         )
         self.assertEqual(response.status_code, 400)
 
+    def test_blank_secret_kept(self):
+        """A provider that already has an empty secret stays editable, so an upgrade does not
+        lock out providers saved before this check existed"""
+        self.provider.client_secret = ""
+        self.provider.save()
+        response = self.client.patch(
+            reverse("authentik_api:oauth2provider-detail", kwargs={"pk": self.provider.pk}),
+            data={"name": generate_id(), "client_type": ClientType.CONFIDENTIAL},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+
     def test_blank_secret_public(self):
         """A public client can have an empty secret"""
         response = self.client.patch(

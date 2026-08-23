@@ -1,5 +1,7 @@
 """Test generated secrets: the rotate_secret endpoint, and rotation without a request"""
 
+from unittest.mock import patch
+
 from django.urls import reverse
 from rest_framework.routers import BaseRouter
 from rest_framework.test import APITestCase
@@ -84,14 +86,41 @@ class TestRotateSecret(APITestCase):
         self.assertEqual(events[0].context["field"], "key")
         self.assertNotIn(token.key, str(events[0].context))
 
+    def test_rotate_without_request_failure(self):
+        """A failure part way through leaves the token expired, rather than valid again with
+        the key that was meant to stop working"""
+        token = Token.objects.create(
+            identifier=generate_id(), user=self.admin, intent=TokenIntents.INTENT_API
+        )
+        old_key, old_expires = token.key, token.expires
+        with patch("authentik.core.secrets.rotate_secret", side_effect=RuntimeError):
+            with self.assertRaises(RuntimeError):
+                token.expire_action()
+        token.refresh_from_db()
+        self.assertEqual(token.key, old_key)
+        self.assertEqual(token.expires, old_expires)
+
     def test_rotate_change_permission(self):
         """A user with change_ but not add_ can rotate"""
         user = create_test_user()
         user.assign_perms_to_managed_role("authentik_core.view_token")
         user.assign_perms_to_managed_role("authentik_core.change_token")
+        user.assign_perms_to_managed_role("authentik_core.set_token_key")
         self.client.force_login(user)
         response = self.client.post(self.url)
         self.assertEqual(response.status_code, 200)
+
+    def test_rotate_without_set_key_permission(self):
+        """Replacing someone else's key takes the same permission as setting it by hand"""
+        user = create_test_user()
+        user.assign_perms_to_managed_role("authentik_core.view_token")
+        user.assign_perms_to_managed_role("authentik_core.change_token")
+        self.client.force_login(user)
+        old_key = self.token.key
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, 403)
+        self.token.refresh_from_db()
+        self.assertEqual(self.token.key, old_key)
 
     def test_rotate_add_permission(self):
         """A user with add_ but not change_ cannot rotate"""

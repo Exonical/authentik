@@ -180,6 +180,9 @@ export interface ConfirmationInit extends DialogInit {
  * A rejected `confirm` leaves the dialog open so the person can try again; reporting it is the
  * caller's job, since only the caller knows what failed.
  *
+ * While `confirm` is running the dialog cannot be dismissed or accepted again, so the returned
+ * value always describes what actually happened.
+ *
  * @returns Whether the action ran and succeeded.
  */
 export function renderConfirmation(
@@ -188,6 +191,7 @@ export function renderConfirmation(
     { action, ...init }: ConfirmationInit,
 ): Promise<boolean> {
     let confirmed = false;
+    let pending = false;
 
     const dialogOf = (event: Event) => (event.currentTarget as HTMLElement).closest("dialog");
 
@@ -196,13 +200,35 @@ export function renderConfirmation(
         // dispatch finishes.
         const dialog = dialogOf(event);
 
+        // A second run would leave the caller holding whichever response landed last, which need
+        // not be the one the action settled on.
+        if (pending) return;
+        pending = true;
+
+        // Dismissing while the action is in flight would report it as declined, even though it
+        // has already taken effect.
+        const actions = dialog?.querySelectorAll<HTMLButtonElement>('button[slot="actions"]');
+        const closedBy = dialog?.closedBy;
+
+        actions?.forEach((button) => (button.disabled = true));
+
+        if (dialog) dialog.closedBy = "none";
+
+        const release = () => {
+            pending = false;
+            actions?.forEach((button) => (button.disabled = false));
+
+            if (dialog && closedBy) dialog.closedBy = closedBy;
+        };
+
         return confirm().then(
             () => {
                 confirmed = true;
+                release();
                 dialog?.close();
             },
             // Reported by the caller; the dialog stays open for another try.
-            () => undefined,
+            release,
         );
     };
 

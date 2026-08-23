@@ -17,7 +17,7 @@ Any of them can be replaced later, from the Admin interface or the API.
 | Token, app password    | Key           | **Directory** > **Tokens and App passwords**, and any page that shows a token |
 | Agent enrollment token | Key           | The enrollment token list                                                     |
 
-Click the rotate icon next to the value and confirm. Rotating takes the same `change` permission on the object as editing it does, and is recorded as a [`secret_rotate`](./events/event-actions.md#secret_rotate) event.
+Click the rotate icon next to the value and confirm. Rotating takes the same `change` permission on the object as editing it does, and is recorded as a [`secret_rotate`](./events/event-actions.md#secret_rotate) event. Rotating someone else's token additionally takes **Set a token's key**, the same permission as setting a key by hand; your own tokens need neither.
 
 A client ID is generated the same way but cannot be rotated. Clients are configured with it as an identifier, so replacing it renames the client rather than re-securing it.
 

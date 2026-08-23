@@ -16,7 +16,7 @@ from django.contrib.auth.models import UserManager as DjangoUserManager
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.sessions.base_session import AbstractBaseSession
 from django.core.validators import validate_slug
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q, QuerySet, options
 from django.http import HttpRequest
 from django.utils.functional import cached_property
@@ -1223,8 +1223,11 @@ class Token(SerializerModel, ManagedModel, ExpiringModel):
             return
 
         self.expires = default_token_duration()
-        self.save(*args, **kwargs)
-        rotate_secret(self, "key")
+        # Both writes have to land together: a new lifetime without the new key leaves the
+        # token valid for another period with the key that was meant to stop working.
+        with transaction.atomic():
+            self.save(*args, **kwargs)
+            rotate_secret(self, "key")
 
 
 class PropertyMapping(SerializerModel, ManagedModel):

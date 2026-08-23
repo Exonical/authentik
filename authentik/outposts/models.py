@@ -401,9 +401,14 @@ class Outpost(ScheduledModel, SerializerModel, ManagedModel):
         return f"ak-outpost-{self.pk}-api"
 
     @property
+    def token_managed(self) -> str:
+        """Get the `managed` value marking a Token as this outpost's"""
+        return f"goauthentik.io/outpost/{self.token_identifier}"
+
+    @property
     def token(self) -> Token:
         """Get/create token for auto-generated user"""
-        managed = f"goauthentik.io/outpost/{self.token_identifier}"
+        managed = self.token_managed
         tokens = Token.objects.filter(
             identifier=self.token_identifier,
             intent=TokenIntents.INTENT_API,

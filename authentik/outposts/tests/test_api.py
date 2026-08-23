@@ -6,7 +6,7 @@ from django.urls import reverse
 from rest_framework.test import APITestCase
 
 from authentik.blueprints.tests import reconcile_app
-from authentik.core.models import PropertyMapping
+from authentik.core.models import PropertyMapping, Token, TokenIntents
 from authentik.core.tests.utils import create_test_admin_user, create_test_flow
 from authentik.lib.generators import generate_id
 from authentik.outposts.api.outposts import OutpostSerializer
@@ -128,3 +128,15 @@ class TestOutpostServiceConnectionsAPI(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(outpost.token.key, old_key)
         self.assertEqual([call.kwargs["args"] for call in send.call_args_list], [(outpost.pk,)])
+
+    def test_token_lookalike_does_not_redeploy(self):
+        """Anyone can name a token after an outpost, so the identifier alone is not enough"""
+        outpost = Outpost.objects.create(name=generate_id(), type=OutpostType.PROXY)
+        token = Token.objects.create(
+            identifier=generate_id(), user=self.user, intent=TokenIntents.INTENT_API
+        )
+        # The outpost's own identifier is taken, but a bare UUID parses just as well
+        token.identifier = str(outpost.pk)
+        with patch("authentik.outposts.signals.outpost_controller.send_with_options") as send:
+            token.save()
+        send.assert_not_called()

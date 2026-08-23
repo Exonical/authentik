@@ -35,6 +35,11 @@ class ObjectPermissions(DjangoObjectPermissions):
             return True
         return super().has_permission(request, view)
 
+    def is_owner(self, request: Request, view, obj: Model) -> bool:
+        """Whether `obj` belongs to the requesting user, for views that set `owner_field`"""
+        owner_field = getattr(view, "owner_field", None)
+        return bool(owner_field) and getattr(obj, owner_field) == request.user
+
     def has_object_permission(self, request: Request, view, obj: Model) -> bool:
         queryset = self._queryset(view)
         model_cls = queryset.model
@@ -43,9 +48,8 @@ class ObjectPermissions(DjangoObjectPermissions):
         if request.user.has_perms(perms):
             return True
         # Allow access for owners if configured
-        if owner_field := getattr(view, "owner_field", None):
-            if getattr(obj, owner_field) == request.user:
-                return True
+        if self.is_owner(request, view, obj):
+            return True
         return super().has_object_permission(request, view, obj)
 
 

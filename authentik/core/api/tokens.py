@@ -128,6 +128,7 @@ class TokenViewSet(RotatableSecretMixin, UsedByMixin, ModelViewSet):
     queryset = Token.objects.including_expired().all()
     serializer_class = TokenSerializer
     rotatable_secret = "key"
+    rotatable_secret_permission = "authentik_core.set_token_key"
     search_fields = [
         "identifier",
         "intent",

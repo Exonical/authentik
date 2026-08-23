@@ -1,3 +1,4 @@
+from django.db.models import Model
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 from rest_framework.fields import CharField
@@ -41,11 +42,24 @@ class RotateSecretPermissions(ObjectPermissions):
 
     perms_map = {**ObjectPermissions.perms_map, "POST": ["%(app_label)s.change_%(model_name)s"]}
 
+    def has_object_permission(self, request: Request, view, obj: Model) -> bool:
+        if not super().has_object_permission(request, view, obj):
+            return False
+        # Rotating replaces the secret, so a field with a permission of its own keeps it here:
+        # `change_token` alone must not replace someone else's token key any more than
+        # `set_key` lets it. Owners rotate their own objects either way.
+        perm = getattr(view, "rotatable_secret_permission", None)
+        if not perm or self.is_owner(request, view, obj):
+            return True
+        return request.user.has_perm(perm) or request.user.has_perm(perm, obj)
+
 
 class RotatableSecretMixin:
     """Viewset mixin adding `rotate_secret` for the field named by `rotatable_secret`."""
 
     rotatable_secret: str
+    #: Permission required on top of `change_`, for a field that has one of its own.
+    rotatable_secret_permission: str | None = None
 
     @extend_schema(request=None, responses={200: RotatedSecretSerializer})
     @action(

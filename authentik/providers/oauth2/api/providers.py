@@ -77,11 +77,14 @@ class OAuth2ProviderSerializer(ProviderSerializer):
 
     def validate(self, attrs: dict) -> dict:
         attrs = super().validate(attrs)
-        client_type = attrs.get(
-            "client_type", getattr(self.instance, "client_type", ClientType.CONFIDENTIAL)
-        )
-        secret = attrs.get("client_secret", getattr(self.instance, "client_secret", None))
-        if client_type == ClientType.CONFIDENTIAL and secret == "":
+        stored_type = getattr(self.instance, "client_type", ClientType.CONFIDENTIAL)
+        stored_secret = getattr(self.instance, "client_secret", None)
+        client_type = attrs.get("client_type", stored_type)
+        secret = attrs.get("client_secret", stored_secret)
+        # Only the pairing this request writes has to hold. A provider saved with an empty secret
+        # before this check existed keeps the state it is in, rather than becoming uneditable.
+        unchanged = (client_type, secret) == (stored_type, stored_secret)
+        if client_type == ClientType.CONFIDENTIAL and secret == "" and not unchanged:
             raise ValidationError(
                 {"client_secret": _("Confidential clients require a client secret.")}
             )

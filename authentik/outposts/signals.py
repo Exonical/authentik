@@ -8,7 +8,7 @@ from django.dispatch import receiver
 from structlog.stdlib import get_logger
 
 from authentik.brands.models import Brand
-from authentik.core.models import AuthenticatedSession, Provider, Token
+from authentik.core.models import AuthenticatedSession, Provider, Token, TokenIntents
 from authentik.crypto.models import CertificateKeyPair
 from authentik.outposts.models import Outpost, OutpostModel, OutpostServiceConnection
 from authentik.outposts.tasks import (
@@ -125,12 +125,21 @@ def outpost_token_post_save(sender, instance: Token, created: bool, **_):
     """Redeploy managed outposts when their token changes, as the key is part of their config"""
     if created:
         return
+    if instance.intent != TokenIntents.INTENT_API:
+        return
     try:
         # Outpost tokens are named after their outpost, see `Outpost.token_identifier`
         pk = UUID(instance.identifier.removeprefix("ak-outpost-").removesuffix("-api"))
     except ValueError:
         return
     for outpost in Outpost.objects.filter(pk=pk):
+        # The identifier is caller-chosen and creating a token takes no permission, so only the
+        # token `Outpost.token` manages counts. `managed` is read-only through the API.
+        if (instance.identifier, instance.managed) != (
+            outpost.token_identifier,
+            outpost.token_managed,
+        ):
+            continue
         outpost_controller.send_with_options(
             args=(outpost.pk,),
             rel_obj=outpost.service_connection,
