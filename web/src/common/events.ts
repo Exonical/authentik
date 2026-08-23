@@ -22,22 +22,9 @@ export class AKEnterpriseRefreshEvent extends Event {
     }
 }
 
-/**
- * Event dispatched when the data a form is editing has been replaced elsewhere, such as by
- * rotating a secret. Forms rebuild their fields in response, discarding unsaved input.
- */
-export class AKDiscardChangesEvent extends Event {
-    public static readonly eventName = "ak-discard-changes";
-
-    constructor() {
-        super(AKDiscardChangesEvent.eventName, { bubbles: true, composed: true });
-    }
-}
-
 declare global {
     interface WindowEventMap {
         [AKRefreshEvent.eventName]: AKRefreshEvent;
-        [AKDiscardChangesEvent.eventName]: AKDiscardChangesEvent;
         [AKEnterpriseRefreshEvent.eventName]: AKEnterpriseRefreshEvent;
     }
 }

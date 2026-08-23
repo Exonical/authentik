@@ -2,7 +2,6 @@ import "#elements/dialogs/ak-modal";
 import "@patternfly/elements/pf-tooltip/pf-tooltip.js";
 
 import { parseAPIResponseError, pluckErrorDetail } from "#common/errors/network";
-import { AKDiscardChangesEvent } from "#common/events";
 import { MessageLevel } from "#common/messages";
 
 import { renderDialog } from "#elements/dialogs/utils";
@@ -13,7 +12,7 @@ import { msg, str } from "@lit/localize";
 import { html, nothing } from "lit";
 
 export interface RotateSecretProps {
-    /** Calls the rotate endpoint. On success the button dispatches refresh and discard events. */
+    /** Calls the rotate endpoint. On success a refresh event is dispatched from the button. */
     rotate: () => Promise<unknown>;
     header: string;
     body: SlottedTemplateResult;
@@ -26,8 +25,8 @@ export interface RotateSecretProps {
  * The confirmation opens in the top layer, so it also works inside a form modal.
  * Pass `control` to render it as a bordered input-group control next to an input.
  *
- * Rotating replaces the object being edited, so a surrounding form is rebuilt from the new
- * server-side state and whatever the user had typed into it is discarded.
+ * Inside a form, the rotated field picks up the new secret while the rest of the form keeps
+ * whatever the user has typed into it.
  */
 export function IconRotateSecretButton(
     { rotate, header, body, successMessage, errorMessage }: RotateSecretProps,
@@ -48,11 +47,6 @@ export function IconRotateSecretButton(
             return rotate().then(
                 () => {
                     rotated = true;
-
-                    // Dispatched before the dialog closes: closing refreshes the surrounding form,
-                    // which takes the invoker out of the DOM along with the fields being rebuilt.
-                    invoker.dispatchEvent(new AKDiscardChangesEvent());
-
                     dialog?.close("submitted");
                 },
                 async (error: unknown) =>
@@ -71,9 +65,12 @@ export function IconRotateSecretButton(
                     ${body}
                     ${inForm
                         ? html`<p>
-                              ${msg("Unsaved changes to this form are discarded.", {
-                                  id: "secret-rotate.confirm.discard",
-                              })}
+                              ${msg(
+                                  "Rotating applies immediately, even if you don't save this form.",
+                                  {
+                                      id: "secret-rotate.confirm.unsaved",
+                                  },
+                              )}
                           </p>`
                         : nothing}
                 </div>
@@ -91,9 +88,9 @@ export function IconRotateSecretButton(
             </ak-modal>`,
             { invokerElement: invoker },
         ).then(() => {
-            if (!rotated) return;
-
-            showMessage({ message: successMessage, level: MessageLevel.success });
+            if (rotated) {
+                showMessage({ message: successMessage, level: MessageLevel.success });
+            }
         });
     };
 
