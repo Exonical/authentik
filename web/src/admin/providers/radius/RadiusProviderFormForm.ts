@@ -12,9 +12,11 @@ import "#elements/LicenseNotice";
 
 import { propertyMappingsProvider, propertyMappingsSelector } from "./RadiusProviderFormHelpers.js";
 
+import { RotateSecretButton } from "#elements/buttons/IconRotateSecretButton";
 import { ifPresent } from "#elements/utils/attributes";
 
 import { generatedPlaceholder } from "#admin/providers/BaseProviderForm";
+import { sharedSecretRotation } from "#admin/providers/radius/RadiusProviderRotateSecret";
 
 import {
     CurrentBrand,
@@ -24,7 +26,7 @@ import {
 } from "@goauthentik/api";
 
 import { msg } from "@lit/localize";
-import { html } from "lit";
+import { html, nothing } from "lit";
 import { ifDefined } from "lit/directives/if-defined.js";
 
 const mfaSupportHelp = msg(
@@ -98,7 +100,9 @@ export function renderForm({ provider, errors, brand }: RADIUSProviderFormProps)
                     value=${ifDefined(provider.sharedSecret)}
                     placeholder=${ifDefined(generatedPlaceholder(provider))}
                     input-hint="code"
+                    copyable
                 ></ak-hidden-text-input>
+                ${provider.pk ? RotateSecretButton(sharedSecretRotation(provider.pk)) : nothing}
                 <ak-text-input
                     name="clientNetworks"
                     label=${msg("Client Networks")}

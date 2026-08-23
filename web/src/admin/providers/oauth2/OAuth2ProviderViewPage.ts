@@ -15,6 +15,7 @@ import "#elements/buttons/SpinnerButton/index";
 import "#elements/Divider";
 import "#admin/policies/BoundPoliciesList";
 import "../../../elements/forms/ConfirmationForm";
+import "#components/ak-secret-value";
 
 import { aki } from "#common/api/client";
 import { EVENT_REFRESH } from "#common/constants";
@@ -30,6 +31,7 @@ import { taskCard } from "#components/tasks/taskCard";
 
 import { OAuth2DCRForm } from "#admin/providers/oauth2/OAuth2DCRForm";
 import { OAuth2ProviderFormPage } from "#admin/providers/oauth2/OAuth2ProviderForm";
+import { clientSecretRotation } from "#admin/providers/oauth2/OAuth2ProviderRotateSecret";
 
 import {
     ClientTypeEnum,
@@ -52,6 +54,7 @@ import MDProviderOAuth2 from "~docs/add-secure-apps/providers/oauth2/index.mdx";
 import { msg } from "@lit/localize";
 import { css, CSSResult, html, nothing, TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { ifDefined } from "lit/directives/if-defined.js";
 
 import PFBanner from "@patternfly/patternfly/components/Banner/banner.css";
 import PFButton from "@patternfly/patternfly/components/Button/button.css";
@@ -238,35 +241,12 @@ export class OAuth2ProviderViewPage extends AKElement {
     renderClientSecret(provider: OAuth2Provider): DescriptionPair {
         return [
             msg("Client secret", { id: "providers.oauth2.client-secret.label" }),
-            html`${IconCopyButton({
-                source: provider.clientSecret ?? null,
-                buttonLabel: msg("Copy client secret", {
-                    id: "providers.oauth2.client-secret.copy-button.label",
-                }),
-                entityLabel: msg("Client secret", { id: "providers.oauth2.client-secret.label" }),
-            })}
-            ${IconRotateSecretButton({
-                onConfirm: () =>
-                    aki(ProvidersApi).providersOauth2RotateSecretCreate({ id: provider.pk }),
-                header: msg("Rotate client secret", {
-                    id: "providers.oauth2.client-secret.rotate.header",
-                }),
-                body: html`<p>
-                    ${msg(
-                        "The current client secret stops working immediately. Clients authenticating with it are rejected, and if this provider has no signing key, ID tokens signed with it no longer validate. Update every client with the new secret afterwards.",
-                        { id: "providers.oauth2.client-secret.rotate.description" },
-                    )}
-                </p>`,
-                successMessage: msg("Successfully rotated client secret.", {
-                    id: "providers.oauth2.client-secret.rotate.success",
-                }),
-                errorMessage: msg("Failed to rotate client secret", {
-                    id: "providers.oauth2.client-secret.rotate.error",
-                }),
-                buttonLabel: msg("Rotate client secret", {
-                    id: "providers.oauth2.client-secret.rotate-button.label",
-                }),
-            })}`,
+            html`<ak-secret-value
+                value=${ifDefined(provider.clientSecret)}
+                entity-label=${msg("Client secret", { id: "providers.oauth2.client-secret.label" })}
+            >
+                ${IconRotateSecretButton(clientSecretRotation(provider.pk))}
+            </ak-secret-value>`,
         ];
     }
 
@@ -290,7 +270,17 @@ export class OAuth2ProviderViewPage extends AKElement {
                                 </ak-provider-related-application>`,
                             ],
                             [msg("Client Type"), html`${TypeToLabel(provider.clientType)}`],
-                            [msg("Client ID"), html`${provider.clientId}`],
+                            [
+                                msg("Client ID"),
+                                html`${provider.clientId}
+                                ${IconCopyButton({
+                                    source: provider.clientId ?? null,
+                                    buttonLabel: msg("Copy client ID", {
+                                        id: "providers.oauth2.client-id.copy-button.label",
+                                    }),
+                                    entityLabel: msg("Client ID"),
+                                })}`,
+                            ],
                             ...(provider.clientType === ClientTypeEnum.Public
                                 ? []
                                 : [this.renderClientSecret(provider)]),

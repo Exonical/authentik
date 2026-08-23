@@ -1,5 +1,6 @@
 import { HorizontalLightComponent } from "./HorizontalLightComponent.js";
 
+import { IconCopyButton } from "#elements/buttons/IconCopyButton";
 import { ifPresent } from "#elements/utils/attributes";
 
 import { msg } from "@lit/localize";
@@ -40,6 +41,12 @@ export class AkTextInput extends HorizontalLightComponent<string> {
     @property({ type: String, useDefault: true })
     public pattern: string = "";
 
+    /**
+     * Render a copy-to-clipboard button next to the input.
+     */
+    @property({ type: Boolean, reflect: true })
+    public copyable = false;
+
     #inputListener(ev: InputEvent) {
         this.value = (ev.target as HTMLInputElement).value;
     }
@@ -63,7 +70,7 @@ export class AkTextInput extends HorizontalLightComponent<string> {
     public override renderControl() {
         const code = this.inputHint === "code" || this.type === "url";
 
-        return html`<input
+        const input = html`<input
             type=${this.type}
             id=${ifDefined(this.fieldID)}
             @input=${this.#inputListener}
@@ -86,6 +93,17 @@ export class AkTextInput extends HorizontalLightComponent<string> {
             ?autofocus=${this.autofocus}
             ${this.autofocusTarget.toRef()}
         />`;
+        if (!this.copyable) {
+            return input;
+        }
+        return html`<div style="display: flex;" part="control">
+            ${input}
+            ${IconCopyButton({
+                source: this.value || null,
+                buttonLabel: msg("Copy value"),
+                entityLabel: this.label ?? msg("Value", { id: "forms.copy.entity-label" }),
+            })}
+        </div>`;
     }
 }
 

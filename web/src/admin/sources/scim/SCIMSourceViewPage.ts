@@ -6,13 +6,14 @@ import "#admin/events/ObjectChangelog";
 import "#elements/Tabs";
 import "#elements/buttons/ActionButton/index";
 import "#elements/buttons/SpinnerButton/index";
-import "#elements/buttons/TokenCopyButton/index";
+import "#components/ak-secret-value";
 import "#elements/forms/ModalForm";
 
 import { aki } from "#common/api/client";
 import { EVENT_REFRESH } from "#common/constants";
 
 import { AKElement } from "#elements/Base";
+import { fetchTokenKey } from "#elements/buttons/IconTokenCopyButton";
 import { IconTokenRotateButton } from "#elements/buttons/IconTokenRotateButton";
 import { SlottedTemplateResult } from "#elements/types";
 
@@ -150,15 +151,17 @@ export class SCIMSourceViewPage extends AKElement {
                                                 >
                                             </label>
                                             <div>
-                                                <ak-token-copy-button
-                                                    class="pf-m-primary"
-                                                    identifier="${this.source?.tokenObj.identifier}"
+                                                <ak-secret-value
+                                                    .fetch=${() =>
+                                                        fetchTokenKey(
+                                                            this.source!.tokenObj.identifier,
+                                                        )}
+                                                    entity-label=${msg("Token")}
                                                 >
-                                                    ${msg("Copy token")}
-                                                </ak-token-copy-button>
-                                                ${IconTokenRotateButton(
-                                                    this.source?.tokenObj?.identifier,
-                                                )}
+                                                    ${IconTokenRotateButton(
+                                                        this.source?.tokenObj?.identifier,
+                                                    )}
+                                                </ak-secret-value>
                                             </div>
                                         </div>
                                     </form>

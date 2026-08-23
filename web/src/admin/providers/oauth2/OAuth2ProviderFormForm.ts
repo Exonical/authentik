@@ -20,12 +20,14 @@ import { propertyMappingsProvider, propertyMappingsSelector } from "./OAuth2Prov
 import { oauth2ProvidersProvider, oauth2ProvidersSelector } from "./OAuth2ProvidersProvider.js";
 import { oauth2SourcesProvider, oauth2SourcesSelector } from "./OAuth2Sources.js";
 
+import { RotateSecretButton } from "#elements/buttons/IconRotateSecretButton";
 import { RadioOption } from "#elements/forms/Radio";
 import { ifPresent } from "#elements/utils/attributes";
 
 import { AKLabel } from "#components/ak-label";
 
 import { generatedPlaceholder } from "#admin/providers/BaseProviderForm";
+import { clientSecretRotation } from "#admin/providers/oauth2/OAuth2ProviderRotateSecret";
 
 import {
     ClientTypeEnum,
@@ -42,7 +44,7 @@ import {
 } from "@goauthentik/api";
 
 import { msg } from "@lit/localize";
-import { html } from "lit";
+import { html, nothing } from "lit";
 import { ifDefined } from "lit/directives/if-defined.js";
 
 export const clientTypeOptions: RadioOption<ClientTypeEnum>[] = [
@@ -230,6 +232,7 @@ export function renderForm({
                     value=${ifDefined(provider.clientId)}
                     placeholder=${ifDefined(generatedPlaceholder(provider))}
                     input-hint="code"
+                    copyable
                     .errorMessages=${errors.clientId}
                 >
                 </ak-text-input>
@@ -240,10 +243,14 @@ export function renderForm({
                     value=${ifDefined(provider.clientSecret)}
                     placeholder=${ifDefined(generatedPlaceholder(provider))}
                     input-hint="code"
+                    copyable
                     .errorMessages=${errors.clientSecret}
                     ?hidden=${!showClientSecret}
                 >
                 </ak-hidden-text-input>
+                ${provider.pk && showClientSecret
+                    ? RotateSecretButton(clientSecretRotation(provider.pk))
+                    : nothing}
                 <ak-form-element-horizontal label=${msg("Grant Types")} required name="grantTypes">
                     <ak-checkbox-group
                         name="users"

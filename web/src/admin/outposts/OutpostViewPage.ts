@@ -8,13 +8,13 @@ import "#admin/rbac/ak-rbac-object-permission-page";
 import "#admin/outposts/OutpostForm";
 import "#admin/outposts/OutpostHealthList";
 import "#admin/outposts/OutpostProviderList";
-import "#elements/buttons/TokenCopyButton/ak-token-copy-button";
+import "#components/ak-secret-value";
 
 import { aki } from "#common/api/client";
 import { docLink } from "#common/global";
 
 import { AKElement } from "#elements/Base";
-import { IconTokenCopyButton } from "#elements/buttons/IconTokenCopyButton";
+import { fetchTokenKey } from "#elements/buttons/IconTokenCopyButton";
 import { IconTokenRotateButton } from "#elements/buttons/IconTokenRotateButton";
 import { SlottedTemplateResult } from "#elements/types";
 
@@ -249,10 +249,12 @@ export class OutpostViewPage extends AKElement {
                         <label class="pf-c-form__label">
                             <span class="pf-c-form__label-text">AUTHENTIK_TOKEN</span>
                         </label>
-                        <div>
-                            ${IconTokenCopyButton(this.outpost?.tokenIdentifier)}
+                        <ak-secret-value
+                            .fetch=${() => fetchTokenKey(this.outpost!.tokenIdentifier)}
+                            entity-label=${msg("Token")}
+                        >
                             ${IconTokenRotateButton(this.outpost?.tokenIdentifier)}
-                        </div>
+                        </ak-secret-value>
                     </div>
                     <h3>
                         ${msg(

@@ -4,9 +4,9 @@ import "@patternfly/elements/pf-tooltip/pf-tooltip.js";
 import { SlottedTemplateResult } from "#elements/types";
 
 import { msg } from "@lit/localize";
-import { html } from "lit";
+import { html, TemplateResult } from "lit";
 
-export interface IconRotateSecretButtonProps {
+export interface RotateSecretProps {
     /**
      * Calls the rotate endpoint. The confirmation form surfaces errors and
      * dispatches a refresh event on success.
@@ -19,17 +19,10 @@ export interface IconRotateSecretButtonProps {
     buttonLabel: string;
 }
 
-/**
- * An icon button that opens a confirmation before replacing a secret with a newly generated one.
- */
-export function IconRotateSecretButton({
-    onConfirm,
-    header,
-    body,
-    successMessage,
-    errorMessage,
-    buttonLabel,
-}: IconRotateSecretButtonProps): SlottedTemplateResult {
+function RotateSecretConfirm(
+    { onConfirm, header, body, successMessage, errorMessage }: RotateSecretProps,
+    trigger: TemplateResult,
+): SlottedTemplateResult {
     return html`<ak-forms-confirm
         successMessage=${successMessage}
         errorMessage=${errorMessage}
@@ -41,16 +34,38 @@ export function IconRotateSecretButton({
     >
         <span slot="header">${header}</span>
         <div slot="body" class="pf-c-content">${body}</div>
-        <button
+        ${trigger}
+        <div slot="modal"></div>
+    </ak-forms-confirm>`;
+}
+
+/**
+ * An icon button that opens a confirmation before replacing a secret with a newly generated one.
+ */
+export function IconRotateSecretButton(props: RotateSecretProps): SlottedTemplateResult {
+    return RotateSecretConfirm(
+        props,
+        html`<button
             slot="trigger"
             class="pf-c-button pf-m-plain"
             type="button"
-            aria-label=${buttonLabel}
+            aria-label=${props.buttonLabel}
         >
-            <pf-tooltip position="top" content=${buttonLabel}>
+            <pf-tooltip position="top" content=${props.buttonLabel}>
                 <i class="fas fa-sync-alt" aria-hidden="true"></i>
             </pf-tooltip>
-        </button>
-        <div slot="modal"></div>
-    </ak-forms-confirm>`;
+        </button>`,
+    );
+}
+
+/**
+ * A labelled secondary button variant of {@linkcode IconRotateSecretButton}, for forms.
+ */
+export function RotateSecretButton(props: RotateSecretProps): SlottedTemplateResult {
+    return RotateSecretConfirm(
+        props,
+        html`<button slot="trigger" class="pf-c-button pf-m-secondary" type="button">
+            ${props.buttonLabel}
+        </button>`,
+    );
 }

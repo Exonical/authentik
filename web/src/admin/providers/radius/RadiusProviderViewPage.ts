@@ -6,22 +6,25 @@ import "#elements/CodeMirror";
 import "#elements/Tabs";
 import "#elements/buttons/ModalButton";
 import "#elements/buttons/SpinnerButton/index";
+import "#components/ak-secret-value";
 
 import { aki } from "#common/api/client";
 import { EVENT_REFRESH } from "#common/constants";
 
 import { AKElement } from "#elements/Base";
-import { IconCopyButton } from "#elements/buttons/IconCopyButton";
 import { IconRotateSecretButton } from "#elements/buttons/IconRotateSecretButton";
 import { SlottedTemplateResult } from "#elements/types";
 
 import renderDescriptionList from "#components/DescriptionList";
+
+import { sharedSecretRotation } from "#admin/providers/radius/RadiusProviderRotateSecret";
 
 import { ModelEnum, ProvidersApi, RadiusProvider } from "@goauthentik/api";
 
 import { msg } from "@lit/localize";
 import { CSSResult, html, nothing, PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { ifDefined } from "lit/directives/if-defined.js";
 
 import PFButton from "@patternfly/patternfly/components/Button/button.css";
 import PFCard from "@patternfly/patternfly/components/Card/card.css";
@@ -72,35 +75,12 @@ export class RadiusProviderViewPage extends AKElement {
     }
 
     renderSharedSecret(provider: RadiusProvider): SlottedTemplateResult {
-        return html`${IconCopyButton({
-            source: provider.sharedSecret ?? null,
-            buttonLabel: msg("Copy shared secret", {
-                id: "providers.radius.shared-secret.copy-button.label",
-            }),
-            entityLabel: msg("Shared secret", { id: "providers.radius.shared-secret.label" }),
-        })}
-        ${IconRotateSecretButton({
-            onConfirm: () =>
-                aki(ProvidersApi).providersRadiusRotateSecretCreate({ id: provider.pk }),
-            header: msg("Rotate shared secret", {
-                id: "providers.radius.shared-secret.rotate.header",
-            }),
-            body: html`<p>
-                ${msg(
-                    "The current shared secret stops working as soon as the outpost picks up the change, which usually takes a few seconds. Update every RADIUS client with the new secret afterwards.",
-                    { id: "providers.radius.shared-secret.rotate.description" },
-                )}
-            </p>`,
-            successMessage: msg("Successfully rotated shared secret.", {
-                id: "providers.radius.shared-secret.rotate.success",
-            }),
-            errorMessage: msg("Failed to rotate shared secret", {
-                id: "providers.radius.shared-secret.rotate.error",
-            }),
-            buttonLabel: msg("Rotate shared secret", {
-                id: "providers.radius.shared-secret.rotate-button.label",
-            }),
-        })}`;
+        return html`<ak-secret-value
+            value=${ifDefined(provider.sharedSecret)}
+            entity-label=${msg("Shared secret", { id: "providers.radius.shared-secret.label" })}
+        >
+            ${IconRotateSecretButton(sharedSecretRotation(provider.pk))}
+        </ak-secret-value>`;
     }
 
     render(): SlottedTemplateResult {
