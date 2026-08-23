@@ -197,7 +197,7 @@ A user views a token's/certificate's data.
 
 ### `secret_rotate`
 
-A secret was replaced with a newly generated one, either automatically by authentik when a token expires, or by a user rotating a token, an OAuth2 client secret, or a RADIUS shared secret. The event context names the object and the rotated field, never the secret itself.
+A secret was replaced with a newly generated one, either by authentik when a token expires or by a user rotating it. The context names the object and the field, never the value.
 
 ### `invitation_used`
 
