@@ -592,6 +592,10 @@ export interface ProvidersOauth2RetrieveRequest {
     id: number;
 }
 
+export interface ProvidersOauth2RotateSecretCreateRequest {
+    id: number;
+}
+
 export interface ProvidersOauth2SetupUrlsRetrieveRequest {
     id: number;
 }
@@ -713,6 +717,10 @@ export interface ProvidersRadiusPartialUpdateRequest {
 }
 
 export interface ProvidersRadiusRetrieveRequest {
+    id: number;
+}
+
+export interface ProvidersRadiusRotateSecretCreateRequest {
     id: number;
 }
 
@@ -5405,6 +5413,73 @@ export class ProvidersApi extends runtime.BaseAPI {
     }
 
     /**
+     * Creates request options for providersOauth2RotateSecretCreate without sending the request
+     */
+    async providersOauth2RotateSecretCreateRequestOpts(
+        requestParameters: ProvidersOauth2RotateSecretCreateRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["id"] == null) {
+            throw new runtime.RequiredError(
+                "id",
+                'Required parameter "id" was null or undefined when calling providersOauth2RotateSecretCreate().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/oauth2/{id}/rotate_secret/`;
+        urlPath = urlPath.replace("{id}", encodeURIComponent(String(requestParameters["id"])));
+
+        return {
+            path: urlPath,
+            method: "POST",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Replace the secret with a newly generated value. The old value stops working immediately.
+     */
+    async providersOauth2RotateSecretCreateRaw(
+        requestParameters: ProvidersOauth2RotateSecretCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<OAuth2Provider>> {
+        const requestOptions =
+            await this.providersOauth2RotateSecretCreateRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            OAuth2ProviderFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Replace the secret with a newly generated value. The old value stops working immediately.
+     */
+    async providersOauth2RotateSecretCreate(
+        requestParameters: ProvidersOauth2RotateSecretCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<OAuth2Provider> {
+        const response = await this.providersOauth2RotateSecretCreateRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
      * Creates request options for providersOauth2SetupUrlsRetrieve without sending the request
      */
     async providersOauth2SetupUrlsRetrieveRequestOpts(
@@ -6941,6 +7016,73 @@ export class ProvidersApi extends runtime.BaseAPI {
         initOverrides?: RequestInit | runtime.InitOverrideFunction,
     ): Promise<RadiusProvider> {
         const response = await this.providersRadiusRetrieveRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for providersRadiusRotateSecretCreate without sending the request
+     */
+    async providersRadiusRotateSecretCreateRequestOpts(
+        requestParameters: ProvidersRadiusRotateSecretCreateRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["id"] == null) {
+            throw new runtime.RequiredError(
+                "id",
+                'Required parameter "id" was null or undefined when calling providersRadiusRotateSecretCreate().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/radius/{id}/rotate_secret/`;
+        urlPath = urlPath.replace("{id}", encodeURIComponent(String(requestParameters["id"])));
+
+        return {
+            path: urlPath,
+            method: "POST",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Replace the secret with a newly generated value. The old value stops working immediately.
+     */
+    async providersRadiusRotateSecretCreateRaw(
+        requestParameters: ProvidersRadiusRotateSecretCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<RadiusProvider>> {
+        const requestOptions =
+            await this.providersRadiusRotateSecretCreateRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            RadiusProviderFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Replace the secret with a newly generated value. The old value stops working immediately.
+     */
+    async providersRadiusRotateSecretCreate(
+        requestParameters: ProvidersRadiusRotateSecretCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<RadiusProvider> {
+        const response = await this.providersRadiusRotateSecretCreateRaw(
+            requestParameters,
+            initOverrides,
+        );
         return await response.value();
     }
 

@@ -1,5 +1,7 @@
 """Test outpost service connection API"""
 
+from unittest.mock import patch
+
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
@@ -110,3 +112,19 @@ class TestOutpostServiceConnectionsAPI(APITestCase):
             }
         )
         self.assertTrue(valid.is_valid())
+
+    def test_token_rotate_redeploys(self):
+        """Rotating an outpost's token schedules the controller, as managed outposts carry
+        the key in their config"""
+        outpost = Outpost.objects.create(name=generate_id(), type=OutpostType.PROXY)
+        old_key = outpost.token.key
+        with patch("authentik.outposts.signals.outpost_controller.send_with_options") as send:
+            response = self.client.post(
+                reverse(
+                    "authentik_api:token-rotate-secret",
+                    kwargs={"identifier": outpost.token_identifier},
+                )
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(outpost.token.key, old_key)
+        self.assertEqual([call.kwargs["args"] for call in send.call_args_list], [(outpost.pk,)])

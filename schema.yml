@@ -4350,6 +4350,33 @@ paths:
           $ref: '#/components/responses/ValidationErrorResponse'
         '403':
           $ref: '#/components/responses/GenericErrorResponse'
+  /core/tokens/{identifier}/rotate_secret/:
+    post:
+      operationId: core_tokens_rotate_secret_create
+      description: |-
+        Replace the secret with a newly generated value. The old value stops working
+        immediately.
+      parameters:
+      - in: path
+        name: identifier
+        schema:
+          type: string
+        required: true
+      tags:
+      - core
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Token'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
   /core/tokens/{identifier}/set_key/:
     post:
       operationId: core_tokens_set_key_create
@@ -5999,8 +6026,7 @@ paths:
   /endpoints/agents/enrollment_tokens/:
     get:
       operationId: endpoints_agents_enrollment_tokens_list
-      description: Mixin to add a used_by endpoint to return a list of all objects
-        using this object
+      description: EnrollmentToken Viewset
       parameters:
       - in: query
         name: connector
@@ -6033,8 +6059,7 @@ paths:
           $ref: '#/components/responses/GenericErrorResponse'
     post:
       operationId: endpoints_agents_enrollment_tokens_create
-      description: Mixin to add a used_by endpoint to return a list of all objects
-        using this object
+      description: EnrollmentToken Viewset
       tags:
       - endpoints
       requestBody:
@@ -6059,8 +6084,7 @@ paths:
   /endpoints/agents/enrollment_tokens/{token_uuid}/:
     get:
       operationId: endpoints_agents_enrollment_tokens_retrieve
-      description: Mixin to add a used_by endpoint to return a list of all objects
-        using this object
+      description: EnrollmentToken Viewset
       parameters:
       - in: path
         name: token_uuid
@@ -6086,8 +6110,7 @@ paths:
           $ref: '#/components/responses/GenericErrorResponse'
     put:
       operationId: endpoints_agents_enrollment_tokens_update
-      description: Mixin to add a used_by endpoint to return a list of all objects
-        using this object
+      description: EnrollmentToken Viewset
       parameters:
       - in: path
         name: token_uuid
@@ -6119,8 +6142,7 @@ paths:
           $ref: '#/components/responses/GenericErrorResponse'
     patch:
       operationId: endpoints_agents_enrollment_tokens_partial_update
-      description: Mixin to add a used_by endpoint to return a list of all objects
-        using this object
+      description: EnrollmentToken Viewset
       parameters:
       - in: path
         name: token_uuid
@@ -6151,8 +6173,7 @@ paths:
           $ref: '#/components/responses/GenericErrorResponse'
     delete:
       operationId: endpoints_agents_enrollment_tokens_destroy
-      description: Mixin to add a used_by endpoint to return a list of all objects
-        using this object
+      description: EnrollmentToken Viewset
       parameters:
       - in: path
         name: token_uuid
@@ -6168,6 +6189,35 @@ paths:
       responses:
         '204':
           description: No response body
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /endpoints/agents/enrollment_tokens/{token_uuid}/rotate_secret/:
+    post:
+      operationId: endpoints_agents_enrollment_tokens_rotate_secret_create
+      description: |-
+        Replace the secret with a newly generated value. The old value stops working
+        immediately.
+      parameters:
+      - in: path
+        name: token_uuid
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Enrollment Token.
+        required: true
+      tags:
+      - endpoints
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentToken'
+          description: ''
         '400':
           $ref: '#/components/responses/ValidationErrorResponse'
         '403':
@@ -19068,6 +19118,34 @@ paths:
           description: Bad request
         '403':
           $ref: '#/components/responses/GenericErrorResponse'
+  /providers/oauth2/{id}/rotate_secret/:
+    post:
+      operationId: providers_oauth2_rotate_secret_create
+      description: |-
+        Replace the secret with a newly generated value. The old value stops working
+        immediately.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this OAuth2/OpenID Provider.
+        required: true
+      tags:
+      - providers
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuth2Provider'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
   /providers/oauth2/{id}/setup_urls/:
     get:
       operationId: providers_oauth2_setup_urls_retrieve
@@ -19734,6 +19812,34 @@ paths:
       responses:
         '204':
           description: No response body
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /providers/radius/{id}/rotate_secret/:
+    post:
+      operationId: providers_radius_rotate_secret_create
+      description: |-
+        Replace the secret with a newly generated value. The old value stops working
+        immediately.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Radius Provider.
+        required: true
+      tags:
+      - providers
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RadiusProvider'
+          description: ''
         '400':
           $ref: '#/components/responses/ValidationErrorResponse'
         '403':

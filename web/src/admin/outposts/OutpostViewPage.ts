@@ -15,6 +15,7 @@ import { docLink } from "#common/global";
 
 import { AKElement } from "#elements/Base";
 import { IconTokenCopyButton } from "#elements/buttons/IconTokenCopyButton";
+import { IconTokenRotateButton } from "#elements/buttons/IconTokenRotateButton";
 import { SlottedTemplateResult } from "#elements/types";
 
 import { setPageDetails } from "#components/ak-page-navbar";
@@ -248,7 +249,10 @@ export class OutpostViewPage extends AKElement {
                         <label class="pf-c-form__label">
                             <span class="pf-c-form__label-text">AUTHENTIK_TOKEN</span>
                         </label>
-                        <div>${IconTokenCopyButton(this.outpost?.tokenIdentifier)}</div>
+                        <div>
+                            ${IconTokenCopyButton(this.outpost?.tokenIdentifier)}
+                            ${IconTokenRotateButton(this.outpost?.tokenIdentifier)}
+                        </div>
                     </div>
                     <h3>
                         ${msg(

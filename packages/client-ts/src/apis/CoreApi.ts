@@ -446,6 +446,10 @@ export interface CoreTokensRetrieveRequest {
     identifier: string;
 }
 
+export interface CoreTokensRotateSecretCreateRequest {
+    identifier: string;
+}
+
 export interface CoreTokensSetKeyCreateRequest {
     identifier: string;
     tokenSetKeyRequest: TokenSetKeyRequest;
@@ -4265,6 +4269,74 @@ export class CoreApi extends runtime.BaseAPI {
         initOverrides?: RequestInit | runtime.InitOverrideFunction,
     ): Promise<Token> {
         const response = await this.coreTokensRetrieveRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for coreTokensRotateSecretCreate without sending the request
+     */
+    async coreTokensRotateSecretCreateRequestOpts(
+        requestParameters: CoreTokensRotateSecretCreateRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["identifier"] == null) {
+            throw new runtime.RequiredError(
+                "identifier",
+                'Required parameter "identifier" was null or undefined when calling coreTokensRotateSecretCreate().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/core/tokens/{identifier}/rotate_secret/`;
+        urlPath = urlPath.replace(
+            "{identifier}",
+            encodeURIComponent(String(requestParameters["identifier"])),
+        );
+
+        return {
+            path: urlPath,
+            method: "POST",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Replace the secret with a newly generated value. The old value stops working immediately.
+     */
+    async coreTokensRotateSecretCreateRaw(
+        requestParameters: CoreTokensRotateSecretCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<Token>> {
+        const requestOptions =
+            await this.coreTokensRotateSecretCreateRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => TokenFromJSON(jsonValue));
+    }
+
+    /**
+     * Replace the secret with a newly generated value. The old value stops working immediately.
+     */
+    async coreTokensRotateSecretCreate(
+        requestParameters: CoreTokensRotateSecretCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<Token> {
+        const response = await this.coreTokensRotateSecretCreateRaw(
+            requestParameters,
+            initOverrides,
+        );
         return await response.value();
     }
 

@@ -6,7 +6,7 @@ from django.dispatch import receiver
 from structlog.stdlib import get_logger
 
 from authentik.brands.models import Brand
-from authentik.core.models import AuthenticatedSession, Provider
+from authentik.core.models import AuthenticatedSession, Provider, Token
 from authentik.crypto.models import CertificateKeyPair
 from authentik.outposts.models import Outpost, OutpostModel, OutpostServiceConnection
 from authentik.outposts.tasks import (
@@ -113,7 +113,24 @@ def outpost_related_post_save(sender, instance: OutpostServiceConnection | Outpo
 
 post_save.connect(outpost_related_post_save, sender=OutpostServiceConnection, weak=False)
 for subclass in OutpostModel.__subclasses__():
-    post_save.connect(outpost_related_post_save, sender=subclass, weak=False)
+    # Include concrete parents, as a proxy provider can be saved as its OAuth2Provider row
+    for model in (subclass, *subclass._meta.get_parent_list()):
+        post_save.connect(outpost_related_post_save, sender=model, weak=False)
+
+
+@receiver(post_save, sender=Token)
+def outpost_token_post_save(sender, instance: Token, created: bool, **_):
+    """Redeploy managed outposts when their token changes, as the key is part of their config"""
+    if created or not (instance.managed or "").startswith("goauthentik.io/outpost/"):
+        return
+    for outpost in Outpost.objects.filter(
+        pk=instance.identifier.removeprefix("ak-outpost-").removesuffix("-api")
+    ):
+        outpost_controller.send_with_options(
+            args=(outpost.pk,),
+            rel_obj=outpost.service_connection,
+            uid=outpost.name,
+        )
 
 
 def outpost_reverse_related_post_save(sender, instance: CertificateKeyPair | Brand, **_):

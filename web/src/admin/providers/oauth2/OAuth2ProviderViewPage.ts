@@ -20,10 +20,12 @@ import { aki } from "#common/api/client";
 import { EVENT_REFRESH } from "#common/constants";
 
 import { AKElement } from "#elements/Base";
+import { IconCopyButton } from "#elements/buttons/IconCopyButton";
+import { IconRotateSecretButton } from "#elements/buttons/IconRotateSecretButton";
 import { modalInvoker } from "#elements/dialogs";
 import { SlottedTemplateResult } from "#elements/types";
 
-import renderDescriptionList from "#components/DescriptionList";
+import renderDescriptionList, { DescriptionPair } from "#components/DescriptionList";
 import { taskCard } from "#components/tasks/taskCard";
 
 import { OAuth2DCRForm } from "#admin/providers/oauth2/OAuth2DCRForm";
@@ -233,6 +235,41 @@ export class OAuth2ProviderViewPage extends AKElement {
         </main>`;
     }
 
+    renderClientSecret(provider: OAuth2Provider): DescriptionPair {
+        return [
+            msg("Client secret", { id: "providers.oauth2.client-secret.label" }),
+            html`${IconCopyButton({
+                source: provider.clientSecret ?? null,
+                buttonLabel: msg("Copy client secret", {
+                    id: "providers.oauth2.client-secret.copy-button.label",
+                }),
+                entityLabel: msg("Client secret", { id: "providers.oauth2.client-secret.label" }),
+            })}
+            ${IconRotateSecretButton({
+                onConfirm: () =>
+                    aki(ProvidersApi).providersOauth2RotateSecretCreate({ id: provider.pk }),
+                header: msg("Rotate client secret", {
+                    id: "providers.oauth2.client-secret.rotate.header",
+                }),
+                body: html`<p>
+                    ${msg(
+                        "The current client secret stops working immediately. Clients authenticating with it are rejected, and if this provider has no signing key, ID tokens signed with it no longer validate. Update every client with the new secret afterwards.",
+                        { id: "providers.oauth2.client-secret.rotate.description" },
+                    )}
+                </p>`,
+                successMessage: msg("Successfully rotated client secret.", {
+                    id: "providers.oauth2.client-secret.rotate.success",
+                }),
+                errorMessage: msg("Failed to rotate client secret", {
+                    id: "providers.oauth2.client-secret.rotate.error",
+                }),
+                buttonLabel: msg("Rotate client secret", {
+                    id: "providers.oauth2.client-secret.rotate-button.label",
+                }),
+            })}`,
+        ];
+    }
+
     renderTabOverview(provider: OAuth2Provider): SlottedTemplateResult {
         return html`${provider.assignedApplicationName
                 ? nothing
@@ -254,6 +291,9 @@ export class OAuth2ProviderViewPage extends AKElement {
                             ],
                             [msg("Client Type"), html`${TypeToLabel(provider.clientType)}`],
                             [msg("Client ID"), html`${provider.clientId}`],
+                            ...(provider.clientType === ClientTypeEnum.Public
+                                ? []
+                                : [this.renderClientSecret(provider)]),
                             [
                                 msg("Redirect URIs"),
                                 (provider.redirectUris || []).length > 0

@@ -13,6 +13,7 @@ import { aki } from "#common/api/client";
 import { EVENT_REFRESH } from "#common/constants";
 
 import { AKElement } from "#elements/Base";
+import { IconTokenRotateButton } from "#elements/buttons/IconTokenRotateButton";
 import { SlottedTemplateResult } from "#elements/types";
 
 import { ModelEnum, SCIMSource, SourcesApi } from "@goauthentik/api";
@@ -155,6 +156,9 @@ export class SCIMSourceViewPage extends AKElement {
                                                 >
                                                     ${msg("Copy token")}
                                                 </ak-token-copy-button>
+                                                ${IconTokenRotateButton(
+                                                    this.source?.tokenObj?.identifier,
+                                                )}
                                             </div>
                                         </div>
                                     </form>

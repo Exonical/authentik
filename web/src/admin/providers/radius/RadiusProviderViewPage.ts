@@ -11,7 +11,11 @@ import { aki } from "#common/api/client";
 import { EVENT_REFRESH } from "#common/constants";
 
 import { AKElement } from "#elements/Base";
+import { IconCopyButton } from "#elements/buttons/IconCopyButton";
+import { IconRotateSecretButton } from "#elements/buttons/IconRotateSecretButton";
 import { SlottedTemplateResult } from "#elements/types";
+
+import renderDescriptionList from "#components/DescriptionList";
 
 import { ModelEnum, ProvidersApi, RadiusProvider } from "@goauthentik/api";
 
@@ -67,6 +71,38 @@ export class RadiusProviderViewPage extends AKElement {
         }
     }
 
+    renderSharedSecret(provider: RadiusProvider): SlottedTemplateResult {
+        return html`${IconCopyButton({
+            source: provider.sharedSecret ?? null,
+            buttonLabel: msg("Copy shared secret", {
+                id: "providers.radius.shared-secret.copy-button.label",
+            }),
+            entityLabel: msg("Shared secret", { id: "providers.radius.shared-secret.label" }),
+        })}
+        ${IconRotateSecretButton({
+            onConfirm: () =>
+                aki(ProvidersApi).providersRadiusRotateSecretCreate({ id: provider.pk }),
+            header: msg("Rotate shared secret", {
+                id: "providers.radius.shared-secret.rotate.header",
+            }),
+            body: html`<p>
+                ${msg(
+                    "The current shared secret stops working as soon as the outpost picks up the change, which usually takes a few seconds. Update every RADIUS client with the new secret afterwards.",
+                    { id: "providers.radius.shared-secret.rotate.description" },
+                )}
+            </p>`,
+            successMessage: msg("Successfully rotated shared secret.", {
+                id: "providers.radius.shared-secret.rotate.success",
+            }),
+            errorMessage: msg("Failed to rotate shared secret", {
+                id: "providers.radius.shared-secret.rotate.error",
+            }),
+            buttonLabel: msg("Rotate shared secret", {
+                id: "providers.radius.shared-secret.rotate-button.label",
+            }),
+        })}`;
+    }
+
     render(): SlottedTemplateResult {
         if (!this.provider) {
             return nothing;
@@ -90,46 +126,25 @@ export class RadiusProviderViewPage extends AKElement {
                         <div class="pf-u-w-75">
                             <div class="pf-c-card">
                                 <div class="pf-c-card__body">
-                                    <dl class="pf-c-description-list pf-m-3-col-on-lg">
-                                        <div class="pf-c-description-list__group">
-                                            <dt class="pf-c-description-list__term">
-                                                <span class="pf-c-description-list__text"
-                                                    >${msg("Name")}</span
-                                                >
-                                            </dt>
-                                            <dd class="pf-c-description-list__description">
-                                                <div class="pf-c-description-list__text">
-                                                    ${this.provider.name}
-                                                </div>
-                                            </dd>
-                                        </div>
-                                        <div class="pf-c-description-list__group">
-                                            <dt class="pf-c-description-list__term">
-                                                <span class="pf-c-description-list__text"
-                                                    >${msg("Assigned to application")}</span
-                                                >
-                                            </dt>
-                                            <dd class="pf-c-description-list__description">
-                                                <div class="pf-c-description-list__text">
-                                                    <ak-provider-related-application
-                                                        .provider=${this.provider}
-                                                    ></ak-provider-related-application>
-                                                </div>
-                                            </dd>
-                                        </div>
-                                        <div class="pf-c-description-list__group">
-                                            <dt class="pf-c-description-list__term">
-                                                <span class="pf-c-description-list__text"
-                                                    >${msg("Client Networks")}</span
-                                                >
-                                            </dt>
-                                            <dd class="pf-c-description-list__description">
-                                                <div class="pf-c-description-list__text">
-                                                    ${this.provider.clientNetworks}
-                                                </div>
-                                            </dd>
-                                        </div>
-                                    </dl>
+                                    ${renderDescriptionList(
+                                        [
+                                            [msg("Name"), this.provider.name],
+                                            [
+                                                msg("Assigned to application"),
+                                                html`<ak-provider-related-application
+                                                    .provider=${this.provider}
+                                                ></ak-provider-related-application>`,
+                                            ],
+                                            [msg("Client Networks"), this.provider.clientNetworks],
+                                            [
+                                                msg("Shared secret", {
+                                                    id: "providers.radius.shared-secret.label",
+                                                }),
+                                                this.renderSharedSecret(this.provider),
+                                            ],
+                                        ],
+                                        { threecolumn: true },
+                                    )}
                                 </div>
                                 <div class="pf-c-card__footer">
                                     <ak-forms-modal>

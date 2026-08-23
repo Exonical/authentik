@@ -242,6 +242,10 @@ export interface EndpointsAgentsEnrollmentTokensRetrieveRequest {
     tokenUuid: string;
 }
 
+export interface EndpointsAgentsEnrollmentTokensRotateSecretCreateRequest {
+    tokenUuid: string;
+}
+
 export interface EndpointsAgentsEnrollmentTokensUpdateRequest {
     tokenUuid: string;
     enrollmentTokenRequest: EnrollmentTokenRequest;
@@ -1404,7 +1408,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Mixin to add a used_by endpoint to return a list of all objects using this object
+     * EnrollmentToken Viewset
      */
     async endpointsAgentsEnrollmentTokensCreateRaw(
         requestParameters: EndpointsAgentsEnrollmentTokensCreateRequest,
@@ -1420,7 +1424,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Mixin to add a used_by endpoint to return a list of all objects using this object
+     * EnrollmentToken Viewset
      */
     async endpointsAgentsEnrollmentTokensCreate(
         requestParameters: EndpointsAgentsEnrollmentTokensCreateRequest,
@@ -1474,7 +1478,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Mixin to add a used_by endpoint to return a list of all objects using this object
+     * EnrollmentToken Viewset
      */
     async endpointsAgentsEnrollmentTokensDestroyRaw(
         requestParameters: EndpointsAgentsEnrollmentTokensDestroyRequest,
@@ -1488,7 +1492,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Mixin to add a used_by endpoint to return a list of all objects using this object
+     * EnrollmentToken Viewset
      */
     async endpointsAgentsEnrollmentTokensDestroy(
         requestParameters: EndpointsAgentsEnrollmentTokensDestroyRequest,
@@ -1551,7 +1555,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Mixin to add a used_by endpoint to return a list of all objects using this object
+     * EnrollmentToken Viewset
      */
     async endpointsAgentsEnrollmentTokensListRaw(
         requestParameters: EndpointsAgentsEnrollmentTokensListRequest,
@@ -1567,7 +1571,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Mixin to add a used_by endpoint to return a list of all objects using this object
+     * EnrollmentToken Viewset
      */
     async endpointsAgentsEnrollmentTokensList(
         requestParameters: EndpointsAgentsEnrollmentTokensListRequest = {},
@@ -1626,7 +1630,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Mixin to add a used_by endpoint to return a list of all objects using this object
+     * EnrollmentToken Viewset
      */
     async endpointsAgentsEnrollmentTokensPartialUpdateRaw(
         requestParameters: EndpointsAgentsEnrollmentTokensPartialUpdateRequest,
@@ -1642,7 +1646,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Mixin to add a used_by endpoint to return a list of all objects using this object
+     * EnrollmentToken Viewset
      */
     async endpointsAgentsEnrollmentTokensPartialUpdate(
         requestParameters: EndpointsAgentsEnrollmentTokensPartialUpdateRequest,
@@ -1696,7 +1700,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Mixin to add a used_by endpoint to return a list of all objects using this object
+     * EnrollmentToken Viewset
      */
     async endpointsAgentsEnrollmentTokensRetrieveRaw(
         requestParameters: EndpointsAgentsEnrollmentTokensRetrieveRequest,
@@ -1712,13 +1716,85 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Mixin to add a used_by endpoint to return a list of all objects using this object
+     * EnrollmentToken Viewset
      */
     async endpointsAgentsEnrollmentTokensRetrieve(
         requestParameters: EndpointsAgentsEnrollmentTokensRetrieveRequest,
         initOverrides?: RequestInit | runtime.InitOverrideFunction,
     ): Promise<EnrollmentToken> {
         const response = await this.endpointsAgentsEnrollmentTokensRetrieveRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for endpointsAgentsEnrollmentTokensRotateSecretCreate without sending the request
+     */
+    async endpointsAgentsEnrollmentTokensRotateSecretCreateRequestOpts(
+        requestParameters: EndpointsAgentsEnrollmentTokensRotateSecretCreateRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["tokenUuid"] == null) {
+            throw new runtime.RequiredError(
+                "tokenUuid",
+                'Required parameter "tokenUuid" was null or undefined when calling endpointsAgentsEnrollmentTokensRotateSecretCreate().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/endpoints/agents/enrollment_tokens/{token_uuid}/rotate_secret/`;
+        urlPath = urlPath.replace(
+            "{token_uuid}",
+            encodeURIComponent(String(requestParameters["tokenUuid"])),
+        );
+
+        return {
+            path: urlPath,
+            method: "POST",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Replace the secret with a newly generated value. The old value stops working immediately.
+     */
+    async endpointsAgentsEnrollmentTokensRotateSecretCreateRaw(
+        requestParameters: EndpointsAgentsEnrollmentTokensRotateSecretCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<EnrollmentToken>> {
+        const requestOptions =
+            await this.endpointsAgentsEnrollmentTokensRotateSecretCreateRequestOpts(
+                requestParameters,
+            );
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            EnrollmentTokenFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Replace the secret with a newly generated value. The old value stops working immediately.
+     */
+    async endpointsAgentsEnrollmentTokensRotateSecretCreate(
+        requestParameters: EndpointsAgentsEnrollmentTokensRotateSecretCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<EnrollmentToken> {
+        const response = await this.endpointsAgentsEnrollmentTokensRotateSecretCreateRaw(
             requestParameters,
             initOverrides,
         );
@@ -1776,7 +1852,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Mixin to add a used_by endpoint to return a list of all objects using this object
+     * EnrollmentToken Viewset
      */
     async endpointsAgentsEnrollmentTokensUpdateRaw(
         requestParameters: EndpointsAgentsEnrollmentTokensUpdateRequest,
@@ -1792,7 +1868,7 @@ export class EndpointsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Mixin to add a used_by endpoint to return a list of all objects using this object
+     * EnrollmentToken Viewset
      */
     async endpointsAgentsEnrollmentTokensUpdate(
         requestParameters: EndpointsAgentsEnrollmentTokensUpdateRequest,

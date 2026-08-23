@@ -19,12 +19,14 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from authentik.core.api.providers import ProviderSerializer
+from authentik.core.api.rotate_secret import RotatableSecretMixin
 from authentik.core.api.used_by import UsedByMixin
 from authentik.core.api.utils import PassiveSerializer, PropertyMappingPreviewSerializer
 from authentik.core.models import Provider
 from authentik.providers.oauth2.id_token import IDToken
 from authentik.providers.oauth2.models import (
     AccessToken,
+    ClientType,
     OAuth2Provider,
     RedirectURIMatchingMode,
     RedirectURIType,
@@ -71,6 +73,18 @@ class OAuth2ProviderSerializer(ProviderSerializer):
                     ) from None
         return data
 
+    def validate(self, attrs: dict) -> dict:
+        attrs = super().validate(attrs)
+        client_type = attrs.get(
+            "client_type", getattr(self.instance, "client_type", ClientType.CONFIDENTIAL)
+        )
+        secret = attrs.get("client_secret", getattr(self.instance, "client_secret", None))
+        if client_type == ClientType.CONFIDENTIAL and secret == "":
+            raise ValidationError(
+                {"client_secret": _("Confidential clients require a client secret.")}
+            )
+        return attrs
+
     class Meta:
         model = OAuth2Provider
         fields = ProviderSerializer.Meta.fields + [
@@ -96,6 +110,7 @@ class OAuth2ProviderSerializer(ProviderSerializer):
             "jwt_federation_providers",
         ]
         extra_kwargs = ProviderSerializer.Meta.extra_write_kwargs
+        generated_fields = ["client_id", "client_secret"]
 
 
 class OAuth2ProviderSetupURLs(PassiveSerializer):
@@ -111,11 +126,12 @@ class OAuth2ProviderSetupURLs(PassiveSerializer):
     dcr_registration = CharField(read_only=True, allow_null=True)
 
 
-class OAuth2ProviderViewSet(UsedByMixin, ModelViewSet):
+class OAuth2ProviderViewSet(RotatableSecretMixin, UsedByMixin, ModelViewSet):
     """OAuth2Provider Viewset"""
 
     queryset = OAuth2Provider.objects.all()
     serializer_class = OAuth2ProviderSerializer
+    rotatable_secret = "client_secret"
     filterset_fields = [
         "name",
         "authorization_flow",

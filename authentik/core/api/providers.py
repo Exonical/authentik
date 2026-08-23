@@ -35,6 +35,15 @@ class ProviderSerializer(ModelSerializer, MetaNameSerializer):
             return ""
         return obj.component
 
+    def to_internal_value(self, data):
+        # A blank generated credential on create means "generate one", the same as omitting it
+        if not self.instance:
+            for field in getattr(self.Meta, "generated_fields", []):
+                if data.get(field) == "":
+                    data = data.copy()
+                    del data[field]
+        return super().to_internal_value(data)
+
     class Meta:
         model = Provider
         fields = [

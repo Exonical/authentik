@@ -12,9 +12,9 @@ import "#elements/LicenseNotice";
 
 import { propertyMappingsProvider, propertyMappingsSelector } from "./RadiusProviderFormHelpers.js";
 
-import { ascii_letters, digits, randomString } from "#common/utils";
-
 import { ifPresent } from "#elements/utils/attributes";
+
+import { generatedPlaceholder } from "#admin/providers/BaseProviderForm";
 
 import {
     CurrentBrand,
@@ -95,8 +95,8 @@ export function renderForm({ provider, errors, brand }: RADIUSProviderFormProps)
                     name="sharedSecret"
                     label=${msg("Shared secret")}
                     .errorMessages=${errors.sharedSecret}
-                    value=${provider.sharedSecret ?? randomString(128, ascii_letters + digits)}
-                    required
+                    value=${ifDefined(provider.sharedSecret)}
+                    placeholder=${ifDefined(generatedPlaceholder(provider))}
                     input-hint="code"
                 ></ak-hidden-text-input>
                 <ak-text-input

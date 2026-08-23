@@ -20,12 +20,12 @@ import { propertyMappingsProvider, propertyMappingsSelector } from "./OAuth2Prov
 import { oauth2ProvidersProvider, oauth2ProvidersSelector } from "./OAuth2ProvidersProvider.js";
 import { oauth2SourcesProvider, oauth2SourcesSelector } from "./OAuth2Sources.js";
 
-import { ascii_letters, digits, randomString } from "#common/utils";
-
 import { RadioOption } from "#elements/forms/Radio";
 import { ifPresent } from "#elements/utils/attributes";
 
 import { AKLabel } from "#components/ak-label";
+
+import { generatedPlaceholder } from "#admin/providers/BaseProviderForm";
 
 import {
     ClientTypeEnum,
@@ -227,8 +227,8 @@ export function renderForm({
                 <ak-text-input
                     name="clientId"
                     label=${msg("Client ID")}
-                    value="${provider.clientId ?? randomString(40, ascii_letters + digits)}"
-                    required
+                    value=${ifDefined(provider.clientId)}
+                    placeholder=${ifDefined(generatedPlaceholder(provider))}
                     input-hint="code"
                     .errorMessages=${errors.clientId}
                 >
@@ -237,8 +237,10 @@ export function renderForm({
                     name="clientSecret"
                     autocomplete="off"
                     label=${msg("Client Secret")}
-                    value="${provider.clientSecret ?? randomString(128, ascii_letters + digits)}"
+                    value=${ifDefined(provider.clientSecret)}
+                    placeholder=${ifDefined(generatedPlaceholder(provider))}
                     input-hint="code"
+                    .errorMessages=${errors.clientSecret}
                     ?hidden=${!showClientSecret}
                 >
                 </ak-hidden-text-input>
