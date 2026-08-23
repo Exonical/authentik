@@ -29,16 +29,19 @@ export function IconRotateSecretButton(
     { rotate, header, body, successMessage, errorMessage }: RotateSecretProps,
     control = false,
 ): SlottedTemplateResult {
-    const close = (event: Event, returnValue?: string) =>
-        (event.target as HTMLElement).closest("dialog")?.close(returnValue);
+    // Resolve the dialog before any await: event targets inside a shadow tree are cleared once
+    // dispatch finishes.
+    const dialogOf = (event: Event) => (event.currentTarget as HTMLElement).closest("dialog");
+    const close = (event: Event) => dialogOf(event)?.close();
 
     const open = (event: Event) => {
         let rotated = false;
-        const confirm = (click: Event) =>
-            rotate().then(
+        const confirm = (click: Event) => {
+            const dialog = dialogOf(click);
+            return rotate().then(
                 () => {
                     rotated = true;
-                    close(click, "submitted");
+                    dialog?.close("submitted");
                 },
                 async (error: unknown) =>
                     showMessage({
@@ -48,6 +51,7 @@ export function IconRotateSecretButton(
                         level: MessageLevel.error,
                     }),
             );
+        };
 
         return renderDialog(
             html`<ak-modal headline=${header}>
