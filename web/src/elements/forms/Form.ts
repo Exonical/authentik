@@ -10,10 +10,12 @@ import {
     pluckErrorDetail,
     pluckFallbackFieldErrors,
 } from "#common/errors/network";
+import { AKDiscardChangesEvent } from "#common/events";
 import { APIMessage, MessageLevel } from "#common/messages";
 
 import { AKElement } from "#elements/Base";
 import { intersectionObserver } from "#elements/decorators/intersection-observer";
+import { listen } from "#elements/decorators/listen";
 import {
     DialogInit,
     modalInvoker,
@@ -47,6 +49,7 @@ import { createRef, ref } from "lit-html/directives/ref.js";
 import { customElement, property, state } from "lit/decorators.js";
 import { guard } from "lit/directives/guard.js";
 import { ifDefined } from "lit/directives/if-defined.js";
+import { keyed } from "lit/directives/keyed.js";
 
 import PFAlert from "@patternfly/patternfly/components/Alert/alert.css";
 import PFButton from "@patternfly/patternfly/components/Button/button.css";
@@ -474,6 +477,23 @@ export class Form<T = Record<string, unknown>, D = T>
     }
 
     /**
+     * Bumped by {@linkcode discardChanges} to recreate the form's fields.
+     */
+    @state()
+    protected formEpoch = 0;
+
+    /**
+     * Rebuilds the form's fields, discarding whatever the user has typed into them.
+     *
+     * Native form resets restore each field to the value last rendered, which is the user's own
+     * input once they've edited a field, so the fields have to be recreated instead.
+     */
+    @listen(AKDiscardChangesEvent)
+    public discardChanges = (): void => {
+        this.formEpoch += 1;
+    };
+
+    /**
      * Return the form elements that may contain filenames.
      */
     public files<T extends PropertyKey = PropertyKey>(): Map<T, File> {
@@ -717,7 +737,7 @@ export class Form<T = Record<string, unknown>, D = T>
             method="dialog"
             @submit=${this.doSubmit}
         >
-            ${inline}
+            ${keyed(this.formEpoch, inline)}
         </form>`;
     }
 
