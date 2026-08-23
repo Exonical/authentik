@@ -16,9 +16,9 @@ Leave **Client ID** and **Client Secret** empty and authentik generates them. Th
 
 ## Rotate the client secret
 
-To replace the client secret of a confidential client, edit the provider under **Applications** > **Providers** and click the rotate icon next to **Client Secret**. The field then holds the new secret, ready to copy.
+To replace the client secret of a confidential client, edit the provider under **Applications** > **Providers** and click the rotate icon next to **Client Secret**. Clients still using the old secret are rejected, and if the provider has no signing key, ID tokens signed with the old secret no longer validate, so update every client.
 
-Rotating applies immediately, whether or not you save the form. Clients still using the old secret are rejected, and if the provider has no signing key, ID tokens signed with the old secret no longer validate, so update every client. Each rotation is recorded as a `secret_rotate` event.
+For how rotation behaves across authentik, see [Secret rotation](../../../sys-mgmt/secret-rotation.md).
 
 :::info
 Optionally, configure the provider with the `offline_access` scope mapping. By default, applications only receive an access token. To receive a refresh token, applications and authentik must be configured to request the `offline_access` scope. Do this in the Scope mapping area on the **Configure OAuth2/OpenID Provider** page.
