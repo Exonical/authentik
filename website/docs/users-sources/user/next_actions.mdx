@@ -8,27 +8,23 @@ You can require a user to complete one or more flows the next time they log in, 
 
 ## How it works
 
-The required actions are stored on the user in the `goauthentik.io/user/next-actions` attribute, as a single flow slug or a list of flow slugs.
+The `goauthentik.io/user/next-actions` attribute on a user defines their required actions. Its value can be a single flow slug or a list of flow slugs.
 
-When a login flow reaches the [User Login stage](../../add-secure-apps/flows-stages/stages/user_login/index.mdx), authentik runs each listed flow in order within the login, and then completes the login. Each flow is removed from the attribute once the user completes it, so an action only runs once.
+When a login flow reaches the [User Login stage](../../add-secure-apps/flows-stages/stages/user_login/index.mdx), authentik runs the required flows in the order they are listed, before completing the login. After the user completes a flow, authentik removes it from the attribute so it is not run again.
+
+If the user already has a session, for example one created before the actions were assigned, authentik blocks that session from everything except completing the actions and logging out, and sends the user into the required flows on their next request. A blocked session also cannot authorize applications, so pending actions cannot be side-stepped by signing in to an application with an existing session.
 
 Any flow can be used as an action, except flows with the **Authentication** or **Invalidation** [designation](../../add-secure-apps/flows-stages/flow/index.mdx). authentik's [default flows](../../add-secure-apps/flows-stages/flow/default-flows.mdx) already cover changing the password (`default-password-change`) and setting up the various authenticator types (for example `default-authenticator-totp-setup`).
 
 For anything else, [create a flow](../../add-secure-apps/flows-stages/flow/index.mdx#create-a-flow) that walks the user through the action and use its slug. For example, a flow with a [Prompt stage](../../add-secure-apps/flows-stages/stages/prompt/index.mdx) followed by a [User Write stage](../../add-secure-apps/flows-stages/stages/user_write/index.mdx) can collect missing profile details, and a flow with a [Consent stage](../../add-secure-apps/flows-stages/stages/consent/index.mdx) can require the user to accept updated terms.
 
-If a listed flow doesn't exist or its policies deny the user, the login fails until the attribute is corrected or removed. On installations without a valid enterprise license the attribute is ignored.
+If a listed flow doesn't exist or its policies deny the user, the login fails until the attribute is corrected or removed. On deployments without an enterprise license, authentik ignores this attribute.
 
 ## Require an action for a user
 
-1. Log in to authentik as an administrator and open the authentik Admin interface.
-2. Navigate to **Directory** > **Users** and click the **Edit** icon of the user.
-3. Add the flow slugs to the user's **Attributes** field:
+Set the `goauthentik.io/user/next-actions` attribute on the user, through the user API, a [blueprint](../../customize/blueprints/index.mdx), or from within a flow, for example with a [User Write stage](../../add-secure-apps/flows-stages/stages/user_write/index.mdx) in an enrollment flow:
 
-    ```yaml
-    goauthentik.io/user/next-actions:
-        - default-password-change
-    ```
-
-4. Click **Update**.
-
-The attribute can also be set through the user API, a [blueprint](../../customize/blueprints/index.mdx), or from within a flow, for example with a [User Write stage](../../add-secure-apps/flows-stages/stages/user_write/index.mdx) in an enrollment flow.
+```yaml
+goauthentik.io/user/next-actions:
+    - default-password-change
+```
