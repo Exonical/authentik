@@ -11,6 +11,7 @@ from django.utils.timezone import now
 
 from authentik.blueprints.tests import apply_blueprint
 from authentik.core import user_switching
+from authentik.core.middleware import SESSION_KEY_IMPERSONATE_USER
 from authentik.core.models import (
     USER_ATTRIBUTE_NEXT_ACTIONS,
     AuthenticatedSession,
@@ -20,7 +21,7 @@ from authentik.core.models import (
 )
 from authentik.core.tests.utils import create_test_flow, create_test_user
 from authentik.enterprise.license import CACHE_KEY_ENTERPRISE_LICENSE
-from authentik.enterprise.tests import enterprise_test
+from authentik.enterprise.tests import enterprise_test, expiry_expired
 from authentik.events.models import Event, EventAction
 from authentik.events.utils import get_user
 from authentik.flows.markers import StageMarker
@@ -30,7 +31,7 @@ from authentik.flows.models import (
     FlowDesignation,
     FlowStageBinding,
 )
-from authentik.flows.planner import PLAN_CONTEXT_PENDING_USER, FlowPlan
+from authentik.flows.planner import PLAN_CONTEXT_PENDING_USER, PLAN_CONTEXT_REDIRECT, FlowPlan
 from authentik.flows.tests import FlowTestCase
 from authentik.flows.tests.test_executor import TO_STAGE_RESPONSE_MOCK
 from authentik.flows.views.executor import NEXT_ARG_NAME, SESSION_KEY_PLAN
@@ -583,8 +584,23 @@ class TestUserLoginNextActions(FlowTestCase):
         self.assertStageResponse(response, component="ak-stage-access-denied")
         self.assertFalse(AuthenticatedSession.objects.filter(user=self.user).exists())
 
+    @enterprise_test(expiry=expiry_expired)
+    def test_expired_license_still_enforces(self):
+        """An expired license does not switch off next actions"""
+        action = self.create_action_flow()
+        self.set_next_actions([action.slug])
+
+        response = self.start_login()
+        self.assertEqual(response.status_code, 302)
+        self.complete_action_stage()
+        response = self.client.get(self.executor_url)
+        self.assertStageRedirects(response, reverse("authentik_core:root-redirect"))
+
+        self.user.refresh_from_db()
+        self.assertNotIn(USER_ATTRIBUTE_NEXT_ACTIONS, self.user.attributes)
+
     def test_without_license_actions_are_skipped(self):
-        """Without a valid enterprise license the login proceeds without actions"""
+        """Without an enterprise license the login proceeds without actions"""
         action = self.create_action_flow()
         self.set_next_actions([action.slug])
 
@@ -594,3 +610,100 @@ class TestUserLoginNextActions(FlowTestCase):
         self.user.refresh_from_db()
         self.assertEqual(self.user.attributes[USER_ATTRIBUTE_NEXT_ACTIONS], [action.slug])
         self.assertTrue(AuthenticatedSession.objects.filter(user=self.user).exists())
+
+
+class TestPendingNextActionsMiddleware(FlowTestCase):
+    """Tests for blocking sessions whose user has pending next actions"""
+
+    def setUp(self):
+        super().setUp()
+        cache.delete(CACHE_KEY_ENTERPRISE_LICENSE)
+        self.user = create_test_user()
+        self.action = create_test_flow(
+            FlowDesignation.STAGE_CONFIGURATION,
+            authentication=FlowAuthenticationRequirement.REQUIRE_AUTHENTICATED,
+        )
+        FlowStageBinding.objects.create(
+            target=self.action, stage=DummyStage.objects.create(name=generate_id()), order=0
+        )
+        self.user.attributes[USER_ATTRIBUTE_NEXT_ACTIONS] = [self.action.slug]
+        self.user.save()
+        self.client.force_login(self.user)
+
+    @enterprise_test()
+    def test_html_request_redirects_to_actions(self):
+        """A browser request is sent into the pending action flows"""
+        response = self.client.get(reverse("authentik_core:if-user"), HTTP_ACCEPT="text/html")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response.url,
+            reverse("authentik_core:if-flow", kwargs={"flow_slug": self.action.slug}),
+        )
+        plan: FlowPlan = self.client.session[SESSION_KEY_PLAN]
+        self.assertEqual(
+            plan.context[PLAN_CONTEXT_REDIRECT], reverse("authentik_core:if-user")
+        )
+
+    @enterprise_test()
+    def test_api_request_denied(self):
+        """A non-HTML request is denied instead of redirected"""
+        response = self.client.get(
+            reverse("authentik_api:application-list"), HTTP_ACCEPT="application/json"
+        )
+        self.assertEqual(response.status_code, 403)
+
+    @enterprise_test()
+    def test_oauth_authorize_blocked(self):
+        """An existing session cannot authorize an application while actions are pending"""
+        response = self.client.get(
+            reverse("authentik_providers_oauth2:authorize"), HTTP_ACCEPT="text/html"
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response.url,
+            reverse("authentik_core:if-flow", kwargs={"flow_slug": self.action.slug}),
+        )
+
+    @enterprise_test()
+    def test_allowed_paths_pass(self):
+        """The flow executor and user info APIs needed to complete actions stay reachable"""
+        response = self.client.get(
+            reverse("authentik_api:user-me"), HTTP_ACCEPT="application/json"
+        )
+        self.assertEqual(response.status_code, 200)
+
+    @enterprise_test()
+    def test_no_pending_actions_pass(self):
+        """A user without pending actions is not affected"""
+        self.user.attributes.pop(USER_ATTRIBUTE_NEXT_ACTIONS)
+        self.user.save()
+        response = self.client.get(reverse("authentik_core:if-user"), HTTP_ACCEPT="text/html")
+        self.assertEqual(response.status_code, 200)
+
+    @enterprise_test(expiry=expiry_expired)
+    def test_expired_license_still_blocks(self):
+        """An expired license does not switch off enforcement"""
+        response = self.client.get(reverse("authentik_core:if-user"), HTTP_ACCEPT="text/html")
+        self.assertEqual(response.status_code, 302)
+
+    def test_unlicensed_not_blocked(self):
+        """Without any license the attribute is ignored"""
+        response = self.client.get(reverse("authentik_core:if-user"), HTTP_ACCEPT="text/html")
+        self.assertEqual(response.status_code, 200)
+
+    @enterprise_test()
+    def test_unresolvable_actions_pass(self):
+        """A broken attribute logs a warning instead of locking the user out"""
+        self.user.attributes[USER_ATTRIBUTE_NEXT_ACTIONS] = ["does-not-exist"]
+        self.user.save()
+        response = self.client.get(reverse("authentik_core:if-user"), HTTP_ACCEPT="text/html")
+        self.assertEqual(response.status_code, 200)
+
+    @enterprise_test()
+    def test_impersonation_not_blocked(self):
+        """An administrator impersonating a pending user is not blocked"""
+        session = self.client.session
+        session[SESSION_KEY_IMPERSONATE_USER] = self.user
+        session.save()
+        response = self.client.get(reverse("authentik_core:if-user"), HTTP_ACCEPT="text/html")
+        self.assertEqual(response.status_code, 200)
