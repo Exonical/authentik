@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import secrets
+from collections.abc import Iterable
 from uuid import uuid4
 
 from django.contrib.postgres.fields import ArrayField
@@ -13,6 +14,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.serializers import Serializer
 
 from authentik.core.models import Provider, User
+from authentik.lib.models import SerializerModel
 from authentik.lib.utils.time import timedelta_string_validator
 from authentik.outposts.models import OutpostModel
 
@@ -78,12 +80,19 @@ class KerberosProvider(OutpostModel, Provider):
     def __str__(self) -> str:
         return f"Kerberos Provider {self.name}"
 
+    def get_required_objects(self) -> Iterable[models.Model | str | tuple[str, models.Model]]:
+        return [
+            self,
+            "authentik_providers_kerberos.view_kerberosserviceprincipal",
+            "authentik_providers_kerberos.view_kerberosuserkeys",
+        ]
+
     class Meta:
         verbose_name = _("Kerberos Provider")
         verbose_name_plural = _("Kerberos Providers")
 
 
-class KerberosServicePrincipal(OutpostModel):
+class KerberosServicePrincipal(SerializerModel):
     """A service principal and its long-term keys."""
 
     uuid = models.UUIDField(default=uuid4, editable=False, primary_key=True)
@@ -110,8 +119,8 @@ class KerberosServicePrincipal(OutpostModel):
         return f"{self.spn} ({self.provider.realm_name})"
 
 
-class KerberosUserKeys(OutpostModel):
-    """A user's password-derived Kerberos keys."""
+class KerberosUserKeys(SerializerModel):
+    """A user's recoverable password-derived Kerberos key material."""
 
     uuid = models.UUIDField(default=uuid4, editable=False, primary_key=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
