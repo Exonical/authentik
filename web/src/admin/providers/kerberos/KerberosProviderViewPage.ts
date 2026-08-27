@@ -12,7 +12,10 @@ import { SlottedTemplateResult } from "#elements/types";
 
 import { setPageDetails } from "#components/ak-page-navbar";
 
-import { enctypeName } from "#admin/providers/kerberos/KerberosProviderFormForm";
+import {
+    enctypeName,
+    principalUsernameAttributeName,
+} from "#admin/providers/kerberos/KerberosProviderFormForm";
 
 import { KerberosProvider, ModelEnum, ProvidersApi } from "@goauthentik/api";
 
@@ -172,8 +175,9 @@ export class KerberosProviderViewPage extends AKElement {
                                             )}
                                             ${this.renderDescription(
                                                 "Principal username attribute",
-                                                this.provider.principalUsernameAttribute ??
-                                                    "username",
+                                                principalUsernameAttributeName(
+                                                    this.provider.principalUsernameAttribute,
+                                                ),
                                                 "kerberos.principal-username-attribute.term",
                                             )}
                                         </dl>
