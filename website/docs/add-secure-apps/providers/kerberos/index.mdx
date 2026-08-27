@@ -19,7 +19,7 @@ The outpost listens on both UDP and TCP by default. Use **UDP enabled** and **TC
 
 authentik derives a user's Kerberos keys from their password when the password is set or changed. The keys are stored for each Kerberos provider and are used by the outpost during password-based Kerberos authentication.
 
-Users that already exist when you create the provider do not have provider-specific keys. They must set or reset their password before they can authenticate through the provider. When a password changes, authentik replaces the keys and increments the key version number (KVNO).
+Users that already exist when you create the provider receive provider-specific keys after their next successful password login. Failed login attempts do not create keys. When a password changes, authentik replaces the keys and increments the key version number (KVNO). A successful login only creates missing provider keys; it does not replace existing keys or change their KVNO.
 
 :::warning
 Kerberos keys are recoverable password-derived key material. Protect access to the authentik database and the provider's outpost.
