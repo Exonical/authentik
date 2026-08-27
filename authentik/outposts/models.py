@@ -102,6 +102,7 @@ class OutpostType(models.TextChoices):
     LDAP = "ldap"
     RADIUS = "radius"
     RAC = "rac"
+    KERBEROS = "kerberos"
 
 
 def default_outpost_config(host: str | None = None):

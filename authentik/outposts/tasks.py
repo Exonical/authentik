@@ -30,6 +30,8 @@ from authentik.outposts.models import (
     OutpostType,
     ServiceConnectionInvalid,
 )
+from authentik.providers.kerberos.controllers.docker import KerberosDockerController
+from authentik.providers.kerberos.controllers.kubernetes import KerberosKubernetesController
 from authentik.providers.ldap.controllers.docker import LDAPDockerController
 from authentik.providers.ldap.controllers.kubernetes import LDAPKubernetesController
 from authentik.providers.proxy.controllers.docker import ProxyDockerController
@@ -49,7 +51,7 @@ def hash_session_key(session_key: str) -> str:
     return sha256(session_key.encode("ascii")).hexdigest()
 
 
-def controller_for_outpost(outpost: Outpost) -> type[BaseController] | None:
+def controller_for_outpost(outpost: Outpost) -> type[BaseController] | None:  # noqa: PLR0911
     """Get a controller for the outpost, when a service connection is defined"""
     if not outpost.service_connection:
         return None
@@ -74,6 +76,11 @@ def controller_for_outpost(outpost: Outpost) -> type[BaseController] | None:
             return RACDockerController
         if isinstance(service_connection, KubernetesServiceConnection):
             return RACKubernetesController
+    if outpost.type == OutpostType.KERBEROS:
+        if isinstance(service_connection, DockerServiceConnection):
+            return KerberosDockerController
+        if isinstance(service_connection, KubernetesServiceConnection):
+            return KerberosKubernetesController
     return None
 
 
