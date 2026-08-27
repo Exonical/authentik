@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -42,6 +44,10 @@ func (rs *KerberosServer) Refresh() error {
 		if err != nil {
 			return fmt.Errorf("decode provider %d master key: %w", provider.Pk, err)
 		}
+		defaultTicketLife, err := parseDuration(provider.GetDefaultTicketLifetime())
+		if err != nil {
+			return fmt.Errorf("parse provider %d default ticket lifetime: %w", provider.Pk, err)
+		}
 		store := &providerStore{
 			realm:      provider.RealmName,
 			masterKey:  masterKey,
@@ -58,11 +64,18 @@ func (rs *KerberosServer) Refresh() error {
 			Config: provider,
 			Store:  store,
 			KDC: &kdc.Server{
-				Realm:            provider.RealmName,
-				DB:               store,
-				ClockSkew:        5 * time.Minute,
-				MaxTicketLife:    time.Duration(provider.MaximumTicketLifetime) * time.Second,
-				MaxRenewableLife: time.Duration(provider.MaximumTicketRenewLifetime) * time.Second,
+				Realm:             provider.RealmName,
+				DB:                store,
+				ClockSkew:         5 * time.Minute,
+				MaxTicketLife:     time.Duration(provider.MaximumTicketLifetime) * time.Second,
+				MaxRenewableLife:  time.Duration(provider.MaximumTicketRenewLifetime) * time.Second,
+				DefaultTicketLife: defaultTicketLife,
+				DisablePreauth:    !provider.GetRequirePreauthentication(),
+				Policy: &kdc.Policy{
+					AllowForwardable: provider.GetForwardable(),
+					AllowRenewable:   provider.GetRenewable(),
+					AllowProxiable:   provider.GetProxiable(),
+				},
 			},
 			log: log.WithField("logger", "authentik.outpost.kerberos").WithField("provider", provider.Name),
 		}
@@ -113,4 +126,40 @@ type providerStore struct {
 	cacheMu    sync.Mutex
 	server     *KerberosServer
 	providerID int32
+}
+
+func parseDuration(expression string) (time.Duration, error) {
+	if expression == "" {
+		return 0, nil
+	}
+	values := make(map[string]float64)
+	for _, pair := range strings.Split(expression, ";") {
+		parts := strings.SplitN(pair, "=", 2)
+		if len(parts) != 2 {
+			return 0, fmt.Errorf("invalid duration component %q", pair)
+		}
+		key := strings.ToLower(strings.TrimSpace(parts[0]))
+		switch key {
+		case "microseconds", "milliseconds", "seconds", "minutes", "hours", "days", "weeks":
+		default:
+			continue
+		}
+		value, err := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64)
+		if err != nil {
+			return 0, fmt.Errorf("invalid %s value: %w", key, err)
+		}
+		values[key] = value
+	}
+	if len(values) == 0 {
+		return 0, errors.New("no valid duration components")
+	}
+	var duration float64
+	duration += values["microseconds"] * float64(time.Microsecond)
+	duration += values["milliseconds"] * float64(time.Millisecond)
+	duration += values["seconds"] * float64(time.Second)
+	duration += values["minutes"] * float64(time.Minute)
+	duration += values["hours"] * float64(time.Hour)
+	duration += values["days"] * float64(24*time.Hour)
+	duration += values["weeks"] * float64(7*24*time.Hour)
+	return time.Duration(duration), nil
 }

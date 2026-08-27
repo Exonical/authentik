@@ -109,6 +109,11 @@ func startMITKDC(t *testing.T, forceTCP bool) *mitHarness {
 		ClockSkew:        5 * time.Minute,
 		MaxTicketLife:    10 * time.Hour,
 		MaxRenewableLife: 24 * time.Hour,
+		Policy: &kdc.Policy{
+			AllowForwardable: true,
+			AllowRenewable:   true,
+			AllowProxiable:   true,
+		},
 	}
 	udpConn, err := net.ListenPacket("udp", "127.0.0.1:0")
 	if err != nil {
@@ -239,4 +244,26 @@ func TestMITInteropUDP(t *testing.T) {
 
 func TestMITInteropTCP(t *testing.T) {
 	runMITFlow(t, true)
+}
+
+func TestMITInteropPolicies(t *testing.T) {
+	h := startMITKDC(t, false)
+	h.run(t, mitPassword+"\n", "kinit", "-p", "-r", "2h", mitUser)
+	flags := h.run(t, "", "klist", "-f")
+	t.Logf("klist flags after policy-enabled kinit:\n%s", flags)
+	foundFlags := false
+	for _, line := range strings.Split(flags, "\n") {
+		if strings.Contains(line, "Flags:") {
+			foundFlags = true
+			if !strings.Contains(line, "P") {
+				t.Fatalf("klist does not show proxiable ticket flag:\n%s", flags)
+			}
+		}
+	}
+	if !foundFlags {
+		t.Fatalf("klist does not show ticket flags:\n%s", flags)
+	}
+	if !strings.Contains(strings.ToLower(flags), "renew until") {
+		t.Fatalf("klist does not show renewable ticket lifetime:\n%s", flags)
+	}
 }
