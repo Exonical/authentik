@@ -28,6 +28,17 @@ export function enctypeName(enctype: number): string {
     return ENCTYPE_OPTIONS.find(([value]) => value === enctype)?.[1] ?? String(enctype);
 }
 
+export function principalUsernameAttributeName(value?: string): string {
+    switch (value) {
+        case "email":
+            return msg("Email", { id: "kerberos.principal-username-attribute.email" });
+        case "upn":
+            return msg("UPN", { id: "kerberos.principal-username-attribute.upn" });
+        default:
+            return msg("Username", { id: "kerberos.principal-username-attribute.username" });
+    }
+}
+
 export interface KerberosProviderFormProps {
     provider?: Partial<KerberosProvider> | null;
     errors?: ValidationError | null;
