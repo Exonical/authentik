@@ -26,6 +26,14 @@ ENCTYPE_CHOICES = (
 )
 
 
+class PrincipalUsernameAttribute(models.TextChoices):
+    """User attribute used as the Kerberos principal component."""
+
+    USERNAME = "username", _("Username")
+    EMAIL = "email", _("Email")
+    UPN = "upn", _("UPN")
+
+
 def generate_master_key() -> str:
     """Generate a base64-encoded provider master key."""
     return base64.b64encode(secrets.token_bytes(64)).decode()
@@ -45,6 +53,7 @@ class KerberosProvider(OutpostModel, Provider):
     """Provide Kerberos authentication through a KDC outpost."""
 
     realm_name = models.CharField(max_length=255, unique=True)
+    default_domain = models.CharField(max_length=255, blank=True, default="")
     maximum_ticket_lifetime = models.TextField(
         default="hours=10",
         validators=[timedelta_string_validator],
@@ -58,6 +67,25 @@ class KerberosProvider(OutpostModel, Provider):
         default=default_enctypes,
     )
     master_key = models.TextField(default=generate_master_key)
+    default_ticket_lifetime = models.TextField(
+        default="hours=10",
+        validators=[timedelta_string_validator],
+    )
+    default_ticket_renew_lifetime = models.TextField(
+        default="days=7",
+        validators=[timedelta_string_validator],
+    )
+    require_preauthentication = models.BooleanField(default=True)
+    udp_enabled = models.BooleanField(default=True)
+    tcp_enabled = models.BooleanField(default=True)
+    forwardable = models.BooleanField(default=True)
+    renewable = models.BooleanField(default=True)
+    proxiable = models.BooleanField(default=False)
+    principal_username_attribute = models.CharField(
+        max_length=16,
+        choices=PrincipalUsernameAttribute.choices,
+        default=PrincipalUsernameAttribute.USERNAME,
+    )
 
     @property
     def component(self) -> str:

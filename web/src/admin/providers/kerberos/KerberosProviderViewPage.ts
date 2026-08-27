@@ -5,13 +5,14 @@ import "#admin/events/ObjectChangelog";
 import "#elements/Tabs";
 import "#elements/buttons/ModalButton";
 
-import { enctypeName } from "#admin/providers/kerberos/KerberosProviderFormForm";
-
 import { aki } from "#common/api/client";
-import { setPageDetails } from "#components/ak-page-navbar";
 
 import { AKElement } from "#elements/Base";
 import { SlottedTemplateResult } from "#elements/types";
+
+import { setPageDetails } from "#components/ak-page-navbar";
+
+import { enctypeName } from "#admin/providers/kerberos/KerberosProviderFormForm";
 
 import { KerberosProvider, ModelEnum, ProvidersApi } from "@goauthentik/api";
 
@@ -91,6 +92,11 @@ export class KerberosProviderViewPage extends AKElement {
                                                 this.provider.realmName,
                                                 "kerberos.realm-name.term",
                                             )}
+                                            ${this.renderDescription(
+                                                "Default domain",
+                                                this.provider.defaultDomain || "-",
+                                                "kerberos.default-domain.term",
+                                            )}
                                             <div class="pf-c-description-list__group">
                                                 <dt class="pf-c-description-list__term">
                                                     <span class="pf-c-description-list__text"
@@ -118,9 +124,57 @@ export class KerberosProviderViewPage extends AKElement {
                                                 "kerberos.maximum-ticket-renew-lifetime.term",
                                             )}
                                             ${this.renderDescription(
+                                                "Default ticket lifetime",
+                                                this.provider.defaultTicketLifetime ?? "-",
+                                                "kerberos.default-ticket-lifetime.term",
+                                            )}
+                                            ${this.renderDescription(
+                                                "Default ticket renew lifetime",
+                                                this.provider.defaultTicketRenewLifetime ?? "-",
+                                                "kerberos.default-ticket-renew-lifetime.term",
+                                            )}
+                                            ${this.renderDescription(
                                                 "Allowed encryption types",
-                                                this.provider.allowedEnctypes?.map(enctypeName).join(", ") ?? "-",
+                                                this.provider.allowedEnctypes
+                                                    ?.map(enctypeName)
+                                                    .join(", ") ?? "-",
                                                 "kerberos.allowed-enctypes.term",
+                                            )}
+                                            ${this.renderBoolean(
+                                                "Require preauthentication",
+                                                this.provider.requirePreauthentication,
+                                                "kerberos.require-preauthentication.term",
+                                            )}
+                                            ${this.renderBoolean(
+                                                "UDP enabled",
+                                                this.provider.udpEnabled,
+                                                "kerberos.udp-enabled.term",
+                                            )}
+                                            ${this.renderBoolean(
+                                                "TCP enabled",
+                                                this.provider.tcpEnabled,
+                                                "kerberos.tcp-enabled.term",
+                                            )}
+                                            ${this.renderBoolean(
+                                                "Forwardable",
+                                                this.provider.forwardable,
+                                                "kerberos.forwardable.term",
+                                            )}
+                                            ${this.renderBoolean(
+                                                "Renewable",
+                                                this.provider.renewable,
+                                                "kerberos.renewable.term",
+                                            )}
+                                            ${this.renderBoolean(
+                                                "Proxiable",
+                                                this.provider.proxiable,
+                                                "kerberos.proxiable.term",
+                                            )}
+                                            ${this.renderDescription(
+                                                "Principal username attribute",
+                                                this.provider.principalUsernameAttribute ??
+                                                    "username",
+                                                "kerberos.principal-username-attribute.term",
                                             )}
                                         </dl>
                                     </div>
@@ -187,6 +241,14 @@ export class KerberosProviderViewPage extends AKElement {
                 <div class="pf-c-description-list__text">${value}</div>
             </dd>
         </div>`;
+    }
+
+    renderBoolean(label: string, value: boolean | undefined, id: string): SlottedTemplateResult {
+        return this.renderDescription(
+            label,
+            value ? msg("Yes", { id: `${id}.yes` }) : msg("No", { id: `${id}.no` }),
+            id,
+        );
     }
 }
 

@@ -37,22 +37,37 @@ func NewServer(ac *ak.APIController) ak.Outpost {
 
 func (rs *KerberosServer) Start() error {
 	var group errgroup.Group
+	hasUDP, hasTCP := false, false
+	rs.mu.Lock()
+	for _, provider := range rs.providers {
+		hasUDP = hasUDP || provider.Config.GetUdpEnabled()
+		hasTCP = hasTCP || provider.Config.GetTcpEnabled()
+	}
+	rs.mu.Unlock()
+	if !hasUDP && !hasTCP {
+		return errors.New("all kerberos providers have both UDP and TCP disabled")
+	}
 	for _, address := range config.Get().Listen.Kerberos {
-		udp, err := net.ListenPacket("udp", address)
-		if err != nil {
-			return err
+		if hasUDP {
+			udp, err := net.ListenPacket("udp", address)
+			if err != nil {
+				return err
+			}
+			rs.mu.Lock()
+			rs.udp = append(rs.udp, udp)
+			rs.mu.Unlock()
+			group.Go(func() error { return rs.serveUDP(udp) })
 		}
-		tcp, err := net.Listen("tcp", address)
-		if err != nil {
-			_ = udp.Close()
-			return err
+		if hasTCP {
+			tcp, err := net.Listen("tcp", address)
+			if err != nil {
+				return err
+			}
+			rs.mu.Lock()
+			rs.tcp = append(rs.tcp, tcp)
+			rs.mu.Unlock()
+			group.Go(func() error { return rs.serveTCP(tcp) })
 		}
-		rs.mu.Lock()
-		rs.udp = append(rs.udp, udp)
-		rs.tcp = append(rs.tcp, tcp)
-		rs.mu.Unlock()
-		group.Go(func() error { return rs.serveUDP(udp) })
-		group.Go(func() error { return rs.serveTCP(tcp) })
 	}
 	metricsRouter := ak.MetricsRouter()
 	for _, address := range config.Get().Listen.Metrics {
@@ -95,7 +110,7 @@ func (rs *KerberosServer) serveUDP(conn net.PacketConn) error {
 		if err != nil {
 			return err
 		}
-		response, err := rs.handle(buffer[:size])
+		response, err := rs.handleTransport(buffer[:size], true)
 		if err != nil {
 			rs.log.WithError(err).Warn("failed to handle kerberos request")
 			continue
@@ -119,7 +134,7 @@ func (rs *KerberosServer) serveTCP(listener net.Listener) error {
 				if err != nil {
 					return
 				}
-				response, err := rs.handle(request)
+				response, err := rs.handleTransport(request, false)
 				if err != nil {
 					return
 				}
@@ -134,6 +149,10 @@ func (rs *KerberosServer) serveTCP(listener net.Listener) error {
 // handle routes a request to the provider matching the request realm.
 // Accepted limitation: there is no TGS authenticator replay cache.
 func (rs *KerberosServer) handle(data []byte) ([]byte, error) {
+	return rs.handleTransport(data, true)
+}
+
+func (rs *KerberosServer) handleTransport(data []byte, udp bool) ([]byte, error) {
 	rs.mu.Lock()
 	realm, realmErr := requestRealm(data)
 	var provider *ProviderInstance
@@ -151,6 +170,12 @@ func (rs *KerberosServer) handle(data []byte) ([]byte, error) {
 	}
 	if provider == nil {
 		return nil, errors.New("no kerberos provider for realm")
+	}
+	if udp && !provider.Config.GetUdpEnabled() {
+		return nil, errors.New("UDP is disabled for kerberos provider")
+	}
+	if !udp && !provider.Config.GetTcpEnabled() {
+		return nil, errors.New("TCP is disabled for kerberos provider")
 	}
 	return provider.KDC.HandleMessage(data), nil
 }

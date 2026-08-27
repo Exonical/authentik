@@ -194,6 +194,8 @@ pub mod plex_authentication_challenge_response_request;
 pub use self::plex_authentication_challenge_response_request::PlexAuthenticationChallengeResponseRequest;
 pub mod policy_test_result;
 pub use self::policy_test_result::PolicyTestResult;
+pub mod principal_username_attribute_enum;
+pub use self::principal_username_attribute_enum::PrincipalUsernameAttributeEnum;
 pub mod prompt_challenge;
 pub use self::prompt_challenge::PromptChallenge;
 pub mod prompt_challenge_response_request;

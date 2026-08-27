@@ -14,6 +14,11 @@
 
 import type { AllowedEnctypesEnum } from "./AllowedEnctypesEnum";
 import { AllowedEnctypesEnumFromJSON, AllowedEnctypesEnumToJSON } from "./AllowedEnctypesEnum";
+import type { PrincipalUsernameAttributeEnum } from "./PrincipalUsernameAttributeEnum";
+import {
+    PrincipalUsernameAttributeEnumFromJSON,
+    PrincipalUsernameAttributeEnumToJSON,
+} from "./PrincipalUsernameAttributeEnum";
 
 /**
  * Kerberos provider serializer for outposts.
@@ -41,6 +46,12 @@ export interface KerberosOutpostConfig {
     realmName: string;
     /**
      *
+     * @type {string}
+     * @memberof KerberosOutpostConfig
+     */
+    defaultDomain?: string;
+    /**
+     *
      * @type {number}
      * @memberof KerberosOutpostConfig
      */
@@ -53,10 +64,64 @@ export interface KerberosOutpostConfig {
     readonly maximumTicketRenewLifetime: number;
     /**
      *
+     * @type {string}
+     * @memberof KerberosOutpostConfig
+     */
+    defaultTicketLifetime?: string;
+    /**
+     *
+     * @type {string}
+     * @memberof KerberosOutpostConfig
+     */
+    defaultTicketRenewLifetime?: string;
+    /**
+     *
      * @type {Array<AllowedEnctypesEnum>}
      * @memberof KerberosOutpostConfig
      */
     allowedEnctypes?: Array<AllowedEnctypesEnum>;
+    /**
+     *
+     * @type {boolean}
+     * @memberof KerberosOutpostConfig
+     */
+    requirePreauthentication?: boolean;
+    /**
+     *
+     * @type {boolean}
+     * @memberof KerberosOutpostConfig
+     */
+    udpEnabled?: boolean;
+    /**
+     *
+     * @type {boolean}
+     * @memberof KerberosOutpostConfig
+     */
+    tcpEnabled?: boolean;
+    /**
+     *
+     * @type {boolean}
+     * @memberof KerberosOutpostConfig
+     */
+    forwardable?: boolean;
+    /**
+     *
+     * @type {boolean}
+     * @memberof KerberosOutpostConfig
+     */
+    renewable?: boolean;
+    /**
+     *
+     * @type {boolean}
+     * @memberof KerberosOutpostConfig
+     */
+    proxiable?: boolean;
+    /**
+     *
+     * @type {PrincipalUsernameAttributeEnum}
+     * @memberof KerberosOutpostConfig
+     */
+    principalUsernameAttribute?: PrincipalUsernameAttributeEnum;
     /**
      *
      * @type {string}
@@ -123,12 +188,32 @@ export function KerberosOutpostConfigFromJSONTyped(
         pk: json["pk"],
         name: json["name"],
         realmName: json["realm_name"],
+        defaultDomain: json["default_domain"] == null ? undefined : json["default_domain"],
         maximumTicketLifetime: json["maximum_ticket_lifetime"],
         maximumTicketRenewLifetime: json["maximum_ticket_renew_lifetime"],
+        defaultTicketLifetime:
+            json["default_ticket_lifetime"] == null ? undefined : json["default_ticket_lifetime"],
+        defaultTicketRenewLifetime:
+            json["default_ticket_renew_lifetime"] == null
+                ? undefined
+                : json["default_ticket_renew_lifetime"],
         allowedEnctypes:
             json["allowed_enctypes"] == null
                 ? undefined
                 : (json["allowed_enctypes"] as Array<any>).map(AllowedEnctypesEnumFromJSON),
+        requirePreauthentication:
+            json["require_preauthentication"] == null
+                ? undefined
+                : json["require_preauthentication"],
+        udpEnabled: json["udp_enabled"] == null ? undefined : json["udp_enabled"],
+        tcpEnabled: json["tcp_enabled"] == null ? undefined : json["tcp_enabled"],
+        forwardable: json["forwardable"] == null ? undefined : json["forwardable"],
+        renewable: json["renewable"] == null ? undefined : json["renewable"],
+        proxiable: json["proxiable"] == null ? undefined : json["proxiable"],
+        principalUsernameAttribute:
+            json["principal_username_attribute"] == null
+                ? undefined
+                : PrincipalUsernameAttributeEnumFromJSON(json["principal_username_attribute"]),
         masterKey: json["master_key"] == null ? undefined : json["master_key"],
         applicationSlug: json["application_slug"],
     };
@@ -152,10 +237,22 @@ export function KerberosOutpostConfigToJSONTyped(
     return {
         name: value["name"],
         realm_name: value["realmName"],
+        default_domain: value["defaultDomain"],
+        default_ticket_lifetime: value["defaultTicketLifetime"],
+        default_ticket_renew_lifetime: value["defaultTicketRenewLifetime"],
         allowed_enctypes:
             value["allowedEnctypes"] == null
                 ? undefined
                 : (value["allowedEnctypes"] as Array<any>).map(AllowedEnctypesEnumToJSON),
+        require_preauthentication: value["requirePreauthentication"],
+        udp_enabled: value["udpEnabled"],
+        tcp_enabled: value["tcpEnabled"],
+        forwardable: value["forwardable"],
+        renewable: value["renewable"],
+        proxiable: value["proxiable"],
+        principal_username_attribute: PrincipalUsernameAttributeEnumToJSON(
+            value["principalUsernameAttribute"],
+        ),
         master_key: value["masterKey"],
         application_slug: value["applicationSlug"],
     };

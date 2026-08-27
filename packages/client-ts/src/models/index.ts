@@ -716,6 +716,7 @@ export * from "./PolicyBindingRequest";
 export * from "./PolicyEngineMode";
 export * from "./PolicyTestRequest";
 export * from "./PolicyTestResult";
+export * from "./PrincipalUsernameAttributeEnum";
 export * from "./Process";
 export * from "./ProcessRequest";
 export * from "./Prompt";

@@ -4,7 +4,7 @@ import base64
 import struct
 import time
 
-from django.shortcuts import get_object_or_404
+from django.http import Http404
 from django.utils.translation import gettext_lazy as _
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -38,9 +38,19 @@ class KerberosProviderSerializer(ProviderSerializer):
         model = KerberosProvider
         fields = ProviderSerializer.Meta.fields + [
             "realm_name",
+            "default_domain",
             "maximum_ticket_lifetime",
             "maximum_ticket_renew_lifetime",
+            "default_ticket_lifetime",
+            "default_ticket_renew_lifetime",
             "allowed_enctypes",
+            "require_preauthentication",
+            "udp_enabled",
+            "tcp_enabled",
+            "forwardable",
+            "renewable",
+            "proxiable",
+            "principal_username_attribute",
             "master_key",
             "outpost_set",
         ]
@@ -178,9 +188,19 @@ class KerberosOutpostConfigSerializer(ModelSerializer):
             "pk",
             "name",
             "realm_name",
+            "default_domain",
             "maximum_ticket_lifetime",
             "maximum_ticket_renew_lifetime",
+            "default_ticket_lifetime",
+            "default_ticket_renew_lifetime",
             "allowed_enctypes",
+            "require_preauthentication",
+            "udp_enabled",
+            "tcp_enabled",
+            "forwardable",
+            "renewable",
+            "proxiable",
+            "principal_username_attribute",
             "master_key",
             "application_slug",
         ]
@@ -221,9 +241,18 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
         username = request.query_params.get("username")
         if not username:
             return Response({"username": [_("This query parameter is required.")]}, status=400)
-        user_keys = get_object_or_404(
-            KerberosUserKeys.objects.select_related("user"),
-            provider=provider,
-            user__username=username,
+        user_keys_queryset = KerberosUserKeys.objects.select_related("user").filter(
+            provider=provider
         )
+        match provider.principal_username_attribute:
+            case "email":
+                user_keys = user_keys_queryset.filter(user__email=username).first()
+            case "upn":
+                user_keys = user_keys_queryset.filter(user__attributes__upn=username).first()
+                if user_keys is None:
+                    user_keys = user_keys_queryset.filter(user__username=username).first()
+            case _:
+                user_keys = user_keys_queryset.filter(user__username=username).first()
+        if user_keys is None:
+            raise Http404
         return Response(KerberosUserKeyOutpostSerializer(user_keys).data)
