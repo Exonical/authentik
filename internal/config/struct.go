@@ -22,6 +22,7 @@ type ListenConfig struct {
 	LDAP              []string `yaml:"ldap" env:"LDAP, overwrite"`
 	LDAPS             []string `yaml:"ldaps" env:"LDAPS, overwrite"`
 	Radius            []string `yaml:"radius" env:"RADIUS, overwrite"`
+	Kerberos          []string `yaml:"kerberos" env:"KERBEROS, overwrite"`
 	Metrics           []string `yaml:"metrics" env:"METRICS, overwrite"`
 	Debug             string   `yaml:"debug" env:"DEBUG, overwrite"`
 	TrustedProxyCIDRs []string `yaml:"trusted_proxy_cidrs" env:"TRUSTED_PROXY_CIDRS, overwrite"`

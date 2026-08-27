@@ -124,6 +124,8 @@ jobs:
             dockerfile: ldap.Dockerfile
           - name: radius
             dockerfile: radius.Dockerfile
+          - name: kerberos
+            dockerfile: kerberos.Dockerfile
           - name: rac
             dockerfile: rac.Dockerfile
     uses: ./.github/workflows/_reusable-container-build.yml
