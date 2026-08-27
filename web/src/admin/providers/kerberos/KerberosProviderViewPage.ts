@@ -5,6 +5,8 @@ import "#admin/events/ObjectChangelog";
 import "#elements/Tabs";
 import "#elements/buttons/ModalButton";
 
+import { enctypeName } from "#admin/providers/kerberos/KerberosProviderFormForm";
+
 import { aki } from "#common/api/client";
 import { setPageDetails } from "#components/ak-page-navbar";
 
@@ -117,7 +119,7 @@ export class KerberosProviderViewPage extends AKElement {
                                             )}
                                             ${this.renderDescription(
                                                 "Allowed encryption types",
-                                                this.provider.allowedEnctypes?.join(", ") ?? "-",
+                                                this.provider.allowedEnctypes?.map(enctypeName).join(", ") ?? "-",
                                                 "kerberos.allowed-enctypes.term",
                                             )}
                                         </dl>

@@ -9,12 +9,16 @@ import { msg } from "@lit/localize";
 import { html } from "lit";
 import { ifDefined } from "lit/directives/if-defined.js";
 
-const ENCTYPE_OPTIONS = [
+export const ENCTYPE_OPTIONS = [
     [17, "aes128-cts-hmac-sha1-96"],
     [18, "aes256-cts-hmac-sha1-96"],
     [19, "aes128-cts-hmac-sha256-128"],
     [20, "aes256-cts-hmac-sha384-192"],
 ] as const;
+
+export function enctypeName(enctype: number): string {
+    return ENCTYPE_OPTIONS.find(([value]) => value === enctype)?.[1] ?? String(enctype);
+}
 
 export interface KerberosProviderFormProps {
     provider?: Partial<KerberosProvider> | null;
