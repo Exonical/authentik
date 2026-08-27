@@ -81,32 +81,57 @@ func (cs *CryptoStore) Fetch(uuid string) error {
 		}
 		tcert = x509cert
 	} else {
-		certificateData := []byte(cert.Data)
-		for {
-			p, rest := pem.Decode(certificateData)
-			if p == nil {
-				break
-			}
-			certificateData = rest
-			if p.Type != "CERTIFICATE" {
-				continue
-			}
-			x509cert, err := x509.ParseCertificate(p.Bytes)
-			if err != nil {
-				return err
-			}
-			if tcert.Leaf == nil {
-				tcert.Leaf = x509cert
-			}
-			tcert.Certificate = append(tcert.Certificate, x509cert.Raw)
-		}
-		if len(tcert.Certificate) == 0 {
-			return errors.New("certificate data contains no certificates")
+		var err error
+		tcert, err = parseCertificate(cert.Data)
+		if err != nil {
+			return err
 		}
 	}
 	cs.certificates[uuid] = &tcert
 	cs.fingerprints[uuid] = cfp
 	return nil
+}
+
+func (cs *CryptoStore) FetchCertificateOnly(uuid string) error {
+	cs.log.WithField("uuid", uuid).Info("Fetching certificate")
+	cert, _, err := cs.api.CryptoCertificatekeypairsViewCertificateRetrieve(context.Background(), uuid).Execute()
+	if err != nil {
+		return err
+	}
+	tcert, err := parseCertificate(cert.Data)
+	if err != nil {
+		return err
+	}
+	cs.certificates[uuid] = &tcert
+	cs.fingerprints[uuid] = ""
+	return nil
+}
+
+func parseCertificate(data string) (tls.Certificate, error) {
+	var tcert tls.Certificate
+	certificateData := []byte(data)
+	for {
+		p, rest := pem.Decode(certificateData)
+		if p == nil {
+			break
+		}
+		certificateData = rest
+		if p.Type != "CERTIFICATE" {
+			continue
+		}
+		x509cert, err := x509.ParseCertificate(p.Bytes)
+		if err != nil {
+			return tls.Certificate{}, err
+		}
+		if tcert.Leaf == nil {
+			tcert.Leaf = x509cert
+		}
+		tcert.Certificate = append(tcert.Certificate, x509cert.Raw)
+	}
+	if len(tcert.Certificate) == 0 {
+		return tls.Certificate{}, errors.New("certificate data contains no certificates")
+	}
+	return tcert, nil
 }
 
 func (cs *CryptoStore) Get(uuid string) *tls.Certificate {

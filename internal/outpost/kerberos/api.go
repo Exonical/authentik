@@ -162,7 +162,7 @@ func (rs *KerberosServer) pkinitConfig(
 	if !ok {
 		return nil, nil, nil, errors.New("KDC certificate has no crypto.Signer private key")
 	}
-	if err := rs.cs.AddKeypair(clientCAUUID); err != nil {
+	if err := rs.cs.FetchCertificateOnly(clientCAUUID); err != nil {
 		return nil, nil, nil, fmt.Errorf("fetch PKINIT client CA: %w", err)
 	}
 	clientCA := rs.cs.Get(clientCAUUID)
