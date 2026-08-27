@@ -1,4 +1,5 @@
 import "#admin/providers/google_workspace/GoogleWorkspaceProviderViewPage";
+import "#admin/providers/kerberos/KerberosProviderViewPage";
 import "#admin/providers/ldap/LDAPProviderViewPage";
 import "#admin/providers/microsoft_entra/MicrosoftEntraProviderViewPage";
 import "#admin/providers/oauth2/OAuth2ProviderViewPage";
@@ -75,6 +76,10 @@ export class ProviderViewPage extends AKElement {
                 return html`<ak-provider-scim-view ${spread(props)}></ak-provider-scim-view>`;
             case "ak-provider-radius-form":
                 return html`<ak-provider-radius-view ${spread(props)}></ak-provider-radius-view>`;
+            case "ak-provider-kerberos-form":
+                return html`<ak-provider-kerberos-view
+                    ${spread(props)}
+                ></ak-provider-kerberos-view>`;
             case "ak-provider-rac-form":
                 return html`<ak-provider-rac-view ${spread(props)}></ak-provider-rac-view>`;
             case "ak-provider-google-workspace-form":
