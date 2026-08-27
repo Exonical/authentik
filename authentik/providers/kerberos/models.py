@@ -101,6 +101,12 @@ class KerberosServicePrincipal(SerializerModel):
     kvno = models.PositiveIntegerField(default=1)
     keys = models.JSONField(default=dict)
 
+    @property
+    def serializer(self) -> type[Serializer]:
+        from authentik.providers.kerberos.api.providers import KerberosServicePrincipalSerializer
+
+        return KerberosServicePrincipalSerializer
+
     def save(self, *args, **kwargs):
         if not self.keys:
             self.keys = {
@@ -128,6 +134,12 @@ class KerberosUserKeys(SerializerModel):
     kvno = models.PositiveIntegerField(default=1)
     keys = models.JSONField(default=dict)
     salt = models.CharField(max_length=1024)
+
+    @property
+    def serializer(self) -> type[Serializer]:
+        from authentik.providers.kerberos.api.providers import KerberosUserKeysSerializer
+
+        return KerberosUserKeysSerializer
 
     class Meta:
         constraints = [

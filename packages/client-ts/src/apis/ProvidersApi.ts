@@ -40,6 +40,19 @@ import {
     GoogleWorkspaceProviderUserRequestToJSON,
 } from "../models/GoogleWorkspaceProviderUserRequest";
 import { type IssuerModeEnum } from "../models/IssuerModeEnum";
+import { type KerberosProvider, KerberosProviderFromJSON } from "../models/KerberosProvider";
+import {
+    type KerberosProviderRequest,
+    KerberosProviderRequestToJSON,
+} from "../models/KerberosProviderRequest";
+import {
+    type KerberosServicePrincipal,
+    KerberosServicePrincipalFromJSON,
+} from "../models/KerberosServicePrincipal";
+import {
+    type KerberosServicePrincipalRequest,
+    KerberosServicePrincipalRequestToJSON,
+} from "../models/KerberosServicePrincipalRequest";
 import { type LDAPProvider, LDAPProviderFromJSON } from "../models/LDAPProvider";
 import { type LDAPProviderRequest, LDAPProviderRequestToJSON } from "../models/LDAPProviderRequest";
 import {
@@ -95,6 +108,14 @@ import {
     type PaginatedGoogleWorkspaceProviderUserList,
     PaginatedGoogleWorkspaceProviderUserListFromJSON,
 } from "../models/PaginatedGoogleWorkspaceProviderUserList";
+import {
+    type PaginatedKerberosProviderList,
+    PaginatedKerberosProviderListFromJSON,
+} from "../models/PaginatedKerberosProviderList";
+import {
+    type PaginatedKerberosServicePrincipalList,
+    PaginatedKerberosServicePrincipalListFromJSON,
+} from "../models/PaginatedKerberosServicePrincipalList";
 import {
     type PaginatedLDAPProviderList,
     PaginatedLDAPProviderListFromJSON,
@@ -163,6 +184,14 @@ import {
     type PatchedGoogleWorkspaceProviderRequest,
     PatchedGoogleWorkspaceProviderRequestToJSON,
 } from "../models/PatchedGoogleWorkspaceProviderRequest";
+import {
+    type PatchedKerberosProviderRequest,
+    PatchedKerberosProviderRequestToJSON,
+} from "../models/PatchedKerberosProviderRequest";
+import {
+    type PatchedKerberosServicePrincipalRequest,
+    PatchedKerberosServicePrincipalRequestToJSON,
+} from "../models/PatchedKerberosServicePrincipalRequest";
 import {
     type PatchedLDAPProviderRequest,
     PatchedLDAPProviderRequestToJSON,
@@ -379,6 +408,82 @@ export interface ProvidersGoogleWorkspaceUsersRetrieveRequest {
 
 export interface ProvidersGoogleWorkspaceUsersUsedByListRequest {
     id: string;
+}
+
+export interface ProvidersKerberosCreateRequest {
+    kerberosProviderRequest: KerberosProviderRequest;
+}
+
+export interface ProvidersKerberosDestroyRequest {
+    id: number;
+}
+
+export interface ProvidersKerberosListRequest {
+    applicationIsnull?: boolean;
+    nameIexact?: string;
+    ordering?: string;
+    page?: number;
+    pageSize?: number;
+    realmNameIexact?: string;
+    search?: string;
+}
+
+export interface ProvidersKerberosPartialUpdateRequest {
+    id: number;
+    patchedKerberosProviderRequest?: PatchedKerberosProviderRequest;
+}
+
+export interface ProvidersKerberosRetrieveRequest {
+    id: number;
+}
+
+export interface ProvidersKerberosServicePrincipalsCreateRequest {
+    kerberosServicePrincipalRequest: KerberosServicePrincipalRequest;
+}
+
+export interface ProvidersKerberosServicePrincipalsDestroyRequest {
+    uuid: string;
+}
+
+export interface ProvidersKerberosServicePrincipalsKeytabRetrieveRequest {
+    uuid: string;
+}
+
+export interface ProvidersKerberosServicePrincipalsListRequest {
+    ordering?: string;
+    page?: number;
+    pageSize?: number;
+    provider?: number;
+    search?: string;
+    spnIexact?: string;
+}
+
+export interface ProvidersKerberosServicePrincipalsPartialUpdateRequest {
+    uuid: string;
+    patchedKerberosServicePrincipalRequest?: PatchedKerberosServicePrincipalRequest;
+}
+
+export interface ProvidersKerberosServicePrincipalsRetrieveRequest {
+    uuid: string;
+}
+
+export interface ProvidersKerberosServicePrincipalsRotateCreateRequest {
+    uuid: string;
+    kerberosServicePrincipalRequest: KerberosServicePrincipalRequest;
+}
+
+export interface ProvidersKerberosServicePrincipalsUpdateRequest {
+    uuid: string;
+    kerberosServicePrincipalRequest: KerberosServicePrincipalRequest;
+}
+
+export interface ProvidersKerberosUpdateRequest {
+    id: number;
+    kerberosProviderRequest: KerberosProviderRequest;
+}
+
+export interface ProvidersKerberosUsedByListRequest {
+    id: number;
 }
 
 export interface ProvidersLdapCreateRequest {
@@ -2675,6 +2780,1069 @@ export class ProvidersApi extends runtime.BaseAPI {
         initOverrides?: RequestInit | runtime.InitOverrideFunction,
     ): Promise<Array<UsedBy>> {
         const response = await this.providersGoogleWorkspaceUsersUsedByListRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for providersKerberosCreate without sending the request
+     */
+    async providersKerberosCreateRequestOpts(
+        requestParameters: ProvidersKerberosCreateRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["kerberosProviderRequest"] == null) {
+            throw new runtime.RequiredError(
+                "kerberosProviderRequest",
+                'Required parameter "kerberosProviderRequest" was null or undefined when calling providersKerberosCreate().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters["Content-Type"] = "application/json";
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/kerberos/`;
+
+        return {
+            path: urlPath,
+            method: "POST",
+            headers: headerParameters,
+            query: queryParameters,
+            body: KerberosProviderRequestToJSON(requestParameters["kerberosProviderRequest"]),
+        };
+    }
+
+    /**
+     * KerberosProvider viewset.
+     */
+    async providersKerberosCreateRaw(
+        requestParameters: ProvidersKerberosCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<KerberosProvider>> {
+        const requestOptions = await this.providersKerberosCreateRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            KerberosProviderFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * KerberosProvider viewset.
+     */
+    async providersKerberosCreate(
+        requestParameters: ProvidersKerberosCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<KerberosProvider> {
+        const response = await this.providersKerberosCreateRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for providersKerberosDestroy without sending the request
+     */
+    async providersKerberosDestroyRequestOpts(
+        requestParameters: ProvidersKerberosDestroyRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["id"] == null) {
+            throw new runtime.RequiredError(
+                "id",
+                'Required parameter "id" was null or undefined when calling providersKerberosDestroy().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/kerberos/{id}/`;
+        urlPath = urlPath.replace("{id}", encodeURIComponent(String(requestParameters["id"])));
+
+        return {
+            path: urlPath,
+            method: "DELETE",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * KerberosProvider viewset.
+     */
+    async providersKerberosDestroyRaw(
+        requestParameters: ProvidersKerberosDestroyRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<void>> {
+        const requestOptions = await this.providersKerberosDestroyRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * KerberosProvider viewset.
+     */
+    async providersKerberosDestroy(
+        requestParameters: ProvidersKerberosDestroyRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<void> {
+        await this.providersKerberosDestroyRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Creates request options for providersKerberosList without sending the request
+     */
+    async providersKerberosListRequestOpts(
+        requestParameters: ProvidersKerberosListRequest,
+    ): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters["applicationIsnull"] != null) {
+            queryParameters["application__isnull"] = requestParameters["applicationIsnull"];
+        }
+
+        if (requestParameters["nameIexact"] != null) {
+            queryParameters["name__iexact"] = requestParameters["nameIexact"];
+        }
+
+        if (requestParameters["ordering"] != null) {
+            queryParameters["ordering"] = requestParameters["ordering"];
+        }
+
+        if (requestParameters["page"] != null) {
+            queryParameters["page"] = requestParameters["page"];
+        }
+
+        if (requestParameters["pageSize"] != null) {
+            queryParameters["page_size"] = requestParameters["pageSize"];
+        }
+
+        if (requestParameters["realmNameIexact"] != null) {
+            queryParameters["realm_name__iexact"] = requestParameters["realmNameIexact"];
+        }
+
+        if (requestParameters["search"] != null) {
+            queryParameters["search"] = requestParameters["search"];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/kerberos/`;
+
+        return {
+            path: urlPath,
+            method: "GET",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * KerberosProvider viewset.
+     */
+    async providersKerberosListRaw(
+        requestParameters: ProvidersKerberosListRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<PaginatedKerberosProviderList>> {
+        const requestOptions = await this.providersKerberosListRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            PaginatedKerberosProviderListFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * KerberosProvider viewset.
+     */
+    async providersKerberosList(
+        requestParameters: ProvidersKerberosListRequest = {},
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<PaginatedKerberosProviderList> {
+        const response = await this.providersKerberosListRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for providersKerberosPartialUpdate without sending the request
+     */
+    async providersKerberosPartialUpdateRequestOpts(
+        requestParameters: ProvidersKerberosPartialUpdateRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["id"] == null) {
+            throw new runtime.RequiredError(
+                "id",
+                'Required parameter "id" was null or undefined when calling providersKerberosPartialUpdate().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters["Content-Type"] = "application/json";
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/kerberos/{id}/`;
+        urlPath = urlPath.replace("{id}", encodeURIComponent(String(requestParameters["id"])));
+
+        return {
+            path: urlPath,
+            method: "PATCH",
+            headers: headerParameters,
+            query: queryParameters,
+            body: PatchedKerberosProviderRequestToJSON(
+                requestParameters["patchedKerberosProviderRequest"],
+            ),
+        };
+    }
+
+    /**
+     * KerberosProvider viewset.
+     */
+    async providersKerberosPartialUpdateRaw(
+        requestParameters: ProvidersKerberosPartialUpdateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<KerberosProvider>> {
+        const requestOptions =
+            await this.providersKerberosPartialUpdateRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            KerberosProviderFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * KerberosProvider viewset.
+     */
+    async providersKerberosPartialUpdate(
+        requestParameters: ProvidersKerberosPartialUpdateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<KerberosProvider> {
+        const response = await this.providersKerberosPartialUpdateRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for providersKerberosRetrieve without sending the request
+     */
+    async providersKerberosRetrieveRequestOpts(
+        requestParameters: ProvidersKerberosRetrieveRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["id"] == null) {
+            throw new runtime.RequiredError(
+                "id",
+                'Required parameter "id" was null or undefined when calling providersKerberosRetrieve().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/kerberos/{id}/`;
+        urlPath = urlPath.replace("{id}", encodeURIComponent(String(requestParameters["id"])));
+
+        return {
+            path: urlPath,
+            method: "GET",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * KerberosProvider viewset.
+     */
+    async providersKerberosRetrieveRaw(
+        requestParameters: ProvidersKerberosRetrieveRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<KerberosProvider>> {
+        const requestOptions = await this.providersKerberosRetrieveRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            KerberosProviderFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * KerberosProvider viewset.
+     */
+    async providersKerberosRetrieve(
+        requestParameters: ProvidersKerberosRetrieveRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<KerberosProvider> {
+        const response = await this.providersKerberosRetrieveRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for providersKerberosServicePrincipalsCreate without sending the request
+     */
+    async providersKerberosServicePrincipalsCreateRequestOpts(
+        requestParameters: ProvidersKerberosServicePrincipalsCreateRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["kerberosServicePrincipalRequest"] == null) {
+            throw new runtime.RequiredError(
+                "kerberosServicePrincipalRequest",
+                'Required parameter "kerberosServicePrincipalRequest" was null or undefined when calling providersKerberosServicePrincipalsCreate().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters["Content-Type"] = "application/json";
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/kerberos_service_principals/`;
+
+        return {
+            path: urlPath,
+            method: "POST",
+            headers: headerParameters,
+            query: queryParameters,
+            body: KerberosServicePrincipalRequestToJSON(
+                requestParameters["kerberosServicePrincipalRequest"],
+            ),
+        };
+    }
+
+    /**
+     * Kerberos service principal viewset.
+     */
+    async providersKerberosServicePrincipalsCreateRaw(
+        requestParameters: ProvidersKerberosServicePrincipalsCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<KerberosServicePrincipal>> {
+        const requestOptions =
+            await this.providersKerberosServicePrincipalsCreateRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            KerberosServicePrincipalFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Kerberos service principal viewset.
+     */
+    async providersKerberosServicePrincipalsCreate(
+        requestParameters: ProvidersKerberosServicePrincipalsCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<KerberosServicePrincipal> {
+        const response = await this.providersKerberosServicePrincipalsCreateRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for providersKerberosServicePrincipalsDestroy without sending the request
+     */
+    async providersKerberosServicePrincipalsDestroyRequestOpts(
+        requestParameters: ProvidersKerberosServicePrincipalsDestroyRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["uuid"] == null) {
+            throw new runtime.RequiredError(
+                "uuid",
+                'Required parameter "uuid" was null or undefined when calling providersKerberosServicePrincipalsDestroy().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/kerberos_service_principals/{uuid}/`;
+        urlPath = urlPath.replace("{uuid}", encodeURIComponent(String(requestParameters["uuid"])));
+
+        return {
+            path: urlPath,
+            method: "DELETE",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Kerberos service principal viewset.
+     */
+    async providersKerberosServicePrincipalsDestroyRaw(
+        requestParameters: ProvidersKerberosServicePrincipalsDestroyRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<void>> {
+        const requestOptions =
+            await this.providersKerberosServicePrincipalsDestroyRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Kerberos service principal viewset.
+     */
+    async providersKerberosServicePrincipalsDestroy(
+        requestParameters: ProvidersKerberosServicePrincipalsDestroyRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<void> {
+        await this.providersKerberosServicePrincipalsDestroyRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Creates request options for providersKerberosServicePrincipalsKeytabRetrieve without sending the request
+     */
+    async providersKerberosServicePrincipalsKeytabRetrieveRequestOpts(
+        requestParameters: ProvidersKerberosServicePrincipalsKeytabRetrieveRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["uuid"] == null) {
+            throw new runtime.RequiredError(
+                "uuid",
+                'Required parameter "uuid" was null or undefined when calling providersKerberosServicePrincipalsKeytabRetrieve().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/kerberos_service_principals/{uuid}/keytab/`;
+        urlPath = urlPath.replace("{uuid}", encodeURIComponent(String(requestParameters["uuid"])));
+
+        return {
+            path: urlPath,
+            method: "GET",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Export this service principal as a base64-encoded MIT keytab.
+     */
+    async providersKerberosServicePrincipalsKeytabRetrieveRaw(
+        requestParameters: ProvidersKerberosServicePrincipalsKeytabRetrieveRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<KerberosServicePrincipal>> {
+        const requestOptions =
+            await this.providersKerberosServicePrincipalsKeytabRetrieveRequestOpts(
+                requestParameters,
+            );
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            KerberosServicePrincipalFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Export this service principal as a base64-encoded MIT keytab.
+     */
+    async providersKerberosServicePrincipalsKeytabRetrieve(
+        requestParameters: ProvidersKerberosServicePrincipalsKeytabRetrieveRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<KerberosServicePrincipal> {
+        const response = await this.providersKerberosServicePrincipalsKeytabRetrieveRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for providersKerberosServicePrincipalsList without sending the request
+     */
+    async providersKerberosServicePrincipalsListRequestOpts(
+        requestParameters: ProvidersKerberosServicePrincipalsListRequest,
+    ): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters["ordering"] != null) {
+            queryParameters["ordering"] = requestParameters["ordering"];
+        }
+
+        if (requestParameters["page"] != null) {
+            queryParameters["page"] = requestParameters["page"];
+        }
+
+        if (requestParameters["pageSize"] != null) {
+            queryParameters["page_size"] = requestParameters["pageSize"];
+        }
+
+        if (requestParameters["provider"] != null) {
+            queryParameters["provider"] = requestParameters["provider"];
+        }
+
+        if (requestParameters["search"] != null) {
+            queryParameters["search"] = requestParameters["search"];
+        }
+
+        if (requestParameters["spnIexact"] != null) {
+            queryParameters["spn__iexact"] = requestParameters["spnIexact"];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/kerberos_service_principals/`;
+
+        return {
+            path: urlPath,
+            method: "GET",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Kerberos service principal viewset.
+     */
+    async providersKerberosServicePrincipalsListRaw(
+        requestParameters: ProvidersKerberosServicePrincipalsListRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<PaginatedKerberosServicePrincipalList>> {
+        const requestOptions =
+            await this.providersKerberosServicePrincipalsListRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            PaginatedKerberosServicePrincipalListFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Kerberos service principal viewset.
+     */
+    async providersKerberosServicePrincipalsList(
+        requestParameters: ProvidersKerberosServicePrincipalsListRequest = {},
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<PaginatedKerberosServicePrincipalList> {
+        const response = await this.providersKerberosServicePrincipalsListRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for providersKerberosServicePrincipalsPartialUpdate without sending the request
+     */
+    async providersKerberosServicePrincipalsPartialUpdateRequestOpts(
+        requestParameters: ProvidersKerberosServicePrincipalsPartialUpdateRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["uuid"] == null) {
+            throw new runtime.RequiredError(
+                "uuid",
+                'Required parameter "uuid" was null or undefined when calling providersKerberosServicePrincipalsPartialUpdate().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters["Content-Type"] = "application/json";
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/kerberos_service_principals/{uuid}/`;
+        urlPath = urlPath.replace("{uuid}", encodeURIComponent(String(requestParameters["uuid"])));
+
+        return {
+            path: urlPath,
+            method: "PATCH",
+            headers: headerParameters,
+            query: queryParameters,
+            body: PatchedKerberosServicePrincipalRequestToJSON(
+                requestParameters["patchedKerberosServicePrincipalRequest"],
+            ),
+        };
+    }
+
+    /**
+     * Kerberos service principal viewset.
+     */
+    async providersKerberosServicePrincipalsPartialUpdateRaw(
+        requestParameters: ProvidersKerberosServicePrincipalsPartialUpdateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<KerberosServicePrincipal>> {
+        const requestOptions =
+            await this.providersKerberosServicePrincipalsPartialUpdateRequestOpts(
+                requestParameters,
+            );
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            KerberosServicePrincipalFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Kerberos service principal viewset.
+     */
+    async providersKerberosServicePrincipalsPartialUpdate(
+        requestParameters: ProvidersKerberosServicePrincipalsPartialUpdateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<KerberosServicePrincipal> {
+        const response = await this.providersKerberosServicePrincipalsPartialUpdateRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for providersKerberosServicePrincipalsRetrieve without sending the request
+     */
+    async providersKerberosServicePrincipalsRetrieveRequestOpts(
+        requestParameters: ProvidersKerberosServicePrincipalsRetrieveRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["uuid"] == null) {
+            throw new runtime.RequiredError(
+                "uuid",
+                'Required parameter "uuid" was null or undefined when calling providersKerberosServicePrincipalsRetrieve().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/kerberos_service_principals/{uuid}/`;
+        urlPath = urlPath.replace("{uuid}", encodeURIComponent(String(requestParameters["uuid"])));
+
+        return {
+            path: urlPath,
+            method: "GET",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Kerberos service principal viewset.
+     */
+    async providersKerberosServicePrincipalsRetrieveRaw(
+        requestParameters: ProvidersKerberosServicePrincipalsRetrieveRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<KerberosServicePrincipal>> {
+        const requestOptions =
+            await this.providersKerberosServicePrincipalsRetrieveRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            KerberosServicePrincipalFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Kerberos service principal viewset.
+     */
+    async providersKerberosServicePrincipalsRetrieve(
+        requestParameters: ProvidersKerberosServicePrincipalsRetrieveRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<KerberosServicePrincipal> {
+        const response = await this.providersKerberosServicePrincipalsRetrieveRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for providersKerberosServicePrincipalsRotateCreate without sending the request
+     */
+    async providersKerberosServicePrincipalsRotateCreateRequestOpts(
+        requestParameters: ProvidersKerberosServicePrincipalsRotateCreateRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["uuid"] == null) {
+            throw new runtime.RequiredError(
+                "uuid",
+                'Required parameter "uuid" was null or undefined when calling providersKerberosServicePrincipalsRotateCreate().',
+            );
+        }
+
+        if (requestParameters["kerberosServicePrincipalRequest"] == null) {
+            throw new runtime.RequiredError(
+                "kerberosServicePrincipalRequest",
+                'Required parameter "kerberosServicePrincipalRequest" was null or undefined when calling providersKerberosServicePrincipalsRotateCreate().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters["Content-Type"] = "application/json";
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/kerberos_service_principals/{uuid}/rotate/`;
+        urlPath = urlPath.replace("{uuid}", encodeURIComponent(String(requestParameters["uuid"])));
+
+        return {
+            path: urlPath,
+            method: "POST",
+            headers: headerParameters,
+            query: queryParameters,
+            body: KerberosServicePrincipalRequestToJSON(
+                requestParameters["kerberosServicePrincipalRequest"],
+            ),
+        };
+    }
+
+    /**
+     * Rotate this service principal\'s keys and increment its kvno.
+     */
+    async providersKerberosServicePrincipalsRotateCreateRaw(
+        requestParameters: ProvidersKerberosServicePrincipalsRotateCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<KerberosServicePrincipal>> {
+        const requestOptions =
+            await this.providersKerberosServicePrincipalsRotateCreateRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            KerberosServicePrincipalFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Rotate this service principal\'s keys and increment its kvno.
+     */
+    async providersKerberosServicePrincipalsRotateCreate(
+        requestParameters: ProvidersKerberosServicePrincipalsRotateCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<KerberosServicePrincipal> {
+        const response = await this.providersKerberosServicePrincipalsRotateCreateRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for providersKerberosServicePrincipalsUpdate without sending the request
+     */
+    async providersKerberosServicePrincipalsUpdateRequestOpts(
+        requestParameters: ProvidersKerberosServicePrincipalsUpdateRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["uuid"] == null) {
+            throw new runtime.RequiredError(
+                "uuid",
+                'Required parameter "uuid" was null or undefined when calling providersKerberosServicePrincipalsUpdate().',
+            );
+        }
+
+        if (requestParameters["kerberosServicePrincipalRequest"] == null) {
+            throw new runtime.RequiredError(
+                "kerberosServicePrincipalRequest",
+                'Required parameter "kerberosServicePrincipalRequest" was null or undefined when calling providersKerberosServicePrincipalsUpdate().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters["Content-Type"] = "application/json";
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/kerberos_service_principals/{uuid}/`;
+        urlPath = urlPath.replace("{uuid}", encodeURIComponent(String(requestParameters["uuid"])));
+
+        return {
+            path: urlPath,
+            method: "PUT",
+            headers: headerParameters,
+            query: queryParameters,
+            body: KerberosServicePrincipalRequestToJSON(
+                requestParameters["kerberosServicePrincipalRequest"],
+            ),
+        };
+    }
+
+    /**
+     * Kerberos service principal viewset.
+     */
+    async providersKerberosServicePrincipalsUpdateRaw(
+        requestParameters: ProvidersKerberosServicePrincipalsUpdateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<KerberosServicePrincipal>> {
+        const requestOptions =
+            await this.providersKerberosServicePrincipalsUpdateRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            KerberosServicePrincipalFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Kerberos service principal viewset.
+     */
+    async providersKerberosServicePrincipalsUpdate(
+        requestParameters: ProvidersKerberosServicePrincipalsUpdateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<KerberosServicePrincipal> {
+        const response = await this.providersKerberosServicePrincipalsUpdateRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for providersKerberosUpdate without sending the request
+     */
+    async providersKerberosUpdateRequestOpts(
+        requestParameters: ProvidersKerberosUpdateRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["id"] == null) {
+            throw new runtime.RequiredError(
+                "id",
+                'Required parameter "id" was null or undefined when calling providersKerberosUpdate().',
+            );
+        }
+
+        if (requestParameters["kerberosProviderRequest"] == null) {
+            throw new runtime.RequiredError(
+                "kerberosProviderRequest",
+                'Required parameter "kerberosProviderRequest" was null or undefined when calling providersKerberosUpdate().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters["Content-Type"] = "application/json";
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/kerberos/{id}/`;
+        urlPath = urlPath.replace("{id}", encodeURIComponent(String(requestParameters["id"])));
+
+        return {
+            path: urlPath,
+            method: "PUT",
+            headers: headerParameters,
+            query: queryParameters,
+            body: KerberosProviderRequestToJSON(requestParameters["kerberosProviderRequest"]),
+        };
+    }
+
+    /**
+     * KerberosProvider viewset.
+     */
+    async providersKerberosUpdateRaw(
+        requestParameters: ProvidersKerberosUpdateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<KerberosProvider>> {
+        const requestOptions = await this.providersKerberosUpdateRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            KerberosProviderFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * KerberosProvider viewset.
+     */
+    async providersKerberosUpdate(
+        requestParameters: ProvidersKerberosUpdateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<KerberosProvider> {
+        const response = await this.providersKerberosUpdateRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for providersKerberosUsedByList without sending the request
+     */
+    async providersKerberosUsedByListRequestOpts(
+        requestParameters: ProvidersKerberosUsedByListRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["id"] == null) {
+            throw new runtime.RequiredError(
+                "id",
+                'Required parameter "id" was null or undefined when calling providersKerberosUsedByList().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/kerberos/{id}/used_by/`;
+        urlPath = urlPath.replace("{id}", encodeURIComponent(String(requestParameters["id"])));
+
+        return {
+            path: urlPath,
+            method: "GET",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Get a list of all objects that use this object
+     */
+    async providersKerberosUsedByListRaw(
+        requestParameters: ProvidersKerberosUsedByListRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<Array<UsedBy>>> {
+        const requestOptions = await this.providersKerberosUsedByListRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(UsedByFromJSON));
+    }
+
+    /**
+     * Get a list of all objects that use this object
+     */
+    async providersKerberosUsedByList(
+        requestParameters: ProvidersKerberosUsedByListRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<Array<UsedBy>> {
+        const response = await this.providersKerberosUsedByListRaw(
             requestParameters,
             initOverrides,
         );

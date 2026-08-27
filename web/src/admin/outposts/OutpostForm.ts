@@ -75,6 +75,9 @@ const ldapListFetch = async (page: number, search = "") =>
 const radiusListFetch = async (page: number, search = "") =>
     provisionMaker(await api().providersRadiusList(providerListArgs(page, search)));
 
+const kerberosListFetch = async (page: number, search = "") =>
+    provisionMaker(await api().providersKerberosList(providerListArgs(page, search)));
+
 const racListProvider = async (page: number, search = "") =>
     provisionMaker(await api().providersRacList(providerListArgs(page, search)));
 
@@ -86,6 +89,8 @@ function providerProvider(type: OutpostTypeEnum): DataProvider {
             return ldapListFetch;
         case OutpostTypeEnum.Radius:
             return radiusListFetch;
+        case OutpostTypeEnum.Kerberos:
+            return kerberosListFetch;
         case OutpostTypeEnum.Rac:
             return racListProvider;
         default:
@@ -153,6 +158,7 @@ export class OutpostForm extends ModelForm<Outpost, string> {
             [OutpostTypeEnum.Proxy, msg("Proxy")],
             [OutpostTypeEnum.Ldap, msg("LDAP")],
             [OutpostTypeEnum.Radius, msg("Radius")],
+            [OutpostTypeEnum.Kerberos, msg("Kerberos", { id: "outposts.type.kerberos" })],
             [OutpostTypeEnum.Rac, msg("RAC")],
         ];
 

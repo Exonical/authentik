@@ -21,10 +21,11 @@ type OutpostTypeEnum string
 
 // List of OutpostTypeEnum
 const (
-	OUTPOSTTYPEENUM_PROXY  OutpostTypeEnum = "proxy"
-	OUTPOSTTYPEENUM_LDAP   OutpostTypeEnum = "ldap"
-	OUTPOSTTYPEENUM_RADIUS OutpostTypeEnum = "radius"
-	OUTPOSTTYPEENUM_RAC    OutpostTypeEnum = "rac"
+	OUTPOSTTYPEENUM_PROXY    OutpostTypeEnum = "proxy"
+	OUTPOSTTYPEENUM_LDAP     OutpostTypeEnum = "ldap"
+	OUTPOSTTYPEENUM_RADIUS   OutpostTypeEnum = "radius"
+	OUTPOSTTYPEENUM_RAC      OutpostTypeEnum = "rac"
+	OUTPOSTTYPEENUM_KERBEROS OutpostTypeEnum = "kerberos"
 )
 
 // All allowed values of OutpostTypeEnum enum
@@ -33,6 +34,7 @@ var AllowedOutpostTypeEnumEnumValues = []OutpostTypeEnum{
 	"ldap",
 	"radius",
 	"rac",
+	"kerberos",
 }
 
 func (v *OutpostTypeEnum) UnmarshalJSON(src []byte) error {

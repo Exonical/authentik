@@ -21,6 +21,10 @@ import {
     DockerServiceConnectionRequestToJSON,
 } from "../models/DockerServiceConnectionRequest";
 import {
+    type KerberosUserKeyOutpost,
+    KerberosUserKeyOutpostFromJSON,
+} from "../models/KerberosUserKeyOutpost";
+import {
     type KubernetesServiceConnection,
     KubernetesServiceConnectionFromJSON,
 } from "../models/KubernetesServiceConnection";
@@ -40,6 +44,14 @@ import {
     type PaginatedDockerServiceConnectionList,
     PaginatedDockerServiceConnectionListFromJSON,
 } from "../models/PaginatedDockerServiceConnectionList";
+import {
+    type PaginatedKerberosOutpostConfigList,
+    PaginatedKerberosOutpostConfigListFromJSON,
+} from "../models/PaginatedKerberosOutpostConfigList";
+import {
+    type PaginatedKerberosServicePrincipalOutpostList,
+    PaginatedKerberosServicePrincipalOutpostListFromJSON,
+} from "../models/PaginatedKerberosServicePrincipalOutpostList";
 import {
     type PaginatedKubernetesServiceConnectionList,
     PaginatedKubernetesServiceConnectionListFromJSON,
@@ -139,6 +151,28 @@ export interface OutpostsInstancesUpdateRequest {
 
 export interface OutpostsInstancesUsedByListRequest {
     uuid: string;
+}
+
+export interface OutpostsKerberosListRequest {
+    name?: string;
+    ordering?: string;
+    page?: number;
+    pageSize?: number;
+    search?: string;
+}
+
+export interface OutpostsKerberosServicePrincipalsListRequest {
+    id: number;
+    name?: string;
+    ordering?: string;
+    page?: number;
+    pageSize?: number;
+    search?: string;
+}
+
+export interface OutpostsKerberosUserKeyRetrieveRequest {
+    id: number;
+    username: string;
 }
 
 export interface OutpostsLdapAccessCheckRequest {
@@ -921,6 +955,246 @@ export class OutpostsApi extends runtime.BaseAPI {
         initOverrides?: RequestInit | runtime.InitOverrideFunction,
     ): Promise<Array<UsedBy>> {
         const response = await this.outpostsInstancesUsedByListRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for outpostsKerberosList without sending the request
+     */
+    async outpostsKerberosListRequestOpts(
+        requestParameters: OutpostsKerberosListRequest,
+    ): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters["name"] != null) {
+            queryParameters["name"] = requestParameters["name"];
+        }
+
+        if (requestParameters["ordering"] != null) {
+            queryParameters["ordering"] = requestParameters["ordering"];
+        }
+
+        if (requestParameters["page"] != null) {
+            queryParameters["page"] = requestParameters["page"];
+        }
+
+        if (requestParameters["pageSize"] != null) {
+            queryParameters["page_size"] = requestParameters["pageSize"];
+        }
+
+        if (requestParameters["search"] != null) {
+            queryParameters["search"] = requestParameters["search"];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/outposts/kerberos/`;
+
+        return {
+            path: urlPath,
+            method: "GET",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Kerberos provider configuration viewset for outposts.
+     */
+    async outpostsKerberosListRaw(
+        requestParameters: OutpostsKerberosListRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<PaginatedKerberosOutpostConfigList>> {
+        const requestOptions = await this.outpostsKerberosListRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            PaginatedKerberosOutpostConfigListFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Kerberos provider configuration viewset for outposts.
+     */
+    async outpostsKerberosList(
+        requestParameters: OutpostsKerberosListRequest = {},
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<PaginatedKerberosOutpostConfigList> {
+        const response = await this.outpostsKerberosListRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for outpostsKerberosServicePrincipalsList without sending the request
+     */
+    async outpostsKerberosServicePrincipalsListRequestOpts(
+        requestParameters: OutpostsKerberosServicePrincipalsListRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["id"] == null) {
+            throw new runtime.RequiredError(
+                "id",
+                'Required parameter "id" was null or undefined when calling outpostsKerberosServicePrincipalsList().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters["name"] != null) {
+            queryParameters["name"] = requestParameters["name"];
+        }
+
+        if (requestParameters["ordering"] != null) {
+            queryParameters["ordering"] = requestParameters["ordering"];
+        }
+
+        if (requestParameters["page"] != null) {
+            queryParameters["page"] = requestParameters["page"];
+        }
+
+        if (requestParameters["pageSize"] != null) {
+            queryParameters["page_size"] = requestParameters["pageSize"];
+        }
+
+        if (requestParameters["search"] != null) {
+            queryParameters["search"] = requestParameters["search"];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/outposts/kerberos/{id}/service_principals/`;
+        urlPath = urlPath.replace("{id}", encodeURIComponent(String(requestParameters["id"])));
+
+        return {
+            path: urlPath,
+            method: "GET",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * List the configured service principals.
+     */
+    async outpostsKerberosServicePrincipalsListRaw(
+        requestParameters: OutpostsKerberosServicePrincipalsListRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<PaginatedKerberosServicePrincipalOutpostList>> {
+        const requestOptions =
+            await this.outpostsKerberosServicePrincipalsListRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            PaginatedKerberosServicePrincipalOutpostListFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * List the configured service principals.
+     */
+    async outpostsKerberosServicePrincipalsList(
+        requestParameters: OutpostsKerberosServicePrincipalsListRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<PaginatedKerberosServicePrincipalOutpostList> {
+        const response = await this.outpostsKerberosServicePrincipalsListRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for outpostsKerberosUserKeyRetrieve without sending the request
+     */
+    async outpostsKerberosUserKeyRetrieveRequestOpts(
+        requestParameters: OutpostsKerberosUserKeyRetrieveRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["id"] == null) {
+            throw new runtime.RequiredError(
+                "id",
+                'Required parameter "id" was null or undefined when calling outpostsKerberosUserKeyRetrieve().',
+            );
+        }
+
+        if (requestParameters["username"] == null) {
+            throw new runtime.RequiredError(
+                "username",
+                'Required parameter "username" was null or undefined when calling outpostsKerberosUserKeyRetrieve().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters["username"] != null) {
+            queryParameters["username"] = requestParameters["username"];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/outposts/kerberos/{id}/user_key/`;
+        urlPath = urlPath.replace("{id}", encodeURIComponent(String(requestParameters["id"])));
+
+        return {
+            path: urlPath,
+            method: "GET",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Get one user\'s password-derived key set.
+     */
+    async outpostsKerberosUserKeyRetrieveRaw(
+        requestParameters: OutpostsKerberosUserKeyRetrieveRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<KerberosUserKeyOutpost>> {
+        const requestOptions =
+            await this.outpostsKerberosUserKeyRetrieveRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            KerberosUserKeyOutpostFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Get one user\'s password-derived key set.
+     */
+    async outpostsKerberosUserKeyRetrieve(
+        requestParameters: OutpostsKerberosUserKeyRetrieveRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<KerberosUserKeyOutpost> {
+        const response = await this.outpostsKerberosUserKeyRetrieveRaw(
             requestParameters,
             initOverrides,
         );

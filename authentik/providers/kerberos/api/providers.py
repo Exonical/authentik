@@ -71,6 +71,15 @@ class KerberosServicePrincipalSerializer(ModelSerializer):
         extra_kwargs = {"keys": {"read_only": True}, "kvno": {"read_only": True}}
 
 
+class KerberosUserKeysSerializer(ModelSerializer):
+    """Kerberos user keys serializer."""
+
+    class Meta:
+        model = KerberosUserKeys
+        fields = ["uuid", "user", "provider", "kvno", "keys", "salt"]
+        extra_kwargs = {"keys": {"read_only": True}, "kvno": {"read_only": True}}
+
+
 def _keytab_entry(spn: str, realm: str, kvno: int, enctype: int, key: bytes) -> bytes:
     components = spn.split("/")
     body = struct.pack(">H", len(components))

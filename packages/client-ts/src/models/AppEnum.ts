@@ -44,6 +44,7 @@ export const AppEnum = {
     AuthentikProvidersProxy: "authentik.providers.proxy",
     AuthentikProvidersRac: "authentik.providers.rac",
     AuthentikProvidersRadius: "authentik.providers.radius",
+    AuthentikProvidersKerberos: "authentik.providers.kerberos",
     AuthentikProvidersSaml: "authentik.providers.saml",
     AuthentikProvidersScim: "authentik.providers.scim",
     AuthentikRbac: "authentik.rbac",
