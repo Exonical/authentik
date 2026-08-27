@@ -203,7 +203,10 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
         """List the configured service principals."""
         provider = self.get_object()
         principals = provider.kerberosserviceprincipal_set.all().order_by("spn")
-        return Response(KerberosServicePrincipalOutpostSerializer(principals, many=True).data)
+        page = self.paginate_queryset(principals)
+        return self.get_paginated_response(
+            KerberosServicePrincipalOutpostSerializer(page, many=True).data
+        )
 
     @extend_schema(
         parameters=[
