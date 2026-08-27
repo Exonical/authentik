@@ -15,7 +15,7 @@ from sentry_sdk import start_span
 from structlog.stdlib import get_logger
 
 from authentik.core.models import User
-from authentik.core.signals import login_failed
+from authentik.core.signals import login_failed, password_validated
 from authentik.flows.challenge import (
     Challenge,
     ChallengeResponse,
@@ -126,6 +126,12 @@ class PasswordChallengeResponse(ChallengeResponse):
             # No user was found -> invalid credentials
             self.stage.logger.info("Invalid credentials")
             raise ValidationError(_("Invalid password"), "invalid")
+        password_validated.send(
+            sender=__name__,
+            user=user,
+            password=password,
+            request=self.stage.request,
+        )
         # User instance returned from authenticate() has .backend property set
         executor.plan.context[PLAN_CONTEXT_PENDING_USER] = user
         executor.plan.context[PLAN_CONTEXT_AUTHENTICATION_BACKEND] = user.backend
