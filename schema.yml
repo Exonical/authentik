@@ -44017,12 +44017,19 @@ components:
         realm_name:
           type: string
           maxLength: 255
+        default_domain:
+          type: string
+          maxLength: 255
         maximum_ticket_lifetime:
           type: integer
           readOnly: true
         maximum_ticket_renew_lifetime:
           type: integer
           readOnly: true
+        default_ticket_lifetime:
+          type: string
+        default_ticket_renew_lifetime:
+          type: string
         allowed_enctypes:
           type: array
           items:
@@ -44030,6 +44037,20 @@ components:
             - $ref: '#/components/schemas/AllowedEnctypesEnum'
             minimum: -2147483648
             maximum: 2147483647
+        require_preauthentication:
+          type: boolean
+        udp_enabled:
+          type: boolean
+        tcp_enabled:
+          type: boolean
+        forwardable:
+          type: boolean
+        renewable:
+          type: boolean
+        proxiable:
+          type: boolean
+        principal_username_attribute:
+          $ref: '#/components/schemas/PrincipalUsernameAttributeEnum'
         master_key:
           type: string
         application_slug:
@@ -44111,9 +44132,16 @@ components:
         realm_name:
           type: string
           maxLength: 255
+        default_domain:
+          type: string
+          maxLength: 255
         maximum_ticket_lifetime:
           type: string
         maximum_ticket_renew_lifetime:
+          type: string
+        default_ticket_lifetime:
+          type: string
+        default_ticket_renew_lifetime:
           type: string
         allowed_enctypes:
           type: array
@@ -44122,6 +44150,20 @@ components:
             - $ref: '#/components/schemas/AllowedEnctypesEnum'
             minimum: -2147483648
             maximum: 2147483647
+        require_preauthentication:
+          type: boolean
+        udp_enabled:
+          type: boolean
+        tcp_enabled:
+          type: boolean
+        forwardable:
+          type: boolean
+        renewable:
+          type: boolean
+        proxiable:
+          type: boolean
+        principal_username_attribute:
+          $ref: '#/components/schemas/PrincipalUsernameAttributeEnum'
         master_key:
           type: string
           readOnly: true
@@ -44176,10 +44218,19 @@ components:
           type: string
           minLength: 1
           maxLength: 255
+        default_domain:
+          type: string
+          maxLength: 255
         maximum_ticket_lifetime:
           type: string
           minLength: 1
         maximum_ticket_renew_lifetime:
+          type: string
+          minLength: 1
+        default_ticket_lifetime:
+          type: string
+          minLength: 1
+        default_ticket_renew_lifetime:
           type: string
           minLength: 1
         allowed_enctypes:
@@ -44189,6 +44240,20 @@ components:
             - $ref: '#/components/schemas/AllowedEnctypesEnum'
             minimum: -2147483648
             maximum: 2147483647
+        require_preauthentication:
+          type: boolean
+        udp_enabled:
+          type: boolean
+        tcp_enabled:
+          type: boolean
+        forwardable:
+          type: boolean
+        renewable:
+          type: boolean
+        proxiable:
+          type: boolean
+        principal_username_attribute:
+          $ref: '#/components/schemas/PrincipalUsernameAttributeEnum'
       required:
       - name
       - realm_name
@@ -52493,10 +52558,19 @@ components:
           type: string
           minLength: 1
           maxLength: 255
+        default_domain:
+          type: string
+          maxLength: 255
         maximum_ticket_lifetime:
           type: string
           minLength: 1
         maximum_ticket_renew_lifetime:
+          type: string
+          minLength: 1
+        default_ticket_lifetime:
+          type: string
+          minLength: 1
+        default_ticket_renew_lifetime:
           type: string
           minLength: 1
         allowed_enctypes:
@@ -52506,6 +52580,20 @@ components:
             - $ref: '#/components/schemas/AllowedEnctypesEnum'
             minimum: -2147483648
             maximum: 2147483647
+        require_preauthentication:
+          type: boolean
+        udp_enabled:
+          type: boolean
+        tcp_enabled:
+          type: boolean
+        forwardable:
+          type: boolean
+        renewable:
+          type: boolean
+        proxiable:
+          type: boolean
+        principal_username_attribute:
+          $ref: '#/components/schemas/PrincipalUsernameAttributeEnum'
     PatchedKerberosServicePrincipalRequest:
       type: object
       description: Kerberos service principal serializer.
@@ -55761,6 +55849,12 @@ components:
       - log_messages
       - messages
       - passing
+    PrincipalUsernameAttributeEnum:
+      enum:
+      - username
+      - email
+      - upn
+      type: string
     Process:
       type: object
       properties:

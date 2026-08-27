@@ -12211,6 +12211,11 @@
                     "minLength": 1,
                     "title": "Realm name"
                 },
+                "default_domain": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "title": "Default domain"
+                },
                 "maximum_ticket_lifetime": {
                     "type": "string",
                     "minLength": 1,
@@ -12220,6 +12225,16 @@
                     "type": "string",
                     "minLength": 1,
                     "title": "Maximum ticket renew lifetime"
+                },
+                "default_ticket_lifetime": {
+                    "type": "string",
+                    "minLength": 1,
+                    "title": "Default ticket lifetime"
+                },
+                "default_ticket_renew_lifetime": {
+                    "type": "string",
+                    "minLength": 1,
+                    "title": "Default ticket renew lifetime"
                 },
                 "allowed_enctypes": {
                     "type": "array",
@@ -12234,6 +12249,39 @@
                         "title": "Allowed enctypes"
                     },
                     "title": "Allowed enctypes"
+                },
+                "require_preauthentication": {
+                    "type": "boolean",
+                    "title": "Require preauthentication"
+                },
+                "udp_enabled": {
+                    "type": "boolean",
+                    "title": "Udp enabled"
+                },
+                "tcp_enabled": {
+                    "type": "boolean",
+                    "title": "Tcp enabled"
+                },
+                "forwardable": {
+                    "type": "boolean",
+                    "title": "Forwardable"
+                },
+                "renewable": {
+                    "type": "boolean",
+                    "title": "Renewable"
+                },
+                "proxiable": {
+                    "type": "boolean",
+                    "title": "Proxiable"
+                },
+                "principal_username_attribute": {
+                    "type": "string",
+                    "enum": [
+                        "username",
+                        "email",
+                        "upn"
+                    ],
+                    "title": "Principal username attribute"
                 }
             },
             "required": []

@@ -20,12 +20,32 @@ pub struct KerberosOutpostConfig {
     pub name: String,
     #[serde(rename = "realm_name")]
     pub realm_name: String,
+    #[serde(rename = "default_domain", skip_serializing_if = "Option::is_none")]
+    pub default_domain: Option<String>,
     #[serde(rename = "maximum_ticket_lifetime")]
     pub maximum_ticket_lifetime: i32,
     #[serde(rename = "maximum_ticket_renew_lifetime")]
     pub maximum_ticket_renew_lifetime: i32,
+    #[serde(rename = "default_ticket_lifetime", skip_serializing_if = "Option::is_none")]
+    pub default_ticket_lifetime: Option<String>,
+    #[serde(rename = "default_ticket_renew_lifetime", skip_serializing_if = "Option::is_none")]
+    pub default_ticket_renew_lifetime: Option<String>,
     #[serde(rename = "allowed_enctypes", skip_serializing_if = "Option::is_none")]
     pub allowed_enctypes: Option<Vec<models::AllowedEnctypesEnum>>,
+    #[serde(rename = "require_preauthentication", skip_serializing_if = "Option::is_none")]
+    pub require_preauthentication: Option<bool>,
+    #[serde(rename = "udp_enabled", skip_serializing_if = "Option::is_none")]
+    pub udp_enabled: Option<bool>,
+    #[serde(rename = "tcp_enabled", skip_serializing_if = "Option::is_none")]
+    pub tcp_enabled: Option<bool>,
+    #[serde(rename = "forwardable", skip_serializing_if = "Option::is_none")]
+    pub forwardable: Option<bool>,
+    #[serde(rename = "renewable", skip_serializing_if = "Option::is_none")]
+    pub renewable: Option<bool>,
+    #[serde(rename = "proxiable", skip_serializing_if = "Option::is_none")]
+    pub proxiable: Option<bool>,
+    #[serde(rename = "principal_username_attribute", skip_serializing_if = "Option::is_none")]
+    pub principal_username_attribute: Option<models::PrincipalUsernameAttributeEnum>,
     #[serde(rename = "master_key", skip_serializing_if = "Option::is_none")]
     pub master_key: Option<String>,
     #[serde(rename = "application_slug")]
@@ -39,9 +59,19 @@ impl KerberosOutpostConfig {
             pk,
             name,
             realm_name,
+            default_domain: None,
             maximum_ticket_lifetime,
             maximum_ticket_renew_lifetime,
+            default_ticket_lifetime: None,
+            default_ticket_renew_lifetime: None,
             allowed_enctypes: None,
+            require_preauthentication: None,
+            udp_enabled: None,
+            tcp_enabled: None,
+            forwardable: None,
+            renewable: None,
+            proxiable: None,
+            principal_username_attribute: None,
             master_key: None,
             application_slug,
         }

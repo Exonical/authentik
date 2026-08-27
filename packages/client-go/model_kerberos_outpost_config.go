@@ -21,14 +21,24 @@ var _ MappedNullable = &KerberosOutpostConfig{}
 
 // KerberosOutpostConfig Kerberos provider serializer for outposts.
 type KerberosOutpostConfig struct {
-	Pk                         int32                 `json:"pk"`
-	Name                       string                `json:"name"`
-	RealmName                  string                `json:"realm_name"`
-	MaximumTicketLifetime      int32                 `json:"maximum_ticket_lifetime"`
-	MaximumTicketRenewLifetime int32                 `json:"maximum_ticket_renew_lifetime"`
-	AllowedEnctypes            []AllowedEnctypesEnum `json:"allowed_enctypes,omitempty"`
-	MasterKey                  *string               `json:"master_key,omitempty"`
-	ApplicationSlug            string                `json:"application_slug"`
+	Pk                         int32                           `json:"pk"`
+	Name                       string                          `json:"name"`
+	RealmName                  string                          `json:"realm_name"`
+	DefaultDomain              *string                         `json:"default_domain,omitempty"`
+	MaximumTicketLifetime      int32                           `json:"maximum_ticket_lifetime"`
+	MaximumTicketRenewLifetime int32                           `json:"maximum_ticket_renew_lifetime"`
+	DefaultTicketLifetime      *string                         `json:"default_ticket_lifetime,omitempty"`
+	DefaultTicketRenewLifetime *string                         `json:"default_ticket_renew_lifetime,omitempty"`
+	AllowedEnctypes            []AllowedEnctypesEnum           `json:"allowed_enctypes,omitempty"`
+	RequirePreauthentication   *bool                           `json:"require_preauthentication,omitempty"`
+	UdpEnabled                 *bool                           `json:"udp_enabled,omitempty"`
+	TcpEnabled                 *bool                           `json:"tcp_enabled,omitempty"`
+	Forwardable                *bool                           `json:"forwardable,omitempty"`
+	Renewable                  *bool                           `json:"renewable,omitempty"`
+	Proxiable                  *bool                           `json:"proxiable,omitempty"`
+	PrincipalUsernameAttribute *PrincipalUsernameAttributeEnum `json:"principal_username_attribute,omitempty"`
+	MasterKey                  *string                         `json:"master_key,omitempty"`
+	ApplicationSlug            string                          `json:"application_slug"`
 	AdditionalProperties       map[string]interface{}
 }
 
@@ -129,6 +139,38 @@ func (o *KerberosOutpostConfig) SetRealmName(v string) {
 	o.RealmName = v
 }
 
+// GetDefaultDomain returns the DefaultDomain field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetDefaultDomain() string {
+	if o == nil || IsNil(o.DefaultDomain) {
+		var ret string
+		return ret
+	}
+	return *o.DefaultDomain
+}
+
+// GetDefaultDomainOk returns a tuple with the DefaultDomain field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetDefaultDomainOk() (*string, bool) {
+	if o == nil || IsNil(o.DefaultDomain) {
+		return nil, false
+	}
+	return o.DefaultDomain, true
+}
+
+// HasDefaultDomain returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasDefaultDomain() bool {
+	if o != nil && !IsNil(o.DefaultDomain) {
+		return true
+	}
+
+	return false
+}
+
+// SetDefaultDomain gets a reference to the given string and assigns it to the DefaultDomain field.
+func (o *KerberosOutpostConfig) SetDefaultDomain(v string) {
+	o.DefaultDomain = &v
+}
+
 // GetMaximumTicketLifetime returns the MaximumTicketLifetime field value
 func (o *KerberosOutpostConfig) GetMaximumTicketLifetime() int32 {
 	if o == nil {
@@ -177,6 +219,70 @@ func (o *KerberosOutpostConfig) SetMaximumTicketRenewLifetime(v int32) {
 	o.MaximumTicketRenewLifetime = v
 }
 
+// GetDefaultTicketLifetime returns the DefaultTicketLifetime field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetDefaultTicketLifetime() string {
+	if o == nil || IsNil(o.DefaultTicketLifetime) {
+		var ret string
+		return ret
+	}
+	return *o.DefaultTicketLifetime
+}
+
+// GetDefaultTicketLifetimeOk returns a tuple with the DefaultTicketLifetime field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetDefaultTicketLifetimeOk() (*string, bool) {
+	if o == nil || IsNil(o.DefaultTicketLifetime) {
+		return nil, false
+	}
+	return o.DefaultTicketLifetime, true
+}
+
+// HasDefaultTicketLifetime returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasDefaultTicketLifetime() bool {
+	if o != nil && !IsNil(o.DefaultTicketLifetime) {
+		return true
+	}
+
+	return false
+}
+
+// SetDefaultTicketLifetime gets a reference to the given string and assigns it to the DefaultTicketLifetime field.
+func (o *KerberosOutpostConfig) SetDefaultTicketLifetime(v string) {
+	o.DefaultTicketLifetime = &v
+}
+
+// GetDefaultTicketRenewLifetime returns the DefaultTicketRenewLifetime field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetDefaultTicketRenewLifetime() string {
+	if o == nil || IsNil(o.DefaultTicketRenewLifetime) {
+		var ret string
+		return ret
+	}
+	return *o.DefaultTicketRenewLifetime
+}
+
+// GetDefaultTicketRenewLifetimeOk returns a tuple with the DefaultTicketRenewLifetime field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetDefaultTicketRenewLifetimeOk() (*string, bool) {
+	if o == nil || IsNil(o.DefaultTicketRenewLifetime) {
+		return nil, false
+	}
+	return o.DefaultTicketRenewLifetime, true
+}
+
+// HasDefaultTicketRenewLifetime returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasDefaultTicketRenewLifetime() bool {
+	if o != nil && !IsNil(o.DefaultTicketRenewLifetime) {
+		return true
+	}
+
+	return false
+}
+
+// SetDefaultTicketRenewLifetime gets a reference to the given string and assigns it to the DefaultTicketRenewLifetime field.
+func (o *KerberosOutpostConfig) SetDefaultTicketRenewLifetime(v string) {
+	o.DefaultTicketRenewLifetime = &v
+}
+
 // GetAllowedEnctypes returns the AllowedEnctypes field value if set, zero value otherwise.
 func (o *KerberosOutpostConfig) GetAllowedEnctypes() []AllowedEnctypesEnum {
 	if o == nil || IsNil(o.AllowedEnctypes) {
@@ -207,6 +313,230 @@ func (o *KerberosOutpostConfig) HasAllowedEnctypes() bool {
 // SetAllowedEnctypes gets a reference to the given []AllowedEnctypesEnum and assigns it to the AllowedEnctypes field.
 func (o *KerberosOutpostConfig) SetAllowedEnctypes(v []AllowedEnctypesEnum) {
 	o.AllowedEnctypes = v
+}
+
+// GetRequirePreauthentication returns the RequirePreauthentication field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetRequirePreauthentication() bool {
+	if o == nil || IsNil(o.RequirePreauthentication) {
+		var ret bool
+		return ret
+	}
+	return *o.RequirePreauthentication
+}
+
+// GetRequirePreauthenticationOk returns a tuple with the RequirePreauthentication field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetRequirePreauthenticationOk() (*bool, bool) {
+	if o == nil || IsNil(o.RequirePreauthentication) {
+		return nil, false
+	}
+	return o.RequirePreauthentication, true
+}
+
+// HasRequirePreauthentication returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasRequirePreauthentication() bool {
+	if o != nil && !IsNil(o.RequirePreauthentication) {
+		return true
+	}
+
+	return false
+}
+
+// SetRequirePreauthentication gets a reference to the given bool and assigns it to the RequirePreauthentication field.
+func (o *KerberosOutpostConfig) SetRequirePreauthentication(v bool) {
+	o.RequirePreauthentication = &v
+}
+
+// GetUdpEnabled returns the UdpEnabled field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetUdpEnabled() bool {
+	if o == nil || IsNil(o.UdpEnabled) {
+		var ret bool
+		return ret
+	}
+	return *o.UdpEnabled
+}
+
+// GetUdpEnabledOk returns a tuple with the UdpEnabled field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetUdpEnabledOk() (*bool, bool) {
+	if o == nil || IsNil(o.UdpEnabled) {
+		return nil, false
+	}
+	return o.UdpEnabled, true
+}
+
+// HasUdpEnabled returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasUdpEnabled() bool {
+	if o != nil && !IsNil(o.UdpEnabled) {
+		return true
+	}
+
+	return false
+}
+
+// SetUdpEnabled gets a reference to the given bool and assigns it to the UdpEnabled field.
+func (o *KerberosOutpostConfig) SetUdpEnabled(v bool) {
+	o.UdpEnabled = &v
+}
+
+// GetTcpEnabled returns the TcpEnabled field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetTcpEnabled() bool {
+	if o == nil || IsNil(o.TcpEnabled) {
+		var ret bool
+		return ret
+	}
+	return *o.TcpEnabled
+}
+
+// GetTcpEnabledOk returns a tuple with the TcpEnabled field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetTcpEnabledOk() (*bool, bool) {
+	if o == nil || IsNil(o.TcpEnabled) {
+		return nil, false
+	}
+	return o.TcpEnabled, true
+}
+
+// HasTcpEnabled returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasTcpEnabled() bool {
+	if o != nil && !IsNil(o.TcpEnabled) {
+		return true
+	}
+
+	return false
+}
+
+// SetTcpEnabled gets a reference to the given bool and assigns it to the TcpEnabled field.
+func (o *KerberosOutpostConfig) SetTcpEnabled(v bool) {
+	o.TcpEnabled = &v
+}
+
+// GetForwardable returns the Forwardable field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetForwardable() bool {
+	if o == nil || IsNil(o.Forwardable) {
+		var ret bool
+		return ret
+	}
+	return *o.Forwardable
+}
+
+// GetForwardableOk returns a tuple with the Forwardable field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetForwardableOk() (*bool, bool) {
+	if o == nil || IsNil(o.Forwardable) {
+		return nil, false
+	}
+	return o.Forwardable, true
+}
+
+// HasForwardable returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasForwardable() bool {
+	if o != nil && !IsNil(o.Forwardable) {
+		return true
+	}
+
+	return false
+}
+
+// SetForwardable gets a reference to the given bool and assigns it to the Forwardable field.
+func (o *KerberosOutpostConfig) SetForwardable(v bool) {
+	o.Forwardable = &v
+}
+
+// GetRenewable returns the Renewable field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetRenewable() bool {
+	if o == nil || IsNil(o.Renewable) {
+		var ret bool
+		return ret
+	}
+	return *o.Renewable
+}
+
+// GetRenewableOk returns a tuple with the Renewable field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetRenewableOk() (*bool, bool) {
+	if o == nil || IsNil(o.Renewable) {
+		return nil, false
+	}
+	return o.Renewable, true
+}
+
+// HasRenewable returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasRenewable() bool {
+	if o != nil && !IsNil(o.Renewable) {
+		return true
+	}
+
+	return false
+}
+
+// SetRenewable gets a reference to the given bool and assigns it to the Renewable field.
+func (o *KerberosOutpostConfig) SetRenewable(v bool) {
+	o.Renewable = &v
+}
+
+// GetProxiable returns the Proxiable field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetProxiable() bool {
+	if o == nil || IsNil(o.Proxiable) {
+		var ret bool
+		return ret
+	}
+	return *o.Proxiable
+}
+
+// GetProxiableOk returns a tuple with the Proxiable field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetProxiableOk() (*bool, bool) {
+	if o == nil || IsNil(o.Proxiable) {
+		return nil, false
+	}
+	return o.Proxiable, true
+}
+
+// HasProxiable returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasProxiable() bool {
+	if o != nil && !IsNil(o.Proxiable) {
+		return true
+	}
+
+	return false
+}
+
+// SetProxiable gets a reference to the given bool and assigns it to the Proxiable field.
+func (o *KerberosOutpostConfig) SetProxiable(v bool) {
+	o.Proxiable = &v
+}
+
+// GetPrincipalUsernameAttribute returns the PrincipalUsernameAttribute field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetPrincipalUsernameAttribute() PrincipalUsernameAttributeEnum {
+	if o == nil || IsNil(o.PrincipalUsernameAttribute) {
+		var ret PrincipalUsernameAttributeEnum
+		return ret
+	}
+	return *o.PrincipalUsernameAttribute
+}
+
+// GetPrincipalUsernameAttributeOk returns a tuple with the PrincipalUsernameAttribute field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetPrincipalUsernameAttributeOk() (*PrincipalUsernameAttributeEnum, bool) {
+	if o == nil || IsNil(o.PrincipalUsernameAttribute) {
+		return nil, false
+	}
+	return o.PrincipalUsernameAttribute, true
+}
+
+// HasPrincipalUsernameAttribute returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasPrincipalUsernameAttribute() bool {
+	if o != nil && !IsNil(o.PrincipalUsernameAttribute) {
+		return true
+	}
+
+	return false
+}
+
+// SetPrincipalUsernameAttribute gets a reference to the given PrincipalUsernameAttributeEnum and assigns it to the PrincipalUsernameAttribute field.
+func (o *KerberosOutpostConfig) SetPrincipalUsernameAttribute(v PrincipalUsernameAttributeEnum) {
+	o.PrincipalUsernameAttribute = &v
 }
 
 // GetMasterKey returns the MasterKey field value if set, zero value otherwise.
@@ -278,10 +608,40 @@ func (o KerberosOutpostConfig) ToMap() (map[string]interface{}, error) {
 	toSerialize["pk"] = o.Pk
 	toSerialize["name"] = o.Name
 	toSerialize["realm_name"] = o.RealmName
+	if !IsNil(o.DefaultDomain) {
+		toSerialize["default_domain"] = o.DefaultDomain
+	}
 	toSerialize["maximum_ticket_lifetime"] = o.MaximumTicketLifetime
 	toSerialize["maximum_ticket_renew_lifetime"] = o.MaximumTicketRenewLifetime
+	if !IsNil(o.DefaultTicketLifetime) {
+		toSerialize["default_ticket_lifetime"] = o.DefaultTicketLifetime
+	}
+	if !IsNil(o.DefaultTicketRenewLifetime) {
+		toSerialize["default_ticket_renew_lifetime"] = o.DefaultTicketRenewLifetime
+	}
 	if !IsNil(o.AllowedEnctypes) {
 		toSerialize["allowed_enctypes"] = o.AllowedEnctypes
+	}
+	if !IsNil(o.RequirePreauthentication) {
+		toSerialize["require_preauthentication"] = o.RequirePreauthentication
+	}
+	if !IsNil(o.UdpEnabled) {
+		toSerialize["udp_enabled"] = o.UdpEnabled
+	}
+	if !IsNil(o.TcpEnabled) {
+		toSerialize["tcp_enabled"] = o.TcpEnabled
+	}
+	if !IsNil(o.Forwardable) {
+		toSerialize["forwardable"] = o.Forwardable
+	}
+	if !IsNil(o.Renewable) {
+		toSerialize["renewable"] = o.Renewable
+	}
+	if !IsNil(o.Proxiable) {
+		toSerialize["proxiable"] = o.Proxiable
+	}
+	if !IsNil(o.PrincipalUsernameAttribute) {
+		toSerialize["principal_username_attribute"] = o.PrincipalUsernameAttribute
 	}
 	if !IsNil(o.MasterKey) {
 		toSerialize["master_key"] = o.MasterKey
@@ -338,9 +698,19 @@ func (o *KerberosOutpostConfig) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "pk")
 		delete(additionalProperties, "name")
 		delete(additionalProperties, "realm_name")
+		delete(additionalProperties, "default_domain")
 		delete(additionalProperties, "maximum_ticket_lifetime")
 		delete(additionalProperties, "maximum_ticket_renew_lifetime")
+		delete(additionalProperties, "default_ticket_lifetime")
+		delete(additionalProperties, "default_ticket_renew_lifetime")
 		delete(additionalProperties, "allowed_enctypes")
+		delete(additionalProperties, "require_preauthentication")
+		delete(additionalProperties, "udp_enabled")
+		delete(additionalProperties, "tcp_enabled")
+		delete(additionalProperties, "forwardable")
+		delete(additionalProperties, "renewable")
+		delete(additionalProperties, "proxiable")
+		delete(additionalProperties, "principal_username_attribute")
 		delete(additionalProperties, "master_key")
 		delete(additionalProperties, "application_slug")
 		o.AdditionalProperties = additionalProperties

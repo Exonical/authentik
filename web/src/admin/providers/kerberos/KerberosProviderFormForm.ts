@@ -1,9 +1,17 @@
+import "#admin/common/ak-flow-search/ak-flow-search";
+import "#admin/common/ak-flow-search/ak-branded-flow-search";
+import "#components/ak-switch-input";
 import "#components/ak-text-input";
 import "#elements/forms/FormGroup";
 import "#elements/forms/HorizontalFormElement";
 import "#elements/utils/TimeDeltaHelp";
 
-import { KerberosProvider, ValidationError } from "@goauthentik/api";
+import {
+    CurrentBrand,
+    FlowDesignationEnum,
+    KerberosProvider,
+    ValidationError,
+} from "@goauthentik/api";
 
 import { msg } from "@lit/localize";
 import { html } from "lit";
@@ -23,10 +31,12 @@ export function enctypeName(enctype: number): string {
 export interface KerberosProviderFormProps {
     provider?: Partial<KerberosProvider> | null;
     errors?: ValidationError | null;
+    brand?: CurrentBrand | null;
 }
 
-export function renderForm({ provider, errors }: KerberosProviderFormProps) {
+export function renderForm({ provider, errors, brand }: KerberosProviderFormProps) {
     provider ||= {};
+    errors ||= {};
     const allowedEnctypes = provider.allowedEnctypes ?? [18, 20];
 
     return html`
@@ -41,6 +51,50 @@ export function renderForm({ provider, errors }: KerberosProviderFormProps) {
             required
         ></ak-text-input>
 
+        <ak-form-group open label=${msg("Flow settings", { id: "kerberos.flow-settings.label" })}>
+            <div class="pf-c-form">
+                <ak-form-element-horizontal
+                    label=${msg("Authentication flow", {
+                        id: "kerberos.authentication-flow.label",
+                    })}
+                    name="authenticationFlow"
+                    .errorMessages=${errors.authenticationFlow}
+                >
+                    <ak-branded-flow-search
+                        label=${msg("Authentication flow", {
+                            id: "kerberos.authentication-flow.search-label",
+                        })}
+                        placeholder=${msg("Select an authentication flow...", {
+                            id: "kerberos.authentication-flow.placeholder",
+                        })}
+                        flowType=${FlowDesignationEnum.Authentication}
+                        .currentFlow=${provider.authenticationFlow}
+                        .brandFlow=${brand?.flowAuthentication}
+                        required
+                    ></ak-branded-flow-search>
+                </ak-form-element-horizontal>
+                <ak-form-element-horizontal
+                    label=${msg("Authorization flow", {
+                        id: "kerberos.authorization-flow.label",
+                    })}
+                    name="authorizationFlow"
+                    .errorMessages=${errors.authorizationFlow}
+                >
+                    <ak-flow-search
+                        label=${msg("Authorization flow", {
+                            id: "kerberos.authorization-flow.search-label",
+                        })}
+                        placeholder=${msg("Select an authorization flow...", {
+                            id: "kerberos.authorization-flow.placeholder",
+                        })}
+                        flowType=${FlowDesignationEnum.Authorization}
+                        .currentFlow=${provider.authorizationFlow}
+                        required
+                    ></ak-flow-search>
+                </ak-form-element-horizontal>
+            </div>
+        </ak-form-group>
+
         <ak-text-input
             name="realmName"
             value=${ifDefined(provider.realmName)}
@@ -49,6 +103,15 @@ export function renderForm({ provider, errors }: KerberosProviderFormProps) {
             .errorMessages=${errors?.realmName}
             input-hint="code"
             required
+        ></ak-text-input>
+
+        <ak-text-input
+            name="defaultDomain"
+            value=${ifDefined(provider.defaultDomain)}
+            label=${msg("Default domain", { id: "kerberos.default-domain.label" })}
+            placeholder=${msg("example.com", { id: "kerberos.default-domain.placeholder" })}
+            .errorMessages=${errors.defaultDomain}
+            input-hint="code"
         ></ak-text-input>
 
         <ak-form-group
@@ -103,6 +166,52 @@ export function renderForm({ provider, errors }: KerberosProviderFormProps) {
                     </p>
                     <ak-utils-time-delta-help></ak-utils-time-delta-help>
                 </ak-form-element-horizontal>
+                <ak-form-element-horizontal
+                    label=${msg("Default ticket lifetime", {
+                        id: "kerberos.default-ticket-lifetime.label",
+                    })}
+                    name="defaultTicketLifetime"
+                    .errorMessages=${errors.defaultTicketLifetime}
+                    required
+                >
+                    <input
+                        class="pf-c-form-control pf-m-monospace"
+                        name="defaultTicketLifetime"
+                        value=${provider.defaultTicketLifetime ?? "hours=10"}
+                        autocomplete="off"
+                        spellcheck="false"
+                        required
+                    />
+                    <p class="pf-c-form__helper-text">
+                        ${msg("Default lifetime when a client does not request one.", {
+                            id: "kerberos.default-ticket-lifetime.help",
+                        })}
+                    </p>
+                    <ak-utils-time-delta-help></ak-utils-time-delta-help>
+                </ak-form-element-horizontal>
+                <ak-form-element-horizontal
+                    label=${msg("Default ticket renew lifetime", {
+                        id: "kerberos.default-ticket-renew-lifetime.label",
+                    })}
+                    name="defaultTicketRenewLifetime"
+                    .errorMessages=${errors.defaultTicketRenewLifetime}
+                    required
+                >
+                    <input
+                        class="pf-c-form-control pf-m-monospace"
+                        name="defaultTicketRenewLifetime"
+                        value=${provider.defaultTicketRenewLifetime ?? "days=7"}
+                        autocomplete="off"
+                        spellcheck="false"
+                        required
+                    />
+                    <p class="pf-c-form__helper-text">
+                        ${msg("Default lifetime for ticket renewal.", {
+                            id: "kerberos.default-ticket-renew-lifetime.help",
+                        })}
+                    </p>
+                    <ak-utils-time-delta-help></ak-utils-time-delta-help>
+                </ak-form-element-horizontal>
             </div>
         </ak-form-group>
 
@@ -127,5 +236,93 @@ export function renderForm({ provider, errors }: KerberosProviderFormProps) {
                 })}
             </p>
         </ak-form-element-horizontal>
+
+        <ak-form-group
+            open
+            label=${msg("Network settings", { id: "kerberos.network-settings.label" })}
+        >
+            <div class="pf-c-form">
+                <ak-switch-input
+                    name="udpEnabled"
+                    label=${msg("UDP enabled", { id: "kerberos.udp-enabled.label" })}
+                    ?checked=${provider.udpEnabled ?? true}
+                ></ak-switch-input>
+                <ak-switch-input
+                    name="tcpEnabled"
+                    label=${msg("TCP enabled", { id: "kerberos.tcp-enabled.label" })}
+                    ?checked=${provider.tcpEnabled ?? true}
+                ></ak-switch-input>
+            </div>
+        </ak-form-group>
+
+        <ak-form-group
+            open
+            label=${msg("Policy settings", { id: "kerberos.policy-settings.label" })}
+        >
+            <div class="pf-c-form">
+                <ak-switch-input
+                    name="requirePreauthentication"
+                    label=${msg("Require preauthentication", {
+                        id: "kerberos.require-preauthentication.label",
+                    })}
+                    ?checked=${provider.requirePreauthentication ?? true}
+                ></ak-switch-input>
+                <ak-switch-input
+                    name="forwardable"
+                    label=${msg("Forwardable", { id: "kerberos.forwardable.label" })}
+                    ?checked=${provider.forwardable ?? true}
+                ></ak-switch-input>
+                <ak-switch-input
+                    name="renewable"
+                    label=${msg("Renewable", { id: "kerberos.renewable.label" })}
+                    ?checked=${provider.renewable ?? true}
+                ></ak-switch-input>
+                <ak-switch-input
+                    name="proxiable"
+                    label=${msg("Proxiable", { id: "kerberos.proxiable.label" })}
+                    ?checked=${provider.proxiable ?? false}
+                ></ak-switch-input>
+            </div>
+        </ak-form-group>
+
+        <ak-form-group
+            open
+            label=${msg("Principal mapping", { id: "kerberos.principal-mapping.label" })}
+        >
+            <div class="pf-c-form">
+                <ak-form-element-horizontal
+                    label=${msg("Principal username attribute", {
+                        id: "kerberos.principal-username-attribute.label",
+                    })}
+                    name="principalUsernameAttribute"
+                    .errorMessages=${errors.principalUsernameAttribute}
+                    required
+                >
+                    <select class="pf-c-form-control" name="principalUsernameAttribute" required>
+                        <option
+                            value="username"
+                            ?selected=${(provider.principalUsernameAttribute ?? "username") ===
+                            "username"}
+                        >
+                            ${msg("Username", {
+                                id: "kerberos.principal-username-attribute.username",
+                            })}
+                        </option>
+                        <option
+                            value="email"
+                            ?selected=${provider.principalUsernameAttribute === "email"}
+                        >
+                            ${msg("Email", { id: "kerberos.principal-username-attribute.email" })}
+                        </option>
+                        <option
+                            value="upn"
+                            ?selected=${provider.principalUsernameAttribute === "upn"}
+                        >
+                            ${msg("UPN", { id: "kerberos.principal-username-attribute.upn" })}
+                        </option>
+                    </select>
+                </ak-form-element-horizontal>
+            </div>
+        </ak-form-group>
     `;
 }

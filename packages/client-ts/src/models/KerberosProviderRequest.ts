@@ -14,6 +14,11 @@
 
 import type { AllowedEnctypesEnum } from "./AllowedEnctypesEnum";
 import { AllowedEnctypesEnumFromJSON, AllowedEnctypesEnumToJSON } from "./AllowedEnctypesEnum";
+import type { PrincipalUsernameAttributeEnum } from "./PrincipalUsernameAttributeEnum";
+import {
+    PrincipalUsernameAttributeEnumFromJSON,
+    PrincipalUsernameAttributeEnumToJSON,
+} from "./PrincipalUsernameAttributeEnum";
 
 /**
  * KerberosProvider serializer.
@@ -62,6 +67,12 @@ export interface KerberosProviderRequest {
      * @type {string}
      * @memberof KerberosProviderRequest
      */
+    defaultDomain?: string;
+    /**
+     *
+     * @type {string}
+     * @memberof KerberosProviderRequest
+     */
     maximumTicketLifetime?: string;
     /**
      *
@@ -71,10 +82,64 @@ export interface KerberosProviderRequest {
     maximumTicketRenewLifetime?: string;
     /**
      *
+     * @type {string}
+     * @memberof KerberosProviderRequest
+     */
+    defaultTicketLifetime?: string;
+    /**
+     *
+     * @type {string}
+     * @memberof KerberosProviderRequest
+     */
+    defaultTicketRenewLifetime?: string;
+    /**
+     *
      * @type {Array<AllowedEnctypesEnum>}
      * @memberof KerberosProviderRequest
      */
     allowedEnctypes?: Array<AllowedEnctypesEnum>;
+    /**
+     *
+     * @type {boolean}
+     * @memberof KerberosProviderRequest
+     */
+    requirePreauthentication?: boolean;
+    /**
+     *
+     * @type {boolean}
+     * @memberof KerberosProviderRequest
+     */
+    udpEnabled?: boolean;
+    /**
+     *
+     * @type {boolean}
+     * @memberof KerberosProviderRequest
+     */
+    tcpEnabled?: boolean;
+    /**
+     *
+     * @type {boolean}
+     * @memberof KerberosProviderRequest
+     */
+    forwardable?: boolean;
+    /**
+     *
+     * @type {boolean}
+     * @memberof KerberosProviderRequest
+     */
+    renewable?: boolean;
+    /**
+     *
+     * @type {boolean}
+     * @memberof KerberosProviderRequest
+     */
+    proxiable?: boolean;
+    /**
+     *
+     * @type {PrincipalUsernameAttributeEnum}
+     * @memberof KerberosProviderRequest
+     */
+    principalUsernameAttribute?: PrincipalUsernameAttributeEnum;
 }
 
 /**
@@ -125,16 +190,36 @@ export function KerberosProviderRequestFromJSONTyped(
                   : json["invalidation_flow"],
         propertyMappings: json["property_mappings"] == null ? undefined : json["property_mappings"],
         realmName: json["realm_name"],
+        defaultDomain: json["default_domain"] == null ? undefined : json["default_domain"],
         maximumTicketLifetime:
             json["maximum_ticket_lifetime"] == null ? undefined : json["maximum_ticket_lifetime"],
         maximumTicketRenewLifetime:
             json["maximum_ticket_renew_lifetime"] == null
                 ? undefined
                 : json["maximum_ticket_renew_lifetime"],
+        defaultTicketLifetime:
+            json["default_ticket_lifetime"] == null ? undefined : json["default_ticket_lifetime"],
+        defaultTicketRenewLifetime:
+            json["default_ticket_renew_lifetime"] == null
+                ? undefined
+                : json["default_ticket_renew_lifetime"],
         allowedEnctypes:
             json["allowed_enctypes"] == null
                 ? undefined
                 : (json["allowed_enctypes"] as Array<any>).map(AllowedEnctypesEnumFromJSON),
+        requirePreauthentication:
+            json["require_preauthentication"] == null
+                ? undefined
+                : json["require_preauthentication"],
+        udpEnabled: json["udp_enabled"] == null ? undefined : json["udp_enabled"],
+        tcpEnabled: json["tcp_enabled"] == null ? undefined : json["tcp_enabled"],
+        forwardable: json["forwardable"] == null ? undefined : json["forwardable"],
+        renewable: json["renewable"] == null ? undefined : json["renewable"],
+        proxiable: json["proxiable"] == null ? undefined : json["proxiable"],
+        principalUsernameAttribute:
+            json["principal_username_attribute"] == null
+                ? undefined
+                : PrincipalUsernameAttributeEnumFromJSON(json["principal_username_attribute"]),
     };
 }
 
@@ -157,11 +242,23 @@ export function KerberosProviderRequestToJSONTyped(
         invalidation_flow: value["invalidationFlow"],
         property_mappings: value["propertyMappings"],
         realm_name: value["realmName"],
+        default_domain: value["defaultDomain"],
         maximum_ticket_lifetime: value["maximumTicketLifetime"],
         maximum_ticket_renew_lifetime: value["maximumTicketRenewLifetime"],
+        default_ticket_lifetime: value["defaultTicketLifetime"],
+        default_ticket_renew_lifetime: value["defaultTicketRenewLifetime"],
         allowed_enctypes:
             value["allowedEnctypes"] == null
                 ? undefined
                 : (value["allowedEnctypes"] as Array<any>).map(AllowedEnctypesEnumToJSON),
+        require_preauthentication: value["requirePreauthentication"],
+        udp_enabled: value["udpEnabled"],
+        tcp_enabled: value["tcpEnabled"],
+        forwardable: value["forwardable"],
+        renewable: value["renewable"],
+        proxiable: value["proxiable"],
+        principal_username_attribute: PrincipalUsernameAttributeEnumToJSON(
+            value["principalUsernameAttribute"],
+        ),
     };
 }
