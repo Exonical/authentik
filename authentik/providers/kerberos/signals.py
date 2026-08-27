@@ -17,7 +17,7 @@ def kerberos_update_user_keys(sender, user: User, password: str, **_):
     Users who have never set or changed a password after provider creation do not
     have a record; the outpost treats those principals as unknown.
     """
-    for provider in KerberosProvider.objects.filter(enabled=True):
+    for provider in KerberosProvider.objects.all():
         salt = f"{provider.realm_name}{user.username}"
         keys = {
             str(enctype): base64.b64encode(string2key(password, salt, enctype)).decode()
