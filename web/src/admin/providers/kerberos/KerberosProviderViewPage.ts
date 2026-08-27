@@ -180,6 +180,16 @@ export class KerberosProviderViewPage extends AKElement {
                                                 ),
                                                 "kerberos.principal-username-attribute.term",
                                             )}
+                                            ${this.renderDescription(
+                                                "KDC signing certificate",
+                                                this.provider.pkinitCertificate ?? "-",
+                                                "kerberos.pkinit.kdc-certificate.term",
+                                            )}
+                                            ${this.renderDescription(
+                                                "Client CA certificate",
+                                                this.provider.pkinitClientCa ?? "-",
+                                                "kerberos.pkinit.client-ca.term",
+                                            )}
                                         </dl>
                                     </div>
                                     <div class="pf-c-card__footer">

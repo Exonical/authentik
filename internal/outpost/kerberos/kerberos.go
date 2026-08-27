@@ -20,6 +20,7 @@ import (
 type KerberosServer struct {
 	log *log.Entry
 	ac  *ak.APIController
+	cs  *ak.CryptoStore
 
 	providers map[int32]*ProviderInstance
 	mu        sync.Mutex
@@ -31,6 +32,7 @@ func NewServer(ac *ak.APIController) ak.Outpost {
 	return &KerberosServer{
 		log:       log.WithField("logger", "authentik.outpost.kerberos"),
 		ac:        ac,
+		cs:        ak.NewCryptoStore(ac.Client.CryptoAPI),
 		providers: make(map[int32]*ProviderInstance),
 	}
 }

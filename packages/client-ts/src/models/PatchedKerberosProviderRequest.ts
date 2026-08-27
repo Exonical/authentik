@@ -140,6 +140,18 @@ export interface PatchedKerberosProviderRequest {
      * @memberof PatchedKerberosProviderRequest
      */
     principalUsernameAttribute?: PrincipalUsernameAttributeEnum;
+    /**
+     * Certificate/key pair the KDC uses to sign PKINIT replies. Requires a private key.
+     * @type {string}
+     * @memberof PatchedKerberosProviderRequest
+     */
+    pkinitCertificate?: string | null;
+    /**
+     * CA certificate used to validate PKINIT client certificates.
+     * @type {string}
+     * @memberof PatchedKerberosProviderRequest
+     */
+    pkinitClientCa?: string | null;
 }
 
 /**
@@ -214,6 +226,18 @@ export function PatchedKerberosProviderRequestFromJSONTyped(
             json["principal_username_attribute"] == null
                 ? undefined
                 : PrincipalUsernameAttributeEnumFromJSON(json["principal_username_attribute"]),
+        pkinitCertificate:
+            json["pkinit_certificate"] === undefined
+                ? undefined
+                : json["pkinit_certificate"] === null
+                  ? null
+                  : json["pkinit_certificate"],
+        pkinitClientCa:
+            json["pkinit_client_ca"] === undefined
+                ? undefined
+                : json["pkinit_client_ca"] === null
+                  ? null
+                  : json["pkinit_client_ca"],
     };
 }
 
@@ -254,5 +278,7 @@ export function PatchedKerberosProviderRequestToJSONTyped(
         principal_username_attribute: PrincipalUsernameAttributeEnumToJSON(
             value["principalUsernameAttribute"],
         ),
+        pkinit_certificate: value["pkinitCertificate"],
+        pkinit_client_ca: value["pkinitClientCa"],
     };
 }

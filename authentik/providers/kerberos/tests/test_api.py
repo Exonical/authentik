@@ -6,7 +6,8 @@ from django.urls import reverse
 from rest_framework.test import APITestCase
 
 from authentik.core.models import Application
-from authentik.core.tests.utils import create_test_admin_user, create_test_user
+from authentik.core.tests.utils import create_test_admin_user, create_test_cert, create_test_user
+from authentik.crypto.models import CertificateKeyPair
 from authentik.lib.generators import generate_id
 from authentik.providers.kerberos.models import (
     KerberosProvider,
@@ -20,9 +21,16 @@ class KerberosProviderAPITests(APITestCase):
 
     def test_outpost_config(self):
         """An application-backed provider is visible to outposts."""
+        certificate = create_test_cert()
+        client_ca = CertificateKeyPair.objects.create(
+            name=generate_id(),
+            certificate_data=certificate.certificate_data,
+        )
         provider = KerberosProvider.objects.create(
             name=generate_id(),
             realm_name="EXAMPLE.COM",
+            pkinit_certificate=certificate,
+            pkinit_client_ca=client_ca,
         )
         Application.objects.create(
             name=generate_id(),
@@ -32,7 +40,16 @@ class KerberosProviderAPITests(APITestCase):
         self.client.force_login(create_test_admin_user())
         response = self.client.get(reverse("authentik_api:kerberosprovideroutpost-list"))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(loads(response.content)["pagination"]["count"], 1)
+        payload = loads(response.content)
+        self.assertEqual(payload["pagination"]["count"], 1)
+        self.assertEqual(payload["results"][0]["pkinit_certificate"], str(certificate.pk))
+        self.assertEqual(payload["results"][0]["pkinit_client_ca"], str(client_ca.pk))
+        provider_response = self.client.get(
+            reverse("authentik_api:kerberosprovider-detail", kwargs={"pk": provider.pk})
+        )
+        self.assertEqual(provider_response.status_code, 200)
+        self.assertEqual(provider_response.json()["pkinit_certificate"], str(certificate.pk))
+        self.assertEqual(provider_response.json()["pkinit_client_ca"], str(client_ca.pk))
 
     def test_outpost_service_principals_is_paginated(self):
         """Service principals use the paginated response declared by the schema."""

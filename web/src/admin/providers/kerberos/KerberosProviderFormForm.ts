@@ -1,10 +1,12 @@
 import "#admin/common/ak-flow-search/ak-flow-search";
 import "#admin/common/ak-flow-search/ak-branded-flow-search";
+import "#admin/common/ak-crypto-certificate-search";
 import "#components/ak-switch-input";
 import "#components/ak-text-input";
 import "#elements/forms/FormGroup";
 import "#elements/forms/HorizontalFormElement";
 import "#elements/utils/TimeDeltaHelp";
+import { ifPresent } from "#elements/utils/attributes";
 
 import {
     CurrentBrand,
@@ -332,6 +334,59 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                             ${msg("UPN", { id: "kerberos.principal-username-attribute.upn" })}
                         </option>
                     </select>
+                </ak-form-element-horizontal>
+            </div>
+        </ak-form-group>
+
+        <ak-form-group open label=${msg("PKINIT", { id: "kerberos.pkinit.group.label" })}>
+            <div class="pf-c-form">
+                <ak-form-element-horizontal
+                    label=${msg("KDC signing certificate", {
+                        id: "kerberos.pkinit.kdc-certificate.label",
+                    })}
+                    name="pkinitCertificate"
+                    .errorMessages=${errors.pkinitCertificate}
+                >
+                    <ak-crypto-certificate-search
+                        label=${msg("KDC signing certificate", {
+                            id: "kerberos.pkinit.kdc-certificate.search-label",
+                        })}
+                        placeholder=${msg("Select a certificate with a private key...", {
+                            id: "kerberos.pkinit.kdc-certificate.placeholder",
+                        })}
+                        certificate=${ifPresent(provider.pkinitCertificate)}
+                        singleton
+                        name="pkinitCertificate"
+                    ></ak-crypto-certificate-search>
+                    <p class="pf-c-form__helper-text">
+                        ${msg("Certificate/key pair used to sign PKINIT replies.", {
+                            id: "kerberos.pkinit.kdc-certificate.description",
+                        })}
+                    </p>
+                </ak-form-element-horizontal>
+                <ak-form-element-horizontal
+                    label=${msg("Client CA certificate", {
+                        id: "kerberos.pkinit.client-ca.label",
+                    })}
+                    name="pkinitClientCa"
+                    .errorMessages=${errors.pkinitClientCa}
+                >
+                    <ak-crypto-certificate-search
+                        label=${msg("Client CA certificate", {
+                            id: "kerberos.pkinit.client-ca.search-label",
+                        })}
+                        placeholder=${msg("Select a CA certificate...", {
+                            id: "kerberos.pkinit.client-ca.placeholder",
+                        })}
+                        certificate=${ifPresent(provider.pkinitClientCa)}
+                        noKey
+                        name="pkinitClientCa"
+                    ></ak-crypto-certificate-search>
+                    <p class="pf-c-form__helper-text">
+                        ${msg("CA certificate used to validate PKINIT client certificates.", {
+                            id: "kerberos.pkinit.client-ca.description",
+                        })}
+                    </p>
                 </ak-form-element-horizontal>
             </div>
         </ak-form-group>

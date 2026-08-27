@@ -2,6 +2,8 @@ package kerberos
 
 import (
 	"context"
+	"crypto"
+	"crypto/x509"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -52,6 +54,10 @@ func (rs *KerberosServer) Refresh() error {
 		if err != nil {
 			return fmt.Errorf("parse provider %d default ticket renew lifetime: %w", provider.Pk, err)
 		}
+		pkinitCertificate, pkinitSigner, pkinitClientCAs, err := rs.pkinitConfig(provider)
+		if err != nil {
+			return fmt.Errorf("load provider %d PKINIT configuration: %w", provider.Pk, err)
+		}
 		store := &providerStore{
 			realm:      provider.RealmName,
 			masterKey:  masterKey,
@@ -81,6 +87,9 @@ func (rs *KerberosServer) Refresh() error {
 					AllowRenewable:   provider.GetRenewable(),
 					AllowProxiable:   provider.GetProxiable(),
 				},
+				PKINITCertificate: pkinitCertificate,
+				PKINITSigner:      pkinitSigner,
+				PKINITClientCAs:   pkinitClientCAs,
 			},
 			log: log.WithField("logger", "authentik.outpost.kerberos").WithField("provider", provider.Name),
 		}
@@ -108,6 +117,70 @@ func (rs *KerberosServer) Refresh() error {
 	rs.mu.Unlock()
 	rs.log.Info("Update kerberos providers")
 	return nil
+}
+
+func (rs *KerberosServer) pkinitConfig(
+	provider api.KerberosOutpostConfig,
+) (*x509.Certificate, crypto.Signer, *x509.CertPool, error) {
+	certificateUUID := provider.GetPkinitCertificate()
+	clientCAUUID := provider.GetPkinitClientCa()
+	if certificateUUID == "" && clientCAUUID == "" {
+		return nil, nil, nil, nil
+	}
+	if certificateUUID == "" || clientCAUUID == "" {
+		logger := rs.log
+		if logger == nil {
+			logger = log.WithField("logger", "authentik.outpost.kerberos")
+		}
+		logger.WithField("provider", provider.Name).Warn(
+			"PKINIT requires both a KDC certificate and client CA certificate",
+		)
+		return nil, nil, nil, nil
+	}
+	if rs.cs == nil {
+		return nil, nil, nil, errors.New("certificate store is not initialized")
+	}
+	if err := rs.cs.AddKeypair(certificateUUID); err != nil {
+		return nil, nil, nil, fmt.Errorf("fetch KDC certificate: %w", err)
+	}
+	kdcCertificate := rs.cs.Get(certificateUUID)
+	if kdcCertificate == nil {
+		return nil, nil, nil, errors.New("KDC certificate was not found")
+	}
+	leaf := kdcCertificate.Leaf
+	if leaf == nil {
+		if len(kdcCertificate.Certificate) == 0 {
+			return nil, nil, nil, errors.New("KDC certificate has no certificate data")
+		}
+		var err error
+		leaf, err = x509.ParseCertificate(kdcCertificate.Certificate[0])
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("parse KDC certificate: %w", err)
+		}
+	}
+	signer, ok := kdcCertificate.PrivateKey.(crypto.Signer)
+	if !ok {
+		return nil, nil, nil, errors.New("KDC certificate has no crypto.Signer private key")
+	}
+	if err := rs.cs.AddKeypair(clientCAUUID); err != nil {
+		return nil, nil, nil, fmt.Errorf("fetch PKINIT client CA: %w", err)
+	}
+	clientCA := rs.cs.Get(clientCAUUID)
+	if clientCA == nil {
+		return nil, nil, nil, errors.New("PKINIT client CA was not found")
+	}
+	roots := x509.NewCertPool()
+	if len(clientCA.Certificate) == 0 {
+		return nil, nil, nil, errors.New("PKINIT client CA has no certificate data")
+	}
+	for _, certificateDER := range clientCA.Certificate {
+		certificate, err := x509.ParseCertificate(certificateDER)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("parse PKINIT client CA certificate: %w", err)
+		}
+		roots.AddCert(certificate)
+	}
+	return leaf, signer, roots, nil
 }
 
 type ProviderInstance struct {
