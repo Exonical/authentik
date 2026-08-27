@@ -51,6 +51,8 @@ class KerberosProviderSerializer(ProviderSerializer):
             "renewable",
             "proxiable",
             "principal_username_attribute",
+            "pkinit_certificate",
+            "pkinit_client_ca",
             "master_key",
             "outpost_set",
         ]
@@ -201,6 +203,8 @@ class KerberosOutpostConfigSerializer(ModelSerializer):
             "renewable",
             "proxiable",
             "principal_username_attribute",
+            "pkinit_certificate",
+            "pkinit_client_ca",
             "master_key",
             "application_slug",
         ]

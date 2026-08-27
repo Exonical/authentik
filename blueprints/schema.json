@@ -12282,6 +12282,18 @@
                         "upn"
                     ],
                     "title": "Principal username attribute"
+                },
+                "pkinit_certificate": {
+                    "type": "string",
+                    "format": "uuid",
+                    "title": "Pkinit certificate",
+                    "description": "Certificate/key pair the KDC uses to sign PKINIT replies. Requires a private key."
+                },
+                "pkinit_client_ca": {
+                    "type": "string",
+                    "format": "uuid",
+                    "title": "Pkinit client ca",
+                    "description": "CA certificate used to validate PKINIT client certificates."
                 }
             },
             "required": []

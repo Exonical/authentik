@@ -44051,6 +44051,17 @@ components:
           type: boolean
         principal_username_attribute:
           $ref: '#/components/schemas/PrincipalUsernameAttributeEnum'
+        pkinit_certificate:
+          type: string
+          format: uuid
+          nullable: true
+          description: Certificate/key pair the KDC uses to sign PKINIT replies. Requires
+            a private key.
+        pkinit_client_ca:
+          type: string
+          format: uuid
+          nullable: true
+          description: CA certificate used to validate PKINIT client certificates.
         master_key:
           type: string
         application_slug:
@@ -44164,6 +44175,17 @@ components:
           type: boolean
         principal_username_attribute:
           $ref: '#/components/schemas/PrincipalUsernameAttributeEnum'
+        pkinit_certificate:
+          type: string
+          format: uuid
+          nullable: true
+          description: Certificate/key pair the KDC uses to sign PKINIT replies. Requires
+            a private key.
+        pkinit_client_ca:
+          type: string
+          format: uuid
+          nullable: true
+          description: CA certificate used to validate PKINIT client certificates.
         master_key:
           type: string
           readOnly: true
@@ -44254,6 +44276,17 @@ components:
           type: boolean
         principal_username_attribute:
           $ref: '#/components/schemas/PrincipalUsernameAttributeEnum'
+        pkinit_certificate:
+          type: string
+          format: uuid
+          nullable: true
+          description: Certificate/key pair the KDC uses to sign PKINIT replies. Requires
+            a private key.
+        pkinit_client_ca:
+          type: string
+          format: uuid
+          nullable: true
+          description: CA certificate used to validate PKINIT client certificates.
       required:
       - name
       - realm_name
@@ -52594,6 +52627,17 @@ components:
           type: boolean
         principal_username_attribute:
           $ref: '#/components/schemas/PrincipalUsernameAttributeEnum'
+        pkinit_certificate:
+          type: string
+          format: uuid
+          nullable: true
+          description: Certificate/key pair the KDC uses to sign PKINIT replies. Requires
+            a private key.
+        pkinit_client_ca:
+          type: string
+          format: uuid
+          nullable: true
+          description: CA certificate used to validate PKINIT client certificates.
     PatchedKerberosServicePrincipalRequest:
       type: object
       description: Kerberos service principal serializer.

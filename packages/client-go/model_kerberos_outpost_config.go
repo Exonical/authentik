@@ -37,9 +37,13 @@ type KerberosOutpostConfig struct {
 	Renewable                  *bool                           `json:"renewable,omitempty"`
 	Proxiable                  *bool                           `json:"proxiable,omitempty"`
 	PrincipalUsernameAttribute *PrincipalUsernameAttributeEnum `json:"principal_username_attribute,omitempty"`
-	MasterKey                  *string                         `json:"master_key,omitempty"`
-	ApplicationSlug            string                          `json:"application_slug"`
-	AdditionalProperties       map[string]interface{}
+	// Certificate/key pair the KDC uses to sign PKINIT replies. Requires a private key.
+	PkinitCertificate NullableString `json:"pkinit_certificate,omitempty"`
+	// CA certificate used to validate PKINIT client certificates.
+	PkinitClientCa       NullableString `json:"pkinit_client_ca,omitempty"`
+	MasterKey            *string        `json:"master_key,omitempty"`
+	ApplicationSlug      string         `json:"application_slug"`
+	AdditionalProperties map[string]interface{}
 }
 
 type _KerberosOutpostConfig KerberosOutpostConfig
@@ -539,6 +543,92 @@ func (o *KerberosOutpostConfig) SetPrincipalUsernameAttribute(v PrincipalUsernam
 	o.PrincipalUsernameAttribute = &v
 }
 
+// GetPkinitCertificate returns the PkinitCertificate field value if set, zero value otherwise (both if not set or set to explicit null).
+func (o *KerberosOutpostConfig) GetPkinitCertificate() string {
+	if o == nil || IsNil(o.PkinitCertificate.Get()) {
+		var ret string
+		return ret
+	}
+	return *o.PkinitCertificate.Get()
+}
+
+// GetPkinitCertificateOk returns a tuple with the PkinitCertificate field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+// NOTE: If the value is an explicit nil, `nil, true` will be returned
+func (o *KerberosOutpostConfig) GetPkinitCertificateOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.PkinitCertificate.Get(), o.PkinitCertificate.IsSet()
+}
+
+// HasPkinitCertificate returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasPkinitCertificate() bool {
+	if o != nil && o.PkinitCertificate.IsSet() {
+		return true
+	}
+
+	return false
+}
+
+// SetPkinitCertificate gets a reference to the given NullableString and assigns it to the PkinitCertificate field.
+func (o *KerberosOutpostConfig) SetPkinitCertificate(v string) {
+	o.PkinitCertificate.Set(&v)
+}
+
+// SetPkinitCertificateNil sets the value for PkinitCertificate to be an explicit nil
+func (o *KerberosOutpostConfig) SetPkinitCertificateNil() {
+	o.PkinitCertificate.Set(nil)
+}
+
+// UnsetPkinitCertificate ensures that no value is present for PkinitCertificate, not even an explicit nil
+func (o *KerberosOutpostConfig) UnsetPkinitCertificate() {
+	o.PkinitCertificate.Unset()
+}
+
+// GetPkinitClientCa returns the PkinitClientCa field value if set, zero value otherwise (both if not set or set to explicit null).
+func (o *KerberosOutpostConfig) GetPkinitClientCa() string {
+	if o == nil || IsNil(o.PkinitClientCa.Get()) {
+		var ret string
+		return ret
+	}
+	return *o.PkinitClientCa.Get()
+}
+
+// GetPkinitClientCaOk returns a tuple with the PkinitClientCa field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+// NOTE: If the value is an explicit nil, `nil, true` will be returned
+func (o *KerberosOutpostConfig) GetPkinitClientCaOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.PkinitClientCa.Get(), o.PkinitClientCa.IsSet()
+}
+
+// HasPkinitClientCa returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasPkinitClientCa() bool {
+	if o != nil && o.PkinitClientCa.IsSet() {
+		return true
+	}
+
+	return false
+}
+
+// SetPkinitClientCa gets a reference to the given NullableString and assigns it to the PkinitClientCa field.
+func (o *KerberosOutpostConfig) SetPkinitClientCa(v string) {
+	o.PkinitClientCa.Set(&v)
+}
+
+// SetPkinitClientCaNil sets the value for PkinitClientCa to be an explicit nil
+func (o *KerberosOutpostConfig) SetPkinitClientCaNil() {
+	o.PkinitClientCa.Set(nil)
+}
+
+// UnsetPkinitClientCa ensures that no value is present for PkinitClientCa, not even an explicit nil
+func (o *KerberosOutpostConfig) UnsetPkinitClientCa() {
+	o.PkinitClientCa.Unset()
+}
+
 // GetMasterKey returns the MasterKey field value if set, zero value otherwise.
 func (o *KerberosOutpostConfig) GetMasterKey() string {
 	if o == nil || IsNil(o.MasterKey) {
@@ -643,6 +733,12 @@ func (o KerberosOutpostConfig) ToMap() (map[string]interface{}, error) {
 	if !IsNil(o.PrincipalUsernameAttribute) {
 		toSerialize["principal_username_attribute"] = o.PrincipalUsernameAttribute
 	}
+	if o.PkinitCertificate.IsSet() {
+		toSerialize["pkinit_certificate"] = o.PkinitCertificate.Get()
+	}
+	if o.PkinitClientCa.IsSet() {
+		toSerialize["pkinit_client_ca"] = o.PkinitClientCa.Get()
+	}
 	if !IsNil(o.MasterKey) {
 		toSerialize["master_key"] = o.MasterKey
 	}
@@ -711,6 +807,8 @@ func (o *KerberosOutpostConfig) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "renewable")
 		delete(additionalProperties, "proxiable")
 		delete(additionalProperties, "principal_username_attribute")
+		delete(additionalProperties, "pkinit_certificate")
+		delete(additionalProperties, "pkinit_client_ca")
 		delete(additionalProperties, "master_key")
 		delete(additionalProperties, "application_slug")
 		o.AdditionalProperties = additionalProperties

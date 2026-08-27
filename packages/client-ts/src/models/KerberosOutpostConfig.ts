@@ -123,6 +123,18 @@ export interface KerberosOutpostConfig {
      */
     principalUsernameAttribute?: PrincipalUsernameAttributeEnum;
     /**
+     * Certificate/key pair the KDC uses to sign PKINIT replies. Requires a private key.
+     * @type {string}
+     * @memberof KerberosOutpostConfig
+     */
+    pkinitCertificate?: string | null;
+    /**
+     * CA certificate used to validate PKINIT client certificates.
+     * @type {string}
+     * @memberof KerberosOutpostConfig
+     */
+    pkinitClientCa?: string | null;
+    /**
      *
      * @type {string}
      * @memberof KerberosOutpostConfig
@@ -214,6 +226,18 @@ export function KerberosOutpostConfigFromJSONTyped(
             json["principal_username_attribute"] == null
                 ? undefined
                 : PrincipalUsernameAttributeEnumFromJSON(json["principal_username_attribute"]),
+        pkinitCertificate:
+            json["pkinit_certificate"] === undefined
+                ? undefined
+                : json["pkinit_certificate"] === null
+                  ? null
+                  : json["pkinit_certificate"],
+        pkinitClientCa:
+            json["pkinit_client_ca"] === undefined
+                ? undefined
+                : json["pkinit_client_ca"] === null
+                  ? null
+                  : json["pkinit_client_ca"],
         masterKey: json["master_key"] == null ? undefined : json["master_key"],
         applicationSlug: json["application_slug"],
     };
@@ -253,6 +277,8 @@ export function KerberosOutpostConfigToJSONTyped(
         principal_username_attribute: PrincipalUsernameAttributeEnumToJSON(
             value["principalUsernameAttribute"],
         ),
+        pkinit_certificate: value["pkinitCertificate"],
+        pkinit_client_ca: value["pkinitClientCa"],
         master_key: value["masterKey"],
         application_slug: value["applicationSlug"],
     };

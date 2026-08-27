@@ -14,6 +14,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.serializers import Serializer
 
 from authentik.core.models import Provider, User
+from authentik.crypto.models import CertificateKeyPair
 from authentik.lib.models import SerializerModel
 from authentik.lib.utils.time import timedelta_string_validator
 from authentik.outposts.models import OutpostModel
@@ -86,6 +87,24 @@ class KerberosProvider(OutpostModel, Provider):
         choices=PrincipalUsernameAttribute.choices,
         default=PrincipalUsernameAttribute.USERNAME,
     )
+    pkinit_certificate = models.ForeignKey(
+        CertificateKeyPair,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        help_text=_(
+            "Certificate/key pair the KDC uses to sign PKINIT replies. Requires a private key."
+        ),
+    )
+    pkinit_client_ca = models.ForeignKey(
+        CertificateKeyPair,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        help_text=_("CA certificate used to validate PKINIT client certificates."),
+    )
 
     @property
     def component(self) -> str:
@@ -109,11 +128,33 @@ class KerberosProvider(OutpostModel, Provider):
         return f"Kerberos Provider {self.name}"
 
     def get_required_objects(self) -> Iterable[models.Model | str | tuple[str, models.Model]]:
-        return [
+        required = [
             self,
             "authentik_providers_kerberos.view_kerberosserviceprincipal",
             "authentik_providers_kerberos.view_kerberosuserkeys",
         ]
+        if self.pkinit_certificate:
+            required.extend(
+                [
+                    ("authentik_crypto.view_certificatekeypair", self.pkinit_certificate),
+                    (
+                        "authentik_crypto.view_certificatekeypair_certificate",
+                        self.pkinit_certificate,
+                    ),
+                    ("authentik_crypto.view_certificatekeypair_key", self.pkinit_certificate),
+                ]
+            )
+        if self.pkinit_client_ca:
+            required.extend(
+                [
+                    ("authentik_crypto.view_certificatekeypair", self.pkinit_client_ca),
+                    (
+                        "authentik_crypto.view_certificatekeypair_certificate",
+                        self.pkinit_client_ca,
+                    ),
+                ]
+            )
+        return required
 
     class Meta:
         verbose_name = _("Kerberos Provider")

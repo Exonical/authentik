@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 
 	log "github.com/sirupsen/logrus"
 	api "goauthentik.io/packages/client-go"
@@ -80,14 +81,27 @@ func (cs *CryptoStore) Fetch(uuid string) error {
 		}
 		tcert = x509cert
 	} else {
-		p, _ := pem.Decode([]byte(cert.Data))
-		x509cert, err := x509.ParseCertificate(p.Bytes)
-		if err != nil {
-			return err
+		certificateData := []byte(cert.Data)
+		for {
+			p, rest := pem.Decode(certificateData)
+			if p == nil {
+				break
+			}
+			certificateData = rest
+			if p.Type != "CERTIFICATE" {
+				continue
+			}
+			x509cert, err := x509.ParseCertificate(p.Bytes)
+			if err != nil {
+				return err
+			}
+			if tcert.Leaf == nil {
+				tcert.Leaf = x509cert
+			}
+			tcert.Certificate = append(tcert.Certificate, x509cert.Raw)
 		}
-		tcert = tls.Certificate{
-			Certificate: [][]byte{x509cert.Raw},
-			Leaf:        x509cert,
+		if len(tcert.Certificate) == 0 {
+			return errors.New("certificate data contains no certificates")
 		}
 	}
 	cs.certificates[uuid] = &tcert

@@ -46,6 +46,12 @@ pub struct KerberosOutpostConfig {
     pub proxiable: Option<bool>,
     #[serde(rename = "principal_username_attribute", skip_serializing_if = "Option::is_none")]
     pub principal_username_attribute: Option<models::PrincipalUsernameAttributeEnum>,
+    /// Certificate/key pair the KDC uses to sign PKINIT replies. Requires a private key.
+    #[serde(rename = "pkinit_certificate", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
+    pub pkinit_certificate: Option<Option<uuid::Uuid>>,
+    /// CA certificate used to validate PKINIT client certificates.
+    #[serde(rename = "pkinit_client_ca", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
+    pub pkinit_client_ca: Option<Option<uuid::Uuid>>,
     #[serde(rename = "master_key", skip_serializing_if = "Option::is_none")]
     pub master_key: Option<String>,
     #[serde(rename = "application_slug")]
@@ -72,6 +78,8 @@ impl KerberosOutpostConfig {
             renewable: None,
             proxiable: None,
             principal_username_attribute: None,
+            pkinit_certificate: None,
+            pkinit_client_ca: None,
             master_key: None,
             application_slug,
         }
