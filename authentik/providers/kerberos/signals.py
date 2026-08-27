@@ -12,7 +12,7 @@ from authentik.providers.kerberos.models import KerberosProvider, KerberosUserKe
 
 @receiver(password_changed)
 def kerberos_update_user_keys(sender, user: User, password: str, **_):
-    """Derive and persist a user's keys for every active Kerberos provider.
+    """Derive and persist a user's keys for every configured Kerberos provider.
 
     Users who have never set or changed a password after provider creation do not
     have a record; the outpost treats those principals as unknown.

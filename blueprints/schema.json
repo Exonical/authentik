@@ -2424,6 +2424,126 @@
                     ],
                     "properties": {
                         "model": {
+                            "const": "authentik_providers_kerberos.kerberosprovider"
+                        },
+                        "id": {
+                            "type": "string"
+                        },
+                        "state": {
+                            "type": "string",
+                            "enum": [
+                                "absent",
+                                "created",
+                                "must_created",
+                                "present"
+                            ],
+                            "default": "present"
+                        },
+                        "conditions": {
+                            "type": "array",
+                            "items": {
+                                "type": "boolean"
+                            }
+                        },
+                        "permissions": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosprovider_permissions"
+                        },
+                        "attrs": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosprovider"
+                        },
+                        "identifiers": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosprovider"
+                        }
+                    }
+                },
+                {
+                    "type": "object",
+                    "required": [
+                        "model",
+                        "identifiers"
+                    ],
+                    "properties": {
+                        "model": {
+                            "const": "authentik_providers_kerberos.kerberosserviceprincipal"
+                        },
+                        "id": {
+                            "type": "string"
+                        },
+                        "state": {
+                            "type": "string",
+                            "enum": [
+                                "absent",
+                                "created",
+                                "must_created",
+                                "present"
+                            ],
+                            "default": "present"
+                        },
+                        "conditions": {
+                            "type": "array",
+                            "items": {
+                                "type": "boolean"
+                            }
+                        },
+                        "permissions": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosserviceprincipal_permissions"
+                        },
+                        "attrs": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosserviceprincipal"
+                        },
+                        "identifiers": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosserviceprincipal"
+                        }
+                    }
+                },
+                {
+                    "type": "object",
+                    "required": [
+                        "model",
+                        "identifiers"
+                    ],
+                    "properties": {
+                        "model": {
+                            "const": "authentik_providers_kerberos.kerberosuserkeys"
+                        },
+                        "id": {
+                            "type": "string"
+                        },
+                        "state": {
+                            "type": "string",
+                            "enum": [
+                                "absent",
+                                "created",
+                                "must_created",
+                                "present"
+                            ],
+                            "default": "present"
+                        },
+                        "conditions": {
+                            "type": "array",
+                            "items": {
+                                "type": "boolean"
+                            }
+                        },
+                        "permissions": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosuserkeys_permissions"
+                        },
+                        "attrs": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosuserkeys"
+                        },
+                        "identifiers": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosuserkeys"
+                        }
+                    }
+                },
+                {
+                    "type": "object",
+                    "required": [
+                        "model",
+                        "identifiers"
+                    ],
+                    "properties": {
+                        "model": {
                             "const": "authentik_providers_ldap.ldapprovider"
                         },
                         "id": {
@@ -6030,6 +6150,18 @@
                             "authentik_providers_google_workspace.view_googleworkspaceprovidermapping",
                             "authentik_providers_google_workspace.view_googleworkspaceproviderpropertymappingsgroup",
                             "authentik_providers_google_workspace.view_googleworkspaceprovideruser",
+                            "authentik_providers_kerberos.add_kerberosprovider",
+                            "authentik_providers_kerberos.add_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.add_kerberosuserkeys",
+                            "authentik_providers_kerberos.change_kerberosprovider",
+                            "authentik_providers_kerberos.change_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.change_kerberosuserkeys",
+                            "authentik_providers_kerberos.delete_kerberosprovider",
+                            "authentik_providers_kerberos.delete_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.delete_kerberosuserkeys",
+                            "authentik_providers_kerberos.view_kerberosprovider",
+                            "authentik_providers_kerberos.view_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.view_kerberosuserkeys",
                             "authentik_providers_ldap.add_ldapprovider",
                             "authentik_providers_ldap.change_ldapprovider",
                             "authentik_providers_ldap.delete_ldapprovider",
@@ -7424,6 +7556,18 @@
                             "authentik_providers_google_workspace.view_googleworkspaceprovidermapping",
                             "authentik_providers_google_workspace.view_googleworkspaceproviderpropertymappingsgroup",
                             "authentik_providers_google_workspace.view_googleworkspaceprovideruser",
+                            "authentik_providers_kerberos.add_kerberosprovider",
+                            "authentik_providers_kerberos.add_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.add_kerberosuserkeys",
+                            "authentik_providers_kerberos.change_kerberosprovider",
+                            "authentik_providers_kerberos.change_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.change_kerberosuserkeys",
+                            "authentik_providers_kerberos.delete_kerberosprovider",
+                            "authentik_providers_kerberos.delete_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.delete_kerberosuserkeys",
+                            "authentik_providers_kerberos.view_kerberosprovider",
+                            "authentik_providers_kerberos.view_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.view_kerberosuserkeys",
                             "authentik_providers_ldap.add_ldapprovider",
                             "authentik_providers_ldap.change_ldapprovider",
                             "authentik_providers_ldap.delete_ldapprovider",
@@ -10871,7 +11015,8 @@
                         "proxy",
                         "ldap",
                         "radius",
-                        "rac"
+                        "rac",
+                        "kerberos"
                     ],
                     "title": "Type"
                 },
@@ -11094,6 +11239,7 @@
                         "authentik.providers.proxy",
                         "authentik.providers.rac",
                         "authentik.providers.radius",
+                        "authentik.providers.kerberos",
                         "authentik.providers.saml",
                         "authentik.providers.scim",
                         "authentik.rbac",
@@ -11204,6 +11350,9 @@
                         "authentik_providers_rac.racpropertymapping",
                         "authentik_providers_radius.radiusprovider",
                         "authentik_providers_radius.radiusproviderpropertymapping",
+                        "authentik_providers_kerberos.kerberosprovider",
+                        "authentik_providers_kerberos.kerberosserviceprincipal",
+                        "authentik_providers_kerberos.kerberosuserkeys",
                         "authentik_providers_saml.samlprovider",
                         "authentik_providers_saml.samlpropertymapping",
                         "authentik_providers_scim.scimprovider",
@@ -12011,6 +12160,187 @@
                             "change_reputationpolicy",
                             "delete_reputationpolicy",
                             "view_reputationpolicy"
+                        ]
+                    },
+                    "user": {
+                        "type": "integer"
+                    },
+                    "role": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "model_authentik_providers_kerberos.kerberosprovider": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "title": "Name"
+                },
+                "authentication_flow": {
+                    "type": "string",
+                    "format": "uuid",
+                    "title": "Authentication flow",
+                    "description": "Flow used for authentication when the associated application is accessed by an un-authenticated user."
+                },
+                "authorization_flow": {
+                    "type": "string",
+                    "format": "uuid",
+                    "title": "Authorization flow",
+                    "description": "Flow used when authorizing this provider."
+                },
+                "invalidation_flow": {
+                    "type": "string",
+                    "format": "uuid",
+                    "title": "Invalidation flow",
+                    "description": "Flow used ending the session from a provider."
+                },
+                "property_mappings": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "title": "Property mappings"
+                },
+                "realm_name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "title": "Realm name"
+                },
+                "maximum_ticket_lifetime": {
+                    "type": "string",
+                    "minLength": 1,
+                    "title": "Maximum ticket lifetime"
+                },
+                "maximum_ticket_renew_lifetime": {
+                    "type": "string",
+                    "minLength": 1,
+                    "title": "Maximum ticket renew lifetime"
+                },
+                "allowed_enctypes": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer",
+                        "enum": [
+                            17,
+                            18,
+                            19,
+                            20
+                        ],
+                        "title": "Allowed enctypes"
+                    },
+                    "title": "Allowed enctypes"
+                }
+            },
+            "required": []
+        },
+        "model_authentik_providers_kerberos.kerberosprovider_permissions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "permission"
+                ],
+                "properties": {
+                    "permission": {
+                        "type": "string",
+                        "enum": [
+                            "add_kerberosprovider",
+                            "change_kerberosprovider",
+                            "delete_kerberosprovider",
+                            "view_kerberosprovider"
+                        ]
+                    },
+                    "user": {
+                        "type": "integer"
+                    },
+                    "role": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "model_authentik_providers_kerberos.kerberosserviceprincipal": {
+            "type": "object",
+            "properties": {
+                "provider": {
+                    "type": "integer",
+                    "title": "Provider"
+                },
+                "spn": {
+                    "type": "string",
+                    "maxLength": 1024,
+                    "minLength": 1,
+                    "title": "Spn"
+                }
+            },
+            "required": []
+        },
+        "model_authentik_providers_kerberos.kerberosserviceprincipal_permissions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "permission"
+                ],
+                "properties": {
+                    "permission": {
+                        "type": "string",
+                        "enum": [
+                            "add_kerberosserviceprincipal",
+                            "change_kerberosserviceprincipal",
+                            "delete_kerberosserviceprincipal",
+                            "view_kerberosserviceprincipal"
+                        ]
+                    },
+                    "user": {
+                        "type": "integer"
+                    },
+                    "role": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "model_authentik_providers_kerberos.kerberosuserkeys": {
+            "type": "object",
+            "properties": {
+                "user": {
+                    "type": "integer",
+                    "title": "User"
+                },
+                "provider": {
+                    "type": "integer",
+                    "title": "Provider"
+                },
+                "salt": {
+                    "type": "string",
+                    "maxLength": 1024,
+                    "minLength": 1,
+                    "title": "Salt"
+                }
+            },
+            "required": []
+        },
+        "model_authentik_providers_kerberos.kerberosuserkeys_permissions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "permission"
+                ],
+                "properties": {
+                    "permission": {
+                        "type": "string",
+                        "enum": [
+                            "add_kerberosuserkeys",
+                            "change_kerberosuserkeys",
+                            "delete_kerberosuserkeys",
+                            "view_kerberosuserkeys"
                         ]
                     },
                     "user": {
@@ -13924,6 +14254,18 @@
                             "authentik_providers_google_workspace.view_googleworkspaceprovidermapping",
                             "authentik_providers_google_workspace.view_googleworkspaceproviderpropertymappingsgroup",
                             "authentik_providers_google_workspace.view_googleworkspaceprovideruser",
+                            "authentik_providers_kerberos.add_kerberosprovider",
+                            "authentik_providers_kerberos.add_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.add_kerberosuserkeys",
+                            "authentik_providers_kerberos.change_kerberosprovider",
+                            "authentik_providers_kerberos.change_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.change_kerberosuserkeys",
+                            "authentik_providers_kerberos.delete_kerberosprovider",
+                            "authentik_providers_kerberos.delete_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.delete_kerberosuserkeys",
+                            "authentik_providers_kerberos.view_kerberosprovider",
+                            "authentik_providers_kerberos.view_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.view_kerberosuserkeys",
                             "authentik_providers_ldap.add_ldapprovider",
                             "authentik_providers_ldap.change_ldapprovider",
                             "authentik_providers_ldap.delete_ldapprovider",

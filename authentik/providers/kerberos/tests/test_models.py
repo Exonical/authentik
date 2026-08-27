@@ -45,9 +45,11 @@ class KerberosProviderTests(TestCase):
         """Password changes create keys and increment kvno."""
         provider = KerberosProvider.objects.create(name=generate_id(), realm_name="EXAMPLE.COM")
         user = create_test_user()
-        user.set_password("first-password")
         keys = KerberosUserKeys.objects.get(provider=provider, user=user)
         self.assertEqual(keys.kvno, 1)
-        user.set_password("second-password")
+        user.set_password("first-password")
         keys.refresh_from_db()
         self.assertEqual(keys.kvno, 2)
+        user.set_password("second-password")
+        keys.refresh_from_db()
+        self.assertEqual(keys.kvno, 3)

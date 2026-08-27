@@ -12,6 +12,9 @@ flows_executor_solve
 outposts_instances_list
 outposts_ldap_access_check
 outposts_ldap_list
+outposts_kerberos_list
+outposts_kerberos_service_principals_list
+outposts_kerberos_user_key_retrieve
 outposts_proxy_list
 outposts_radius_access_check
 outposts_radius_list
