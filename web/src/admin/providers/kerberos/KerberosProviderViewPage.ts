@@ -17,7 +17,13 @@ import {
     principalUsernameAttributeName,
 } from "#admin/providers/kerberos/KerberosProviderFormForm";
 
-import { KerberosProvider, ModelEnum, ProvidersApi } from "@goauthentik/api";
+import {
+    CertificateKeyPair,
+    CryptoApi,
+    KerberosProvider,
+    ModelEnum,
+    ProvidersApi,
+} from "@goauthentik/api";
 
 import { msg } from "@lit/localize";
 import { CSSResult, html, nothing, PropertyValues } from "lit";
@@ -39,6 +45,12 @@ export class KerberosProviderViewPage extends AKElement {
     @state()
     provider?: KerberosProvider;
 
+    @state()
+    pkinitCertificate: CertificateKeyPair | null = null;
+
+    @state()
+    pkinitClientCa: CertificateKeyPair | null = null;
+
     static styles: CSSResult[] = [
         PFButton,
         PFPage,
@@ -49,11 +61,45 @@ export class KerberosProviderViewPage extends AKElement {
         PFSizing,
     ];
 
+    fetchCertificate(kpUuid: string) {
+        return aki(CryptoApi).cryptoCertificatekeypairsRetrieve({ kpUuid });
+    }
+
+    fetchPkinitCertificate(kpUuid: string) {
+        this.fetchCertificate(kpUuid).then((certificate) => {
+            this.pkinitCertificate = certificate;
+            this.requestUpdate("pkinitCertificate");
+        });
+    }
+
+    fetchPkinitClientCa(kpUuid: string) {
+        this.fetchCertificate(kpUuid).then((certificate) => {
+            this.pkinitClientCa = certificate;
+            this.requestUpdate("pkinitClientCa");
+        });
+    }
+
+    fetchProvider(id: number) {
+        aki(ProvidersApi)
+            .providersKerberosRetrieve({ id })
+            .then((provider) => {
+                this.provider = provider;
+                if (!provider.pkinitCertificate) {
+                    this.pkinitCertificate = null;
+                } else {
+                    this.fetchPkinitCertificate(provider.pkinitCertificate);
+                }
+                if (!provider.pkinitClientCa) {
+                    this.pkinitClientCa = null;
+                } else {
+                    this.fetchPkinitClientCa(provider.pkinitClientCa);
+                }
+            });
+    }
+
     willUpdate(changedProperties: PropertyValues<this>) {
         if (changedProperties.has("providerID") && this.providerID) {
-            aki(ProvidersApi)
-                .providersKerberosRetrieve({ id: this.providerID })
-                .then((provider) => (this.provider = provider));
+            this.fetchProvider(this.providerID);
         }
     }
 
@@ -182,12 +228,12 @@ export class KerberosProviderViewPage extends AKElement {
                                             )}
                                             ${this.renderDescription(
                                                 "KDC signing certificate",
-                                                this.provider.pkinitCertificate ?? "-",
+                                                this.pkinitCertificate?.name ?? "-",
                                                 "kerberos.pkinit.kdc-certificate.term",
                                             )}
                                             ${this.renderDescription(
                                                 "Client CA certificate",
-                                                this.provider.pkinitClientCa ?? "-",
+                                                this.pkinitClientCa?.name ?? "-",
                                                 "kerberos.pkinit.client-ca.term",
                                             )}
                                         </dl>
