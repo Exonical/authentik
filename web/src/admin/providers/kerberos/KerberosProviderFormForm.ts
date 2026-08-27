@@ -6,6 +6,7 @@ import "#components/ak-text-input";
 import "#elements/forms/FormGroup";
 import "#elements/forms/HorizontalFormElement";
 import "#elements/utils/TimeDeltaHelp";
+
 import { ifPresent } from "#elements/utils/attributes";
 
 import {
@@ -355,7 +356,6 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                             id: "kerberos.pkinit.kdc-certificate.placeholder",
                         })}
                         certificate=${ifPresent(provider.pkinitCertificate)}
-                        singleton
                         name="pkinitCertificate"
                     ></ak-crypto-certificate-search>
                     <p class="pf-c-form__helper-text">
