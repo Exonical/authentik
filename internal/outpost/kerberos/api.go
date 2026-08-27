@@ -8,19 +8,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Exonical/go-kerberos/krb5/kdb"
+	"github.com/Exonical/go-kerberos/krb5/kdc"
 	log "github.com/sirupsen/logrus"
 
 	"goauthentik.io/internal/outpost/ak"
-	"goauthentik.io/internal/outpost/kerberos/kdc"
 	api "goauthentik.io/packages/client-go"
 )
 
 const userKeyCacheTTL = time.Minute
-
-type cachedUserKey struct {
-	key     *kdc.UserKey
-	expires time.Time
-}
 
 func (rs *KerberosServer) getCurrentProvider(pk int32) *ProviderInstance {
 	rs.mu.Lock()
@@ -46,16 +42,29 @@ func (rs *KerberosServer) Refresh() error {
 		if err != nil {
 			return fmt.Errorf("decode provider %d master key: %w", provider.Pk, err)
 		}
-		allowed := make([]int32, len(provider.AllowedEnctypes))
-		for i, enctype := range provider.AllowedEnctypes {
-			allowed[i] = int32(enctype)
+		store := &providerStore{
+			realm:      provider.RealmName,
+			masterKey:  masterKey,
+			allowed:    make(map[int32]bool, len(provider.AllowedEnctypes)),
+			services:   make(map[string]kdb.PrincipalRecord),
+			cache:      make(map[string]cachedUserKey),
+			server:     rs,
+			providerID: provider.Pk,
+		}
+		for _, enctype := range provider.AllowedEnctypes {
+			store.allowed[int32(enctype)] = true
 		}
 		instance := &ProviderInstance{
-			Config:   provider,
-			Services: make(map[string]kdc.ServicePrincipal),
-			cache:    make(map[string]cachedUserKey),
-			log:      log.WithField("logger", "authentik.outpost.kerberos").WithField("provider", provider.Name),
-			server:   rs,
+			Config: provider,
+			Store:  store,
+			KDC: &kdc.Server{
+				Realm:            provider.RealmName,
+				DB:               store,
+				ClockSkew:        5 * time.Minute,
+				MaxTicketLife:    time.Duration(provider.MaximumTicketLifetime) * time.Second,
+				MaxRenewableLife: time.Duration(provider.MaximumTicketRenewLifetime) * time.Second,
+			},
+			log: log.WithField("logger", "authentik.outpost.kerberos").WithField("provider", provider.Name),
 		}
 		services, err := ak.Paginator(
 			rs.ac.Client.OutpostsAPI.OutpostsKerberosServicePrincipalsList(context.Background(), provider.Pk),
@@ -65,25 +74,14 @@ func (rs *KerberosServer) Refresh() error {
 			return err
 		}
 		for _, service := range services {
-			keys, err := kdc.DecodeKeyValues(service.Keys)
+			record, err := store.serviceRecord(service.Spn, service.Kvno, service.Keys)
 			if err != nil {
 				return fmt.Errorf("decode service principal %s: %w", service.Spn, err)
 			}
-			instance.Services[service.Spn+"@"+provider.RealmName] = kdc.ServicePrincipal{
-				SPN: service.Spn, KVNO: uint32(service.Kvno), Keys: keys,
-			}
-		}
-		instance.Provider = &kdc.Provider{
-			Realm:              provider.RealmName,
-			MasterKey:          masterKey,
-			AllowedEnctypes:    allowed,
-			MaxTicketLifetime:  time.Duration(provider.MaximumTicketLifetime) * time.Second,
-			MaxRenewalLifetime: time.Duration(provider.MaximumTicketRenewLifetime) * time.Second,
-			Services:           instance.Services,
-			User:               instance.user,
+			store.services[principalKey(record.Name)] = record
 		}
 		if old := rs.getCurrentProvider(provider.Pk); old != nil {
-			instance.cache = old.cache
+			store.cache = old.Store.cache
 		}
 		providers[provider.Pk] = instance
 	}
@@ -94,38 +92,25 @@ func (rs *KerberosServer) Refresh() error {
 	return nil
 }
 
-func (pi *ProviderInstance) user(username string) (*kdc.UserKey, error) {
-	pi.cacheMu.Lock()
-	if cached, ok := pi.cache[username]; ok && time.Now().Before(cached.expires) {
-		pi.cacheMu.Unlock()
-		return cached.key, nil
-	}
-	pi.cacheMu.Unlock()
-
-	response, _, err := pi.server.ac.Client.OutpostsAPI.
-		OutpostsKerberosUserKeyRetrieve(context.Background(), pi.Config.Pk).
-		Username(username).Execute()
-	if err != nil {
-		return nil, err
-	}
-	keys, err := kdc.DecodeKeyValues(response.Keys)
-	if err != nil {
-		return nil, err
-	}
-	key := &kdc.UserKey{Username: response.Username, Salt: response.Salt, KVNO: uint32(response.Kvno), Keys: keys}
-	pi.cacheMu.Lock()
-	pi.cache[username] = cachedUserKey{key: key, expires: time.Now().Add(userKeyCacheTTL)}
-	pi.cacheMu.Unlock()
-	return key, nil
+type ProviderInstance struct {
+	Config api.KerberosOutpostConfig
+	Store  *providerStore
+	KDC    *kdc.Server
+	log    *log.Entry
 }
 
-type ProviderInstance struct {
-	Config   api.KerberosOutpostConfig
-	Provider *kdc.Provider
-	Services map[string]kdc.ServicePrincipal
+type cachedUserKey struct {
+	record  kdb.PrincipalRecord
+	expires time.Time
+}
 
-	cacheMu sync.Mutex
-	cache   map[string]cachedUserKey
-	log     *log.Entry
-	server  *KerberosServer
+type providerStore struct {
+	realm      string
+	masterKey  []byte
+	allowed    map[int32]bool
+	services   map[string]kdb.PrincipalRecord
+	cache      map[string]cachedUserKey
+	cacheMu    sync.Mutex
+	server     *KerberosServer
+	providerID int32
 }

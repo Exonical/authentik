@@ -7,12 +7,13 @@ import (
 	"net"
 	"sync"
 
+	"github.com/Exonical/go-kerberos/krb5/asn1"
+	"github.com/Exonical/go-kerberos/krb5/protocol"
 	"github.com/Exonical/go-kerberos/krb5/transport"
 	log "github.com/sirupsen/logrus"
 
 	"goauthentik.io/internal/config"
 	"goauthentik.io/internal/outpost/ak"
-	"goauthentik.io/internal/outpost/kerberos/kdc"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -130,9 +131,11 @@ func (rs *KerberosServer) serveTCP(listener net.Listener) error {
 	}
 }
 
+// handle routes a request to the provider matching the request realm.
+// Accepted limitation: there is no TGS authenticator replay cache.
 func (rs *KerberosServer) handle(data []byte) ([]byte, error) {
 	rs.mu.Lock()
-	realm, realmErr := kdc.RequestRealm(data)
+	realm, realmErr := requestRealm(data)
 	var provider *ProviderInstance
 	if realmErr == nil {
 		for _, candidate := range rs.providers {
@@ -149,7 +152,26 @@ func (rs *KerberosServer) handle(data []byte) ([]byte, error) {
 	if provider == nil {
 		return nil, errors.New("no kerberos provider for realm")
 	}
-	return kdc.Handle(data, provider.Provider)
+	return provider.KDC.HandleMessage(data), nil
+}
+
+func requestRealm(data []byte) (string, error) {
+	switch {
+	case len(data) > 0 && data[0] == 0x6a:
+		var request protocol.ASReq
+		if err := asn1.Unmarshal(data, &request); err != nil {
+			return "", err
+		}
+		return request.ReqBody.Realm, nil
+	case len(data) > 0 && data[0] == 0x6c:
+		var request protocol.TGSReq
+		if err := asn1.Unmarshal(data, &request); err != nil {
+			return "", err
+		}
+		return request.ReqBody.Realm, nil
+	default:
+		return "", errors.New("unsupported kerberos request")
+	}
 }
 
 func (rs *KerberosServer) TimerFlowCacheExpiry(context.Context) {}
