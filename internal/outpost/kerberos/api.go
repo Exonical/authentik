@@ -48,6 +48,10 @@ func (rs *KerberosServer) Refresh() error {
 		if err != nil {
 			return fmt.Errorf("parse provider %d default ticket lifetime: %w", provider.Pk, err)
 		}
+		defaultRenewableLife, err := parseDuration(provider.GetDefaultTicketRenewLifetime())
+		if err != nil {
+			return fmt.Errorf("parse provider %d default ticket renew lifetime: %w", provider.Pk, err)
+		}
 		store := &providerStore{
 			realm:      provider.RealmName,
 			masterKey:  masterKey,
@@ -64,13 +68,14 @@ func (rs *KerberosServer) Refresh() error {
 			Config: provider,
 			Store:  store,
 			KDC: &kdc.Server{
-				Realm:             provider.RealmName,
-				DB:                store,
-				ClockSkew:         5 * time.Minute,
-				MaxTicketLife:     time.Duration(provider.MaximumTicketLifetime) * time.Second,
-				MaxRenewableLife:  time.Duration(provider.MaximumTicketRenewLifetime) * time.Second,
-				DefaultTicketLife: defaultTicketLife,
-				DisablePreauth:    !provider.GetRequirePreauthentication(),
+				Realm:                provider.RealmName,
+				DB:                   store,
+				ClockSkew:            5 * time.Minute,
+				MaxTicketLife:        time.Duration(provider.MaximumTicketLifetime) * time.Second,
+				MaxRenewableLife:     time.Duration(provider.MaximumTicketRenewLifetime) * time.Second,
+				DefaultTicketLife:    defaultTicketLife,
+				DefaultRenewableLife: defaultRenewableLife,
+				DisablePreauth:       !provider.GetRequirePreauthentication(),
 				Policy: &kdc.Policy{
 					AllowForwardable: provider.GetForwardable(),
 					AllowRenewable:   provider.GetRenewable(),
