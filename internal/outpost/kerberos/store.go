@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 	"time"
 
@@ -15,16 +16,16 @@ import (
 	"golang.org/x/crypto/hkdf"
 )
 
-func (s *providerStore) Lookup(name principal.Principal) (kdb.PrincipalRecord, bool) {
+func (s *providerStore) Lookup(name principal.Principal) (kdb.PrincipalRecord, bool, error) {
 	if s == nil || name.Realm != s.realm || len(name.Components) == 0 {
-		return kdb.PrincipalRecord{}, false
+		return kdb.PrincipalRecord{}, false, nil
 	}
 	if len(name.Components) == 2 && name.Components[0] == "krbtgt" && name.Components[1] == s.realm {
 		return s.krbtgtRecord(name)
 	}
 	if len(name.Components) > 1 {
 		record, ok := s.services[principalKey(name)]
-		return record, ok
+		return record, ok, nil
 	}
 	return s.userRecord(name)
 }
@@ -32,56 +33,61 @@ func (s *providerStore) Lookup(name principal.Principal) (kdb.PrincipalRecord, b
 // krbtgtRecord synthesizes the krbtgt/<realm> principal. Its KVNO is
 // hardcoded to 1 because the keys derive deterministically from the
 // provider master key (accepted limitation).
-func (s *providerStore) krbtgtRecord(name principal.Principal) (kdb.PrincipalRecord, bool) {
+func (s *providerStore) krbtgtRecord(name principal.Principal) (kdb.PrincipalRecord, bool, error) {
 	keys := make(map[int32]kdb.Key)
 	for enctype := range s.allowed {
 		etype, err := crypto.NewRegistry().Get(enctype)
 		if err != nil {
-			continue
+			return kdb.PrincipalRecord{}, false, fmt.Errorf("get enctype %d: %w", enctype, err)
 		}
 		key, err := deriveKRBtgtKey(s.masterKey, etype)
 		if err != nil {
-			continue
+			return kdb.PrincipalRecord{}, false, fmt.Errorf("derive krbtgt enctype %d: %w", enctype, err)
 		}
-		keys[enctype] = kdb.Key{Enctype: enctype, KVNO: 1, Key: key}
+		keys[enctype] = kdb.Key{
+			Enctype: enctype,
+			KVNO:    1,
+			Key:     key,
+			Salt:    name.Realm + strings.Join(name.Components, ""),
+		}
 	}
-	return kdb.PrincipalRecord{
-		Name: name, Salt: name.Realm + strings.Join(name.Components, ""), Keys: keys, KVNO: 1,
-	}, len(keys) > 0
+	return kdb.PrincipalRecord{Name: name, Keys: keys, KVNO: 1}, len(keys) > 0, nil
 }
 
-func (s *providerStore) userRecord(name principal.Principal) (kdb.PrincipalRecord, bool) {
+func (s *providerStore) userRecord(name principal.Principal) (kdb.PrincipalRecord, bool, error) {
 	username := name.Components[0]
 	now := time.Now()
 	s.cacheMu.Lock()
 	if cached, ok := s.cache[username]; ok && now.Before(cached.expires) {
 		s.cacheMu.Unlock()
-		return cached.record, true
+		return cached.record, true, nil
 	}
 	s.cacheMu.Unlock()
 
-	response, _, err := s.server.ac.Client.OutpostsAPI.
+	response, httpResponse, err := s.server.ac.Client.OutpostsAPI.
 		OutpostsKerberosUserKeyRetrieve(context.Background(), s.providerID).
 		Username(username).Execute()
 	if err != nil {
-		return kdb.PrincipalRecord{}, false
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
+			return kdb.PrincipalRecord{}, false, nil
+		}
+		return kdb.PrincipalRecord{}, false, fmt.Errorf("retrieve user key for %q: %w", username, err)
 	}
-	keys, err := decodeKeyValues(response.Keys, s.allowed, uint32(response.Kvno))
+	keys, err := decodeKeyValues(response.Keys, s.allowed, uint32(response.Kvno), response.Salt)
 	if err != nil {
-		return kdb.PrincipalRecord{}, false
+		return kdb.PrincipalRecord{}, false, fmt.Errorf("decode user key for %q: %w", username, err)
 	}
 	record := kdb.PrincipalRecord{
 		Name: principal.Principal{
 			Realm: name.Realm, NameType: principal.NTPrincipal, Components: []string{response.Username},
 		},
-		Salt: response.Salt,
 		Keys: keys,
 		KVNO: uint32(response.Kvno),
 	}
 	s.cacheMu.Lock()
 	s.cache[username] = cachedUserKey{record: record, expires: now.Add(userKeyCacheTTL)}
 	s.cacheMu.Unlock()
-	return record, len(keys) > 0
+	return record, len(keys) > 0, nil
 }
 
 func (s *providerStore) serviceRecord(spn string, kvno int32, values map[string]interface{}) (kdb.PrincipalRecord, error) {
@@ -89,14 +95,16 @@ func (s *providerStore) serviceRecord(spn string, kvno int32, values map[string]
 	if err != nil {
 		return kdb.PrincipalRecord{}, err
 	}
-	keys, err := decodeKeyValues(values, s.allowed, uint32(kvno))
+	keys, err := decodeKeyValues(values, s.allowed, uint32(kvno), name.Realm+strings.Join(name.Components, ""))
 	if err != nil {
 		return kdb.PrincipalRecord{}, err
 	}
 	return kdb.PrincipalRecord{Name: *name, Keys: keys, KVNO: uint32(kvno)}, nil
 }
 
-func decodeKeyValues(values map[string]interface{}, allowed map[int32]bool, kvno uint32) (map[int32]kdb.Key, error) {
+func decodeKeyValues(
+	values map[string]interface{}, allowed map[int32]bool, kvno uint32, salt string,
+) (map[int32]kdb.Key, error) {
 	out := make(map[int32]kdb.Key, len(values))
 	for rawType, rawValue := range values {
 		enctype, err := parseEnctype(rawType)
@@ -121,7 +129,7 @@ func decodeKeyValues(values map[string]interface{}, allowed map[int32]bool, kvno
 		if len(value) != etype.KeySize() {
 			return nil, fmt.Errorf("key %s has invalid length %d", rawType, len(value))
 		}
-		out[enctype] = kdb.Key{Enctype: enctype, KVNO: kvno, Key: value}
+		out[enctype] = kdb.Key{Enctype: enctype, KVNO: kvno, Key: value, Salt: salt}
 	}
 	return out, nil
 }

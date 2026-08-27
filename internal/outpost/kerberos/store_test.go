@@ -51,7 +51,10 @@ func TestStoreKrbtgtDerivationMatchesPythonFixture(t *testing.T) {
 		NameType:   principal.NTSrvInstance,
 		Components: []string{"krbtgt", testRealm},
 	}
-	record, ok := store.Lookup(name)
+	record, ok, err := store.Lookup(name)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !ok {
 		t.Fatal("krbtgt lookup failed")
 	}
@@ -82,16 +85,21 @@ func TestStoreServiceLookup(t *testing.T) {
 		NameType:   principal.NTSrvHst,
 		Components: []string{"host", "service.test"},
 	}
-	got, ok := store.Lookup(name)
+	got, ok, err := store.Lookup(name)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !ok {
 		t.Fatal("service lookup failed")
 	}
 	if got.KVNO != 3 || got.Keys[18].KVNO != 3 {
 		t.Fatalf("service KVNO = %d/%d, want 3", got.KVNO, got.Keys[18].KVNO)
 	}
-	if _, ok := store.Lookup(principal.Principal{
+	if _, ok, err := store.Lookup(principal.Principal{
 		Realm: testRealm, NameType: principal.NTSrvHst, Components: []string{"host", "other.test"},
-	}); ok {
+	}); err != nil {
+		t.Fatal(err)
+	} else if ok {
 		t.Fatal("unknown service lookup succeeded")
 	}
 }
@@ -118,14 +126,19 @@ func TestStoreUserLookupCacheAndUnknown(t *testing.T) {
 	name := principal.Principal{
 		Realm: testRealm, NameType: principal.NTPrincipal, Components: []string{"alice"},
 	}
-	record, ok := store.Lookup(name)
+	record, ok, err := store.Lookup(name)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !ok {
 		t.Fatal("user lookup failed")
 	}
-	if record.KVNO != 2 || record.Salt != testRealm+"alice" {
+	if record.KVNO != 2 || record.Keys[18].Salt != testRealm+"alice" {
 		t.Fatalf("unexpected user record: %+v", record)
 	}
-	if _, ok := store.Lookup(name); !ok {
+	if _, ok, err := store.Lookup(name); err != nil {
+		t.Fatal(err)
+	} else if !ok {
 		t.Fatal("cached user lookup failed")
 	}
 	if requests != 1 {
@@ -136,20 +149,41 @@ func TestStoreUserLookupCacheAndUnknown(t *testing.T) {
 	entry.expires = time.Now().Add(-time.Second)
 	store.cache["alice"] = entry
 	store.cacheMu.Unlock()
-	if _, ok := store.Lookup(name); !ok {
+	if _, ok, err := store.Lookup(name); err != nil {
+		t.Fatal(err)
+	} else if !ok {
 		t.Fatal("expired-cache user lookup failed")
 	}
 	if requests != 2 {
 		t.Fatalf("requests = %d, want 2 (TTL expiry expected)", requests)
 	}
-	if _, ok := store.Lookup(principal.Principal{
+	if _, ok, err := store.Lookup(principal.Principal{
 		Realm: testRealm, NameType: principal.NTPrincipal, Components: []string{"bob"},
-	}); ok {
+	}); err != nil {
+		t.Fatal(err)
+	} else if ok {
 		t.Fatal("unknown user lookup succeeded")
 	}
-	if _, ok := store.Lookup(principal.Principal{
+	if _, ok, err := store.Lookup(principal.Principal{
 		Realm: "OTHER.TEST", NameType: principal.NTPrincipal, Components: []string{"alice"},
-	}); ok {
+	}); err != nil {
+		t.Fatal(err)
+	} else if ok {
 		t.Fatal("wrong-realm lookup succeeded")
+	}
+}
+
+func TestStoreUserLookupPropagatesAPIFailure(t *testing.T) {
+	store := testStore(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	_, ok, err := store.Lookup(principal.Principal{
+		Realm: testRealm, NameType: principal.NTPrincipal, Components: []string{"alice"},
+	})
+	if err == nil {
+		t.Fatal("expected API failure")
+	}
+	if ok {
+		t.Fatal("API failure reported as a found principal")
 	}
 }
