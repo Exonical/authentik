@@ -22,6 +22,7 @@ import (
 )
 
 const userKeyCacheTTL = time.Minute
+const accessCheckCacheTTL = time.Minute
 
 func (rs *KerberosServer) getCurrentProvider(pk int32) *ProviderInstance {
 	rs.mu.Lock()
@@ -66,6 +67,7 @@ func (rs *KerberosServer) Refresh() error {
 			services:    make(map[string]kdb.PrincipalRecord),
 			delegations: make(map[string]delegationPolicy),
 			cache:       make(map[string]cachedUserKey),
+			accessCache: make(map[string]cachedAccessCheck),
 			server:      rs,
 			providerID:  provider.Pk,
 		}
@@ -92,6 +94,7 @@ func (rs *KerberosServer) Refresh() error {
 				DelegationPolicy: func(service principal.Principal) (bool, []principal.Principal) {
 					return store.delegationPolicy(service)
 				},
+				Authorize:         store.Authorize,
 				PKINITCertificate: pkinitCertificate,
 				PKINITSigner:      pkinitSigner,
 				PKINITClientCAs:   pkinitClientCAs,
@@ -129,6 +132,7 @@ func (rs *KerberosServer) Refresh() error {
 		}
 		if old := rs.getCurrentProvider(provider.Pk); old != nil {
 			store.cache = old.Store.cache
+			store.accessCache = old.Store.accessCache
 		}
 		providers[provider.Pk] = instance
 	}
@@ -216,16 +220,23 @@ type cachedUserKey struct {
 	expires time.Time
 }
 
+type cachedAccessCheck struct {
+	allowed bool
+	expires time.Time
+}
+
 type providerStore struct {
-	realm       string
-	masterKey   []byte
-	allowed     map[int32]bool
-	services    map[string]kdb.PrincipalRecord
-	delegations map[string]delegationPolicy
-	cache       map[string]cachedUserKey
-	cacheMu     sync.Mutex
-	server      *KerberosServer
-	providerID  int32
+	realm         string
+	masterKey     []byte
+	allowed       map[int32]bool
+	services      map[string]kdb.PrincipalRecord
+	delegations   map[string]delegationPolicy
+	cache         map[string]cachedUserKey
+	cacheMu       sync.Mutex
+	accessCache   map[string]cachedAccessCheck
+	accessCacheMu sync.Mutex
+	server        *KerberosServer
+	providerID    int32
 }
 
 type delegationPolicy struct {

@@ -122,6 +122,16 @@ Escape the `@` when it is part of the alias rather than the realm separator.
 The resulting ticket cache uses the canonical principal selected by the
 provider. Without `-C`, an alias is not accepted as a client principal.
 
+## Access control
+
+Application policy bindings gate all Kerberos ticket issuance. You can also
+bind policies to individual service principals to control access to specific
+services. Service-principal policy bindings are managed through the API using
+the service principal's policy-binding (`pbm`) UUID with the `PolicyBinding`
+API.
+
+When a policy denies access, Kerberos clients receive a KDC policy error.
+
 ## Service principals
 
 Service principals identify services that accept Kerberos tickets. Create a service principal for each Kerberos-enabled service, using the service name and host name required by that service, such as `HTTP/app.example.com` or `nfs/fileserver.example.com`.

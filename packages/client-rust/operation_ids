@@ -15,6 +15,7 @@ outposts_ldap_list
 outposts_kerberos_list
 outposts_kerberos_service_principals_list
 outposts_kerberos_user_key_retrieve
+outposts_kerberos_access_check
 outposts_proxy_list
 outposts_radius_access_check
 outposts_radius_list

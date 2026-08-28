@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -82,6 +83,116 @@ func TestStoreDelegationPolicyMapping(t *testing.T) {
 	})
 	if ok || len(targets) != 1 || targets[0].String() != target.String() {
 		t.Fatalf("delegationPolicy with delegation disabled = %v, %v", ok, targets)
+	}
+}
+
+func TestStoreAuthorizeAllowAndCache(t *testing.T) {
+	requests := 0
+	store := testStore(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		if r.URL.Query().Get("username") != "alice" || r.URL.Query().Get("spn") != "host/service.test" {
+			t.Errorf("unexpected access check query: %s", r.URL.RawQuery)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"access": map[string]interface{}{"passing": true, "messages": []string{}, "log_messages": []string{}},
+		})
+	}))
+	client := principal.Principal{Realm: testRealm, Components: []string{"alice"}}
+	service := principal.Principal{Realm: testRealm, Components: []string{"host", "service.test"}}
+	if err := store.Authorize(client, service, false); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Authorize(client, service, false); err != nil {
+		t.Fatal(err)
+	}
+	if requests != 1 {
+		t.Fatalf("requests = %d, want 1", requests)
+	}
+}
+
+func TestStoreAuthorizePolicyDenialAndCacheSeparation(t *testing.T) {
+	requests := 0
+	store := testStore(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		allowed := r.URL.Query().Get("username") == "alice" &&
+			r.URL.Query().Get("spn") != "host/denied.test"
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"access": map[string]interface{}{"passing": allowed, "messages": []string{}, "log_messages": []string{}},
+		})
+	}))
+	alice := principal.Principal{Realm: testRealm, Components: []string{"alice"}}
+	allowed := principal.Principal{Realm: testRealm, Components: []string{"host", "allowed.test"}}
+	denied := principal.Principal{Realm: testRealm, Components: []string{"host", "denied.test"}}
+	if err := store.Authorize(alice, allowed, false); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Authorize(alice, denied, false); err == nil ||
+		!strings.Contains(err.Error(), "policy denied") {
+		t.Fatalf("denied authorization error = %v", err)
+	}
+	if err := store.Authorize(alice, denied, false); err == nil {
+		t.Fatal("cached denied authorization succeeded")
+	}
+	bob := principal.Principal{Realm: testRealm, Components: []string{"bob"}}
+	if err := store.Authorize(bob, allowed, false); err == nil {
+		t.Fatal("bob authorization unexpectedly succeeded")
+	}
+	if requests != 3 {
+		t.Fatalf("requests = %d, want 3 for distinct cache keys", requests)
+	}
+}
+
+func TestStoreAuthorizeSkipsNonUserClientsAndUsesAppOnlyServices(t *testing.T) {
+	requests := 0
+	store := testStore(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		if r.URL.Query().Get("spn") != "" {
+			t.Errorf("unexpected SPN query for app-only check: %s", r.URL.RawQuery)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"access": map[string]interface{}{"passing": true, "messages": []string{}, "log_messages": []string{}},
+		})
+	}))
+	if err := store.Authorize(
+		principal.Principal{Realm: testRealm, Components: []string{"svc", "worker"}},
+		principal.Principal{Realm: testRealm, Components: []string{"host", "service.test"}},
+		false,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Authorize(
+		principal.Principal{Realm: "OTHER.TEST", Components: []string{"alice"}},
+		principal.Principal{Realm: testRealm, Components: []string{"host", "service.test"}},
+		false,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Authorize(
+		principal.Principal{Realm: testRealm, Components: []string{"alice"}},
+		principal.Principal{Realm: testRealm, Components: []string{"krbtgt", testRealm}},
+		false,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if requests != 1 {
+		t.Fatalf("requests = %d, want 1 app-only check", requests)
+	}
+}
+
+func TestStoreAuthorizeAPIFailureDenies(t *testing.T) {
+	store := testStore(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "backend unavailable", http.StatusInternalServerError)
+	}))
+	err := store.Authorize(
+		principal.Principal{Realm: testRealm, Components: []string{"alice"}},
+		principal.Principal{Realm: testRealm, Components: []string{"host", "service.test"}},
+		false,
+	)
+	if err == nil || !strings.Contains(err.Error(), "access check failed") {
+		t.Fatalf("Authorize error = %v", err)
 	}
 }
 
