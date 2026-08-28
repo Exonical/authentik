@@ -91,13 +91,11 @@ func (rs *KerberosServer) Refresh() error {
 					AllowRenewable:   provider.GetRenewable(),
 					AllowProxiable:   provider.GetProxiable(),
 				},
-				DelegationPolicy: func(service principal.Principal) (bool, []principal.Principal) {
-					return store.delegationPolicy(service)
-				},
-				Authorize:         store.Authorize,
-				PKINITCertificate: pkinitCertificate,
-				PKINITSigner:      pkinitSigner,
-				PKINITClientCAs:   pkinitClientCAs,
+				CheckAllowedToDelegate: store.checkAllowedToDelegate,
+				Authorize:              store.Authorize,
+				PKINITCertificate:      pkinitCertificate,
+				PKINITSigner:           pkinitSigner,
+				PKINITClientCAs:        pkinitClientCAs,
 			},
 			log: log.WithField("logger", "authentik.outpost.kerberos").WithField("provider", provider.Name),
 		}
@@ -253,6 +251,38 @@ func (s *providerStore) delegationPolicy(service principal.Principal) (bool, []p
 		return false, nil
 	}
 	return policy.ok, policy.targets
+}
+
+func (s *providerStore) checkAllowedToDelegate(
+	impersonated *principal.Principal,
+	service principal.Principal,
+	target *principal.Principal,
+) error {
+	allowed, targets := s.delegationPolicy(service)
+	if impersonated == nil && target == nil {
+		if !allowed {
+			return fmt.Errorf("Kerberos service principal %s is not allowed to authenticate as delegate", service)
+		}
+		return nil
+	}
+	if impersonated == nil || target == nil || !allowed {
+		return fmt.Errorf("Kerberos service principal %s is not allowed to delegate", service)
+	}
+	targetAllowed := false
+	for _, candidate := range targets {
+		if candidate.String() == target.String() {
+			targetAllowed = true
+			break
+		}
+	}
+	if !targetAllowed {
+		return fmt.Errorf(
+			"Kerberos service principal %s is not allowed to delegate to %s",
+			service,
+			target,
+		)
+	}
+	return s.Authorize(*impersonated, *target, false)
 }
 
 func parseDuration(expression string) (time.Duration, error) {
