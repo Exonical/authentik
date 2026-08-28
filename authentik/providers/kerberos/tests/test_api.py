@@ -9,6 +9,7 @@ from authentik.core.models import Application
 from authentik.core.tests.utils import create_test_admin_user, create_test_cert, create_test_user
 from authentik.crypto.models import CertificateKeyPair
 from authentik.lib.generators import generate_id
+from authentik.providers.kerberos.api.providers import KerberosServicePrincipalSerializer
 from authentik.providers.kerberos.models import (
     KerberosProvider,
     KerberosServicePrincipal,
@@ -62,7 +63,12 @@ class KerberosProviderAPITests(APITestCase):
             slug=generate_id(),
             provider=provider,
         )
-        KerberosServicePrincipal.objects.create(provider=provider, spn="host/example")
+        KerberosServicePrincipal.objects.create(
+            provider=provider,
+            spn="host/example",
+            ok_to_auth_as_delegate=True,
+            allowed_delegation_targets=["nfs/example"],
+        )
         KerberosServicePrincipal.objects.create(provider=provider, spn="http/example")
         self.client.force_login(create_test_admin_user())
 
@@ -79,6 +85,50 @@ class KerberosProviderAPITests(APITestCase):
         self.assertEqual(
             [item["spn"] for item in payload["results"]], ["host/example", "http/example"]
         )
+        self.assertEqual(payload["results"][0]["ok_to_auth_as_delegate"], True)
+        self.assertEqual(payload["results"][0]["allowed_delegation_targets"], ["nfs/example"])
+
+    def test_service_principal_serializer_round_trip(self):
+        """Service principal delegation settings round-trip through the serializer."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.COM",
+        )
+        serializer = KerberosServicePrincipalSerializer(
+            data={
+                "provider": provider.pk,
+                "spn": "HTTP/example",
+                "ok_to_auth_as_delegate": True,
+                "allowed_delegation_targets": ["nfs/example", "HTTP/other"],
+            }
+        )
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        principal = serializer.save()
+        self.assertTrue(principal.ok_to_auth_as_delegate)
+        self.assertEqual(
+            principal.allowed_delegation_targets,
+            ["nfs/example", "HTTP/other"],
+        )
+        self.assertEqual(
+            KerberosServicePrincipalSerializer(principal).data["allowed_delegation_targets"],
+            ["nfs/example", "HTTP/other"],
+        )
+
+    def test_service_principal_serializer_rejects_non_string_targets(self):
+        """Delegation targets must be non-empty strings."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.COM",
+        )
+        serializer = KerberosServicePrincipalSerializer(
+            data={
+                "provider": provider.pk,
+                "spn": "HTTP/example",
+                "allowed_delegation_targets": ["nfs/example", 42],
+            }
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("allowed_delegation_targets", serializer.errors)
 
     def test_user_key_uses_email_mapping(self):
         """User keys can be looked up by the configured email attribute."""

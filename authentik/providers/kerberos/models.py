@@ -173,6 +173,17 @@ class KerberosServicePrincipal(SerializerModel):
     spn = models.CharField(max_length=1024)
     kvno = models.PositiveIntegerField(default=1)
     keys = models.JSONField(default=dict)
+    ok_to_auth_as_delegate = models.BooleanField(
+        default=False,
+        help_text=_("Allow this service principal to authenticate as a user for delegation."),
+    )
+    allowed_delegation_targets = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=_(
+            "Service principals this service principal may use for constrained delegation."
+        ),
+    )
 
     @property
     def serializer(self) -> type[Serializer]:

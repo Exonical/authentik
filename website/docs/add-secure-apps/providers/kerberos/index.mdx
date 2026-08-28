@@ -133,6 +133,27 @@ Export a service principal as a MIT keytab with a `GET` request to:
 
 The response contains the keytab as a base64-encoded `keytab` value. Decode that value and install the resulting file on the service host. After rotating keys, replace the service's keytab and restart or reload the service as required.
 
+## Constrained delegation (S4U)
+
+Constrained delegation allows a service to act on behalf of a user. The service
+uses **S4U2Self** to obtain a ticket to itself for a user, then uses
+**S4U2Proxy** to obtain a ticket to an allowed downstream service. For example,
+a service account can obtain a user's ticket and access an NFS service on that
+user's behalf.
+
+Configure constrained delegation through the service principal API. There is no
+service principal web interface. The service principal fields are:
+
+- **ok_to_auth_as_delegate** allows the service principal to authenticate as an
+  impersonated user. S4U2Self tickets are forwardable only when this field is
+  enabled.
+- **allowed_delegation_targets** is a list of service principal names, such as
+  `nfs/fileserver.example.com`, that the service may access with S4U2Proxy.
+
+The service principal still needs its keytab to authenticate to the KDC. The
+target service must also have a configured service principal and keytab. Keep
+the target list limited to the services the delegating account needs.
+
 ## PKINIT
 
 Public Key Cryptography for Initial Authentication (PKINIT) allows a client to obtain a Kerberos ticket with an X.509 certificate instead of a password. To enable PKINIT, set both certificate fields on the provider:

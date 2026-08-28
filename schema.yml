@@ -44362,6 +44362,15 @@ components:
           type: object
           additionalProperties: {}
           readOnly: true
+        ok_to_auth_as_delegate:
+          type: boolean
+          description: Allow this service principal to authenticate as a user for
+            delegation.
+        allowed_delegation_targets:
+          type: array
+          items:
+            type: string
+            minLength: 1
       required:
       - keys
       - kvno
@@ -44380,9 +44389,17 @@ components:
           type: object
           additionalProperties: {}
           readOnly: true
+        ok_to_auth_as_delegate:
+          type: boolean
+        allowed_delegation_targets:
+          type: array
+          items:
+            type: string
       required:
+      - allowed_delegation_targets
       - keys
       - kvno
+      - ok_to_auth_as_delegate
       - spn
     KerberosServicePrincipalRequest:
       type: object
@@ -44394,6 +44411,15 @@ components:
           type: string
           minLength: 1
           maxLength: 1024
+        ok_to_auth_as_delegate:
+          type: boolean
+          description: Allow this service principal to authenticate as a user for
+            delegation.
+        allowed_delegation_targets:
+          type: array
+          items:
+            type: string
+            minLength: 1
       required:
       - provider
       - spn
@@ -52717,6 +52743,15 @@ components:
           type: string
           minLength: 1
           maxLength: 1024
+        ok_to_auth_as_delegate:
+          type: boolean
+          description: Allow this service principal to authenticate as a user for
+            delegation.
+        allowed_delegation_targets:
+          type: array
+          items:
+            type: string
+            minLength: 1
     PatchedKerberosSourcePropertyMappingRequest:
       type: object
       description: Kerberos PropertyMapping Serializer

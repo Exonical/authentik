@@ -36,6 +36,18 @@ export interface KerberosServicePrincipalOutpost {
      * @memberof KerberosServicePrincipalOutpost
      */
     readonly keys: { [key: string]: any };
+    /**
+     *
+     * @type {boolean}
+     * @memberof KerberosServicePrincipalOutpost
+     */
+    okToAuthAsDelegate: boolean;
+    /**
+     *
+     * @type {Array<string>}
+     * @memberof KerberosServicePrincipalOutpost
+     */
+    allowedDelegationTargets: Array<string>;
 }
 
 /**
@@ -47,6 +59,20 @@ export function instanceOfKerberosServicePrincipalOutpost(
     if (!("spn" in value) || value["spn"] === undefined) return false;
     if (!("kvno" in value) || value["kvno"] === undefined) return false;
     if (!("keys" in value) || value["keys"] === undefined) return false;
+    if (
+        (!("okToAuthAsDelegate" in (value as Record<string, any>)) &&
+            !("ok_to_auth_as_delegate" in (value as Record<string, any>))) ||
+        ((value as Record<string, any>)["okToAuthAsDelegate"] === undefined &&
+            (value as Record<string, any>)["ok_to_auth_as_delegate"] === undefined)
+    )
+        return false;
+    if (
+        (!("allowedDelegationTargets" in (value as Record<string, any>)) &&
+            !("allowed_delegation_targets" in (value as Record<string, any>))) ||
+        ((value as Record<string, any>)["allowedDelegationTargets"] === undefined &&
+            (value as Record<string, any>)["allowed_delegation_targets"] === undefined)
+    )
+        return false;
     return true;
 }
 
@@ -67,6 +93,8 @@ export function KerberosServicePrincipalOutpostFromJSONTyped(
         spn: json["spn"],
         kvno: json["kvno"],
         keys: json["keys"],
+        okToAuthAsDelegate: json["ok_to_auth_as_delegate"],
+        allowedDelegationTargets: json["allowed_delegation_targets"],
     };
 }
 
@@ -85,5 +113,7 @@ export function KerberosServicePrincipalOutpostToJSONTyped(
     return {
         spn: value["spn"],
         kvno: value["kvno"],
+        ok_to_auth_as_delegate: value["okToAuthAsDelegate"],
+        allowed_delegation_targets: value["allowedDelegationTargets"],
     };
 }

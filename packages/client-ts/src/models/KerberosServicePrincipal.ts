@@ -48,6 +48,18 @@ export interface KerberosServicePrincipal {
      * @memberof KerberosServicePrincipal
      */
     readonly keys: { [key: string]: any };
+    /**
+     * Allow this service principal to authenticate as a user for delegation.
+     * @type {boolean}
+     * @memberof KerberosServicePrincipal
+     */
+    okToAuthAsDelegate?: boolean;
+    /**
+     *
+     * @type {Array<string>}
+     * @memberof KerberosServicePrincipal
+     */
+    allowedDelegationTargets?: Array<string>;
 }
 
 /**
@@ -81,6 +93,12 @@ export function KerberosServicePrincipalFromJSONTyped(
         spn: json["spn"],
         kvno: json["kvno"],
         keys: json["keys"],
+        okToAuthAsDelegate:
+            json["ok_to_auth_as_delegate"] == null ? undefined : json["ok_to_auth_as_delegate"],
+        allowedDelegationTargets:
+            json["allowed_delegation_targets"] == null
+                ? undefined
+                : json["allowed_delegation_targets"],
     };
 }
 
@@ -99,5 +117,7 @@ export function KerberosServicePrincipalToJSONTyped(
     return {
         provider: value["provider"],
         spn: value["spn"],
+        ok_to_auth_as_delegate: value["okToAuthAsDelegate"],
+        allowed_delegation_targets: value["allowedDelegationTargets"],
     };
 }
