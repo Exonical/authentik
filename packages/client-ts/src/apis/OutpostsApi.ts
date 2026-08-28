@@ -21,6 +21,10 @@ import {
     DockerServiceConnectionRequestToJSON,
 } from "../models/DockerServiceConnectionRequest";
 import {
+    type KerberosSetPasswordRequest,
+    KerberosSetPasswordRequestToJSON,
+} from "../models/KerberosSetPasswordRequest";
+import {
     type KerberosUserKeyOutpost,
     KerberosUserKeyOutpostFromJSON,
 } from "../models/KerberosUserKeyOutpost";
@@ -168,6 +172,11 @@ export interface OutpostsKerberosServicePrincipalsListRequest {
     page?: number;
     pageSize?: number;
     search?: string;
+}
+
+export interface OutpostsKerberosSetPasswordCreateRequest {
+    id: number;
+    kerberosSetPasswordRequest: KerberosSetPasswordRequest;
 }
 
 export interface OutpostsKerberosUserKeyRetrieveRequest {
@@ -1121,6 +1130,77 @@ export class OutpostsApi extends runtime.BaseAPI {
             initOverrides,
         );
         return await response.value();
+    }
+
+    /**
+     * Creates request options for outpostsKerberosSetPasswordCreate without sending the request
+     */
+    async outpostsKerberosSetPasswordCreateRequestOpts(
+        requestParameters: OutpostsKerberosSetPasswordCreateRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["id"] == null) {
+            throw new runtime.RequiredError(
+                "id",
+                'Required parameter "id" was null or undefined when calling outpostsKerberosSetPasswordCreate().',
+            );
+        }
+
+        if (requestParameters["kerberosSetPasswordRequest"] == null) {
+            throw new runtime.RequiredError(
+                "kerberosSetPasswordRequest",
+                'Required parameter "kerberosSetPasswordRequest" was null or undefined when calling outpostsKerberosSetPasswordCreate().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters["Content-Type"] = "application/json";
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/outposts/kerberos/{id}/set_password/`;
+        urlPath = urlPath.replace("{id}", encodeURIComponent(String(requestParameters["id"])));
+
+        return {
+            path: urlPath,
+            method: "POST",
+            headers: headerParameters,
+            query: queryParameters,
+            body: KerberosSetPasswordRequestToJSON(requestParameters["kerberosSetPasswordRequest"]),
+        };
+    }
+
+    /**
+     * Set a user\'s password through the Kerberos outpost.
+     */
+    async outpostsKerberosSetPasswordCreateRaw(
+        requestParameters: OutpostsKerberosSetPasswordCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<void>> {
+        const requestOptions =
+            await this.outpostsKerberosSetPasswordCreateRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Set a user\'s password through the Kerberos outpost.
+     */
+    async outpostsKerberosSetPasswordCreate(
+        requestParameters: OutpostsKerberosSetPasswordCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<void> {
+        await this.outpostsKerberosSetPasswordCreateRaw(requestParameters, initOverrides);
     }
 
     /**

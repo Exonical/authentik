@@ -11054,6 +11054,34 @@ paths:
           $ref: '#/components/responses/ValidationErrorResponse'
         '403':
           $ref: '#/components/responses/GenericErrorResponse'
+  /outposts/kerberos/{id}/set_password/:
+    post:
+      operationId: outposts_kerberos_set_password_create
+      description: Set a user's password through the Kerberos outpost.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      tags:
+      - outposts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KerberosSetPasswordRequest'
+        required: true
+      security:
+      - authentik: []
+      responses:
+        '204':
+          description: No response body
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
   /outposts/kerberos/{id}/user_key/:
     get:
       operationId: outposts_kerberos_user_key_retrieve
@@ -44043,6 +44071,9 @@ components:
           type: boolean
         tcp_enabled:
           type: boolean
+        kpasswd_enabled:
+          type: boolean
+          description: Enable RFC 3244 password changes through the Kerberos outpost.
         forwardable:
           type: boolean
         renewable:
@@ -44167,6 +44198,9 @@ components:
           type: boolean
         tcp_enabled:
           type: boolean
+        kpasswd_enabled:
+          type: boolean
+          description: Enable RFC 3244 password changes through the Kerberos outpost.
         forwardable:
           type: boolean
         renewable:
@@ -44268,6 +44302,9 @@ components:
           type: boolean
         tcp_enabled:
           type: boolean
+        kpasswd_enabled:
+          type: boolean
+          description: Enable RFC 3244 password changes through the Kerberos outpost.
         forwardable:
           type: boolean
         renewable:
@@ -44345,6 +44382,20 @@ components:
       required:
       - provider
       - spn
+    KerberosSetPasswordRequest:
+      type: object
+      description: Password change request for the Kerberos outpost.
+      properties:
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - password
+      - username
     KerberosSource:
       type: object
       description: Kerberos Source Serializer
@@ -52619,6 +52670,9 @@ components:
           type: boolean
         tcp_enabled:
           type: boolean
+        kpasswd_enabled:
+          type: boolean
+          description: Enable RFC 3244 password changes through the Kerberos outpost.
         forwardable:
           type: boolean
         renewable:

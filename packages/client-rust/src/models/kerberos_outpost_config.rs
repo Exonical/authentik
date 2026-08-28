@@ -38,6 +38,9 @@ pub struct KerberosOutpostConfig {
     pub udp_enabled: Option<bool>,
     #[serde(rename = "tcp_enabled", skip_serializing_if = "Option::is_none")]
     pub tcp_enabled: Option<bool>,
+    /// Enable RFC 3244 password changes through the Kerberos outpost.
+    #[serde(rename = "kpasswd_enabled", skip_serializing_if = "Option::is_none")]
+    pub kpasswd_enabled: Option<bool>,
     #[serde(rename = "forwardable", skip_serializing_if = "Option::is_none")]
     pub forwardable: Option<bool>,
     #[serde(rename = "renewable", skip_serializing_if = "Option::is_none")]
@@ -74,6 +77,7 @@ impl KerberosOutpostConfig {
             require_preauthentication: None,
             udp_enabled: None,
             tcp_enabled: None,
+            kpasswd_enabled: None,
             forwardable: None,
             renewable: None,
             proxiable: None,

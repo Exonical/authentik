@@ -22,10 +22,12 @@ type KerberosServer struct {
 	ac  *ak.APIController
 	cs  *ak.CryptoStore
 
-	providers map[int32]*ProviderInstance
-	mu        sync.Mutex
-	udp       []net.PacketConn
-	tcp       []net.Listener
+	providers  map[int32]*ProviderInstance
+	mu         sync.Mutex
+	udp        []net.PacketConn
+	tcp        []net.Listener
+	kpasswdUDP []net.PacketConn
+	kpasswdTCP []net.Listener
 }
 
 func NewServer(ac *ak.APIController) ak.Outpost {
@@ -39,14 +41,18 @@ func NewServer(ac *ak.APIController) ak.Outpost {
 
 func (rs *KerberosServer) Start() error {
 	var group errgroup.Group
-	hasUDP, hasTCP := false, false
+	hasUDP, hasTCP, hasKpasswdUDP, hasKpasswdTCP := false, false, false, false
 	rs.mu.Lock()
 	for _, provider := range rs.providers {
 		hasUDP = hasUDP || provider.Config.GetUdpEnabled()
 		hasTCP = hasTCP || provider.Config.GetTcpEnabled()
+		hasKpasswdUDP = hasKpasswdUDP ||
+			(provider.Config.GetKpasswdEnabled() && provider.Config.GetUdpEnabled())
+		hasKpasswdTCP = hasKpasswdTCP ||
+			(provider.Config.GetKpasswdEnabled() && provider.Config.GetTcpEnabled())
 	}
 	rs.mu.Unlock()
-	if !hasUDP && !hasTCP {
+	if !hasUDP && !hasTCP && !hasKpasswdUDP && !hasKpasswdTCP {
 		return errors.New("all kerberos providers have both UDP and TCP disabled")
 	}
 	for _, address := range config.Get().Listen.Kerberos {
@@ -69,6 +75,30 @@ func (rs *KerberosServer) Start() error {
 			rs.tcp = append(rs.tcp, tcp)
 			rs.mu.Unlock()
 			group.Go(func() error { return rs.serveTCP(tcp) })
+		}
+	}
+	if hasKpasswdUDP || hasKpasswdTCP {
+		for _, address := range config.Get().Listen.Kpasswd {
+			if hasKpasswdUDP {
+				udp, err := net.ListenPacket("udp", address)
+				if err != nil {
+					return err
+				}
+				rs.mu.Lock()
+				rs.kpasswdUDP = append(rs.kpasswdUDP, udp)
+				rs.mu.Unlock()
+				group.Go(func() error { return rs.serveKpasswdUDP(udp) })
+			}
+			if hasKpasswdTCP {
+				tcp, err := net.Listen("tcp", address)
+				if err != nil {
+					return err
+				}
+				rs.mu.Lock()
+				rs.kpasswdTCP = append(rs.kpasswdTCP, tcp)
+				rs.mu.Unlock()
+				group.Go(func() error { return rs.serveKpasswdTCP(tcp) })
+			}
 		}
 	}
 	metricsRouter := ak.MetricsRouter()
@@ -99,6 +129,14 @@ func (rs *KerberosServer) Stop() error {
 		errs.Go(listener.Close)
 	}
 	for _, listener := range rs.tcp {
+		listener := listener
+		errs.Go(listener.Close)
+	}
+	for _, listener := range rs.kpasswdUDP {
+		listener := listener
+		errs.Go(listener.Close)
+	}
+	for _, listener := range rs.kpasswdTCP {
 		listener := listener
 		errs.Go(listener.Close)
 	}

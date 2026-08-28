@@ -13,4 +13,6 @@ class KerberosKubernetesController(KubernetesController):
         self.deployment_ports = [
             DeploymentPort(3088, "krb", "tcp", 3088),
             DeploymentPort(3088, "krb", "udp", 3088),
+            DeploymentPort(3464, "kpasswd", "tcp", 3464),
+            DeploymentPort(3464, "kpasswd", "udp", 3464),
         ]

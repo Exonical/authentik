@@ -63,6 +63,30 @@ Enter durations using the authentik time delta format, such as `hours=10` or `da
 
 **UDP enabled** and **TCP enabled** control which transports the outpost accepts for this provider. The outpost deployment exposes port `3088` for both transports, but the provider settings can disable either protocol.
 
+### Password changes (kpasswd)
+
+The Kerberos outpost supports RFC 3244 password changes through the MIT `kpasswd` protocol. Enable **Password changes enabled** to allow password changes for this provider. The outpost listens on port `3464` by default for this protocol. Publish this port for both UDP and TCP, or map it to the standard Kerberos password-change port `464`:
+
+```yaml
+services:
+    authentik_kerberos:
+        ports:
+            - 3464:3464/tcp
+            - 3464:3464/udp
+            # Alternatively, publish the standard client port:
+            # - 464:3464/tcp
+            # - 464:3464/udp
+```
+
+After obtaining a ticket, use the MIT client to change the password:
+
+```shell
+kinit alice@EXAMPLE.TEST
+kpasswd alice@EXAMPLE.TEST
+```
+
+The password change updates the authentik user password, rederives the Kerberos keys, and increments the key version number (KVNO). Existing tickets and service keytabs are not changed.
+
 ### Policy settings
 
 The policy switches control flags that the KDC can place on issued tickets:

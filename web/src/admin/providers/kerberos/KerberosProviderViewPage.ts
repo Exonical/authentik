@@ -205,6 +205,11 @@ export class KerberosProviderViewPage extends AKElement {
                                                 "kerberos.tcp-enabled.term",
                                             )}
                                             ${this.renderBoolean(
+                                                "Password changes enabled",
+                                                this.provider.kpasswdEnabled,
+                                                "kerberos.kpasswd-enabled.term",
+                                            )}
+                                            ${this.renderBoolean(
                                                 "Forwardable",
                                                 this.provider.forwardable,
                                                 "kerberos.forwardable.term",

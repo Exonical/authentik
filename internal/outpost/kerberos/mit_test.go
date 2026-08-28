@@ -41,15 +41,24 @@ const (
 )
 
 type mitHarness struct {
-	config     string
-	cache      string
-	keytabPath string
-	trace      string
+	config          string
+	cache           string
+	keytabPath      string
+	trace           string
+	passwordChanged chan string
 }
 
 func startMITKDC(t *testing.T, forceTCP bool) *mitHarness {
+	return startMITKDCWithKpasswd(t, forceTCP, false)
+}
+
+func startMITKDCWithKpasswd(t *testing.T, forceTCP, withKpasswd bool) *mitHarness {
 	t.Helper()
-	for _, tool := range []string{"kinit", "kvno", "klist"} {
+	tools := []string{"kinit", "kvno", "klist"}
+	if withKpasswd {
+		tools = append(tools, "kpasswd")
+	}
+	for _, tool := range tools {
 		if _, err := exec.LookPath(tool); err != nil {
 			t.Skipf("%s not installed, skipping MIT interop test", tool)
 		}
@@ -64,12 +73,36 @@ func startMITKDC(t *testing.T, forceTCP bool) *mitHarness {
 	if err != nil {
 		t.Fatal(err)
 	}
+	var passwordChanged chan string
+	if withKpasswd {
+		passwordChanged = make(chan string, 1)
+	}
 	serviceKey := make([]byte, 32)
 	for i := range serviceKey {
 		serviceKey[i] = byte(i + 1)
 	}
 
 	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if withKpasswd && r.URL.Path == "/api/v3/outposts/kerberos/1/set_password/" {
+			var request struct {
+				Username string `json:"username"`
+				Password string `json:"password"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+				http.Error(w, "bad request", http.StatusBadRequest)
+				return
+			}
+			userKey, err = etype.StringToKey(
+				[]byte(request.Password), []byte(mitRealm+request.Username), nil,
+			)
+			if err != nil {
+				http.Error(w, "bad password", http.StatusBadRequest)
+				return
+			}
+			passwordChanged <- request.Password
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
 		if r.URL.Query().Get("username") != mitUser {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -94,13 +127,14 @@ func startMITKDC(t *testing.T, forceTCP bool) *mitHarness {
 	cfg.Scheme = parsed.Scheme
 	cfg.Servers = api.ServerConfigurations{{URL: "/api/v3"}}
 
+	outpost := &KerberosServer{ac: &ak.APIController{Client: api.NewAPIClient(cfg)}}
 	store := &providerStore{
 		realm:      mitRealm,
 		masterKey:  []byte("provider master key"),
 		allowed:    map[int32]bool{18: true},
 		services:   make(map[string]kdb.PrincipalRecord),
 		cache:      make(map[string]cachedUserKey),
-		server:     &KerberosServer{ac: &ak.APIController{Client: api.NewAPIClient(cfg)}},
+		server:     outpost,
 		providerID: 1,
 	}
 	serviceRecord, err := store.serviceRecord(mitService, 1, map[string]interface{}{
@@ -123,6 +157,15 @@ func startMITKDC(t *testing.T, forceTCP bool) *mitHarness {
 			AllowProxiable:   true,
 		},
 	}
+	instance := &ProviderInstance{
+		Config: *api.NewKerberosOutpostConfig(1, "test", mitRealm, 3600, 3600, "test"),
+		Store:  store,
+		KDC:    server,
+	}
+	instance.Config.SetKpasswdEnabled(withKpasswd)
+	instance.Config.SetUdpEnabled(true)
+	instance.Config.SetTcpEnabled(true)
+	outpost.providers = map[int32]*ProviderInstance{1: instance}
 	udpConn, err := net.ListenPacket("udp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
@@ -137,8 +180,29 @@ func startMITKDC(t *testing.T, forceTCP bool) *mitHarness {
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() { done <- server.ListenAndServe(ctx, udpConn, tcpListener) }()
+	var kpasswdUDP net.PacketConn
+	var kpasswdTCP net.Listener
+	if withKpasswd {
+		kpasswdUDP, err = net.ListenPacket("udp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		kpasswdTCP, err = net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			_ = kpasswdUDP.Close()
+			t.Fatal(err)
+		}
+		go func() { _ = outpost.serveKpasswdUDP(kpasswdUDP) }()
+		go func() { _ = outpost.serveKpasswdTCP(kpasswdTCP) }()
+	}
 	t.Cleanup(func() {
 		cancel()
+		if kpasswdUDP != nil {
+			_ = kpasswdUDP.Close()
+		}
+		if kpasswdTCP != nil {
+			_ = kpasswdTCP.Close()
+		}
 		select {
 		case <-done:
 		case <-time.After(5 * time.Second):
@@ -149,6 +213,10 @@ func startMITKDC(t *testing.T, forceTCP bool) *mitHarness {
 	extra := ""
 	if forceTCP {
 		extra = "    udp_preference_limit = 1\n"
+	}
+	kpasswdPort := 0
+	if withKpasswd {
+		kpasswdPort = kpasswdTCP.Addr().(*net.TCPAddr).Port
 	}
 	configText := fmt.Sprintf(`[libdefaults]
     default_realm = %s
@@ -162,8 +230,9 @@ func startMITKDC(t *testing.T, forceTCP bool) *mitHarness {
         kdc = 127.0.0.1:%d
         kdc = tcp/127.0.0.1:%d
         admin_server = 127.0.0.1:%d
+        kpasswd_server = 127.0.0.1:%d
     }
-`, mitRealm, extra, mitRealm, udpPort, tcpPort, tcpPort)
+`, mitRealm, extra, mitRealm, udpPort, tcpPort, tcpPort, kpasswdPort)
 	configPath := filepath.Join(dir, "krb5.conf")
 	if err := os.WriteFile(configPath, []byte(configText), 0o600); err != nil {
 		t.Fatal(err)
@@ -193,9 +262,10 @@ func startMITKDC(t *testing.T, forceTCP bool) *mitHarness {
 	}
 
 	return &mitHarness{
-		config:     configPath,
-		cache:      filepath.Join(dir, "ccache"),
-		keytabPath: keytabPath,
+		config:          configPath,
+		cache:           filepath.Join(dir, "ccache"),
+		keytabPath:      keytabPath,
+		passwordChanged: passwordChanged,
 	}
 }
 
@@ -261,6 +331,27 @@ func TestMITInteropUDP(t *testing.T) {
 
 func TestMITInteropTCP(t *testing.T) {
 	runMITFlow(t, true)
+}
+
+func TestMITInteropKpasswd(t *testing.T) {
+	const newPassword = "alice-new-password"
+	h := startMITKDCWithKpasswd(t, false, true)
+	h.run(t, mitPassword+"\n", "kinit", mitUser)
+	h.run(t, mitPassword+"\n"+newPassword+"\n"+newPassword+"\n", "kpasswd", mitUser)
+	select {
+	case password := <-h.passwordChanged:
+		if password != newPassword {
+			t.Fatalf("password change = %q, want %q", password, newPassword)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for password API call")
+	}
+	h.run(t, newPassword+"\n", "kinit", mitUser)
+	if output := h.run(t, "", "klist"); !strings.Contains(
+		output, "krbtgt/"+mitRealm+"@"+mitRealm,
+	) {
+		t.Fatalf("klist does not show TGT after password change:\n%s", output)
+	}
 }
 
 func TestMITInteropPolicies(t *testing.T) {

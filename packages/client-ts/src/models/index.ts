@@ -279,6 +279,7 @@ export * from "./KerberosProviderRequest";
 export * from "./KerberosServicePrincipal";
 export * from "./KerberosServicePrincipalOutpost";
 export * from "./KerberosServicePrincipalRequest";
+export * from "./KerberosSetPasswordRequest";
 export * from "./KerberosSource";
 export * from "./KerberosSourcePropertyMapping";
 export * from "./KerberosSourcePropertyMappingRequest";

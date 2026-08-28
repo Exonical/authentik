@@ -99,6 +99,12 @@ export interface KerberosOutpostConfig {
      */
     tcpEnabled?: boolean;
     /**
+     * Enable RFC 3244 password changes through the Kerberos outpost.
+     * @type {boolean}
+     * @memberof KerberosOutpostConfig
+     */
+    kpasswdEnabled?: boolean;
+    /**
      *
      * @type {boolean}
      * @memberof KerberosOutpostConfig
@@ -219,6 +225,7 @@ export function KerberosOutpostConfigFromJSONTyped(
                 : json["require_preauthentication"],
         udpEnabled: json["udp_enabled"] == null ? undefined : json["udp_enabled"],
         tcpEnabled: json["tcp_enabled"] == null ? undefined : json["tcp_enabled"],
+        kpasswdEnabled: json["kpasswd_enabled"] == null ? undefined : json["kpasswd_enabled"],
         forwardable: json["forwardable"] == null ? undefined : json["forwardable"],
         renewable: json["renewable"] == null ? undefined : json["renewable"],
         proxiable: json["proxiable"] == null ? undefined : json["proxiable"],
@@ -271,6 +278,7 @@ export function KerberosOutpostConfigToJSONTyped(
         require_preauthentication: value["requirePreauthentication"],
         udp_enabled: value["udpEnabled"],
         tcp_enabled: value["tcpEnabled"],
+        kpasswd_enabled: value["kpasswdEnabled"],
         forwardable: value["forwardable"],
         renewable: value["renewable"],
         proxiable: value["proxiable"],
