@@ -21,18 +21,20 @@ var _ MappedNullable = &KerberosOutpostConfig{}
 
 // KerberosOutpostConfig Kerberos provider serializer for outposts.
 type KerberosOutpostConfig struct {
-	Pk                         int32                           `json:"pk"`
-	Name                       string                          `json:"name"`
-	RealmName                  string                          `json:"realm_name"`
-	DefaultDomain              *string                         `json:"default_domain,omitempty"`
-	MaximumTicketLifetime      int32                           `json:"maximum_ticket_lifetime"`
-	MaximumTicketRenewLifetime int32                           `json:"maximum_ticket_renew_lifetime"`
-	DefaultTicketLifetime      *string                         `json:"default_ticket_lifetime,omitempty"`
-	DefaultTicketRenewLifetime *string                         `json:"default_ticket_renew_lifetime,omitempty"`
-	AllowedEnctypes            []AllowedEnctypesEnum           `json:"allowed_enctypes,omitempty"`
-	RequirePreauthentication   *bool                           `json:"require_preauthentication,omitempty"`
-	UdpEnabled                 *bool                           `json:"udp_enabled,omitempty"`
-	TcpEnabled                 *bool                           `json:"tcp_enabled,omitempty"`
+	Pk                         int32                 `json:"pk"`
+	Name                       string                `json:"name"`
+	RealmName                  string                `json:"realm_name"`
+	DefaultDomain              *string               `json:"default_domain,omitempty"`
+	MaximumTicketLifetime      int32                 `json:"maximum_ticket_lifetime"`
+	MaximumTicketRenewLifetime int32                 `json:"maximum_ticket_renew_lifetime"`
+	DefaultTicketLifetime      *string               `json:"default_ticket_lifetime,omitempty"`
+	DefaultTicketRenewLifetime *string               `json:"default_ticket_renew_lifetime,omitempty"`
+	AllowedEnctypes            []AllowedEnctypesEnum `json:"allowed_enctypes,omitempty"`
+	RequirePreauthentication   *bool                 `json:"require_preauthentication,omitempty"`
+	UdpEnabled                 *bool                 `json:"udp_enabled,omitempty"`
+	TcpEnabled                 *bool                 `json:"tcp_enabled,omitempty"`
+	// Enable RFC 3244 password changes through the Kerberos outpost.
+	KpasswdEnabled             *bool                           `json:"kpasswd_enabled,omitempty"`
 	Forwardable                *bool                           `json:"forwardable,omitempty"`
 	Renewable                  *bool                           `json:"renewable,omitempty"`
 	Proxiable                  *bool                           `json:"proxiable,omitempty"`
@@ -415,6 +417,38 @@ func (o *KerberosOutpostConfig) SetTcpEnabled(v bool) {
 	o.TcpEnabled = &v
 }
 
+// GetKpasswdEnabled returns the KpasswdEnabled field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetKpasswdEnabled() bool {
+	if o == nil || IsNil(o.KpasswdEnabled) {
+		var ret bool
+		return ret
+	}
+	return *o.KpasswdEnabled
+}
+
+// GetKpasswdEnabledOk returns a tuple with the KpasswdEnabled field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetKpasswdEnabledOk() (*bool, bool) {
+	if o == nil || IsNil(o.KpasswdEnabled) {
+		return nil, false
+	}
+	return o.KpasswdEnabled, true
+}
+
+// HasKpasswdEnabled returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasKpasswdEnabled() bool {
+	if o != nil && !IsNil(o.KpasswdEnabled) {
+		return true
+	}
+
+	return false
+}
+
+// SetKpasswdEnabled gets a reference to the given bool and assigns it to the KpasswdEnabled field.
+func (o *KerberosOutpostConfig) SetKpasswdEnabled(v bool) {
+	o.KpasswdEnabled = &v
+}
+
 // GetForwardable returns the Forwardable field value if set, zero value otherwise.
 func (o *KerberosOutpostConfig) GetForwardable() bool {
 	if o == nil || IsNil(o.Forwardable) {
@@ -721,6 +755,9 @@ func (o KerberosOutpostConfig) ToMap() (map[string]interface{}, error) {
 	if !IsNil(o.TcpEnabled) {
 		toSerialize["tcp_enabled"] = o.TcpEnabled
 	}
+	if !IsNil(o.KpasswdEnabled) {
+		toSerialize["kpasswd_enabled"] = o.KpasswdEnabled
+	}
 	if !IsNil(o.Forwardable) {
 		toSerialize["forwardable"] = o.Forwardable
 	}
@@ -803,6 +840,7 @@ func (o *KerberosOutpostConfig) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "require_preauthentication")
 		delete(additionalProperties, "udp_enabled")
 		delete(additionalProperties, "tcp_enabled")
+		delete(additionalProperties, "kpasswd_enabled")
 		delete(additionalProperties, "forwardable")
 		delete(additionalProperties, "renewable")
 		delete(additionalProperties, "proxiable")

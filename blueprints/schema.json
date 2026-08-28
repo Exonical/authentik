@@ -12262,6 +12262,11 @@
                     "type": "boolean",
                     "title": "Tcp enabled"
                 },
+                "kpasswd_enabled": {
+                    "type": "boolean",
+                    "title": "Kpasswd enabled",
+                    "description": "Enable RFC 3244 password changes through the Kerberos outpost."
+                },
                 "forwardable": {
                     "type": "boolean",
                     "title": "Forwardable"

@@ -23,6 +23,9 @@ func (s *providerStore) Lookup(name principal.Principal) (kdb.PrincipalRecord, b
 	if len(name.Components) == 2 && name.Components[0] == "krbtgt" && name.Components[1] == s.realm {
 		return s.krbtgtRecord(name)
 	}
+	if len(name.Components) == 2 && name.Components[0] == "kadmin" && name.Components[1] == "changepw" {
+		return s.changepwRecord(name)
+	}
 	if len(name.Components) > 1 {
 		record, ok := s.services[principalKey(name)]
 		return record, ok, nil
@@ -34,15 +37,25 @@ func (s *providerStore) Lookup(name principal.Principal) (kdb.PrincipalRecord, b
 // hardcoded to 1 because the keys derive deterministically from the
 // provider master key (accepted limitation).
 func (s *providerStore) krbtgtRecord(name principal.Principal) (kdb.PrincipalRecord, bool, error) {
+	return s.syntheticRecord(name, "krbtgt")
+}
+
+func (s *providerStore) changepwRecord(name principal.Principal) (kdb.PrincipalRecord, bool, error) {
+	return s.syntheticRecord(name, "kadmin-changepw")
+}
+
+func (s *providerStore) syntheticRecord(
+	name principal.Principal, keyPrefix string,
+) (kdb.PrincipalRecord, bool, error) {
 	keys := make(map[int32]kdb.Key)
 	for enctype := range s.allowed {
 		etype, err := crypto.NewRegistry().Get(enctype)
 		if err != nil {
 			return kdb.PrincipalRecord{}, false, fmt.Errorf("get enctype %d: %w", enctype, err)
 		}
-		key, err := deriveKRBtgtKey(s.masterKey, etype)
+		key, err := deriveSyntheticKey(s.masterKey, etype, keyPrefix)
 		if err != nil {
-			return kdb.PrincipalRecord{}, false, fmt.Errorf("derive krbtgt enctype %d: %w", enctype, err)
+			return kdb.PrincipalRecord{}, false, fmt.Errorf("derive %s enctype %d: %w", keyPrefix, enctype, err)
 		}
 		keys[enctype] = kdb.Key{
 			Enctype: enctype,
@@ -52,6 +65,12 @@ func (s *providerStore) krbtgtRecord(name principal.Principal) (kdb.PrincipalRec
 		}
 	}
 	return kdb.PrincipalRecord{Name: name, Keys: keys, KVNO: 1}, len(keys) > 0, nil
+}
+
+func (s *providerStore) invalidateUserKey(username string) {
+	s.cacheMu.Lock()
+	defer s.cacheMu.Unlock()
+	delete(s.cache, username)
 }
 
 func (s *providerStore) userRecord(name principal.Principal) (kdb.PrincipalRecord, bool, error) {
@@ -147,7 +166,11 @@ func principalKey(name principal.Principal) string {
 }
 
 func deriveKRBtgtKey(master []byte, etype crypto.EType) ([]byte, error) {
-	info := []byte(fmt.Sprintf("krbtgt-%d", etype.ID()))
+	return deriveSyntheticKey(master, etype, "krbtgt")
+}
+
+func deriveSyntheticKey(master []byte, etype crypto.EType, prefix string) ([]byte, error) {
+	info := []byte(fmt.Sprintf("%s-%d", prefix, etype.ID()))
 	out := make([]byte, etype.KeySize())
 	if _, err := io.ReadFull(hkdf.New(sha256.New, master, nil, info), out); err != nil {
 		return nil, err

@@ -15,9 +15,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 
+from authentik.api.validation import validate
 from authentik.core.api.providers import ProviderSerializer
 from authentik.core.api.used_by import UsedByMixin
 from authentik.core.api.utils import ModelSerializer, PassiveSerializer
+from authentik.core.models import User
 from authentik.lib.utils.time import timedelta_from_string
 from authentik.providers.kerberos.models import (
     KerberosProvider,
@@ -47,6 +49,7 @@ class KerberosProviderSerializer(ProviderSerializer):
             "require_preauthentication",
             "udp_enabled",
             "tcp_enabled",
+            "kpasswd_enabled",
             "forwardable",
             "renewable",
             "proxiable",
@@ -171,6 +174,13 @@ class KerberosUserKeyOutpostSerializer(PassiveSerializer):
         return obj.keys
 
 
+class KerberosSetPasswordSerializer(PassiveSerializer):
+    """Password change request for the Kerberos outpost."""
+
+    username = CharField()
+    password = CharField(write_only=True)
+
+
 class KerberosOutpostConfigSerializer(ModelSerializer):
     """Kerberos provider serializer for outposts."""
 
@@ -199,6 +209,7 @@ class KerberosOutpostConfigSerializer(ModelSerializer):
             "require_preauthentication",
             "udp_enabled",
             "tcp_enabled",
+            "kpasswd_enabled",
             "forwardable",
             "renewable",
             "proxiable",
@@ -260,3 +271,30 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
         if user_keys is None:
             raise Http404
         return Response(KerberosUserKeyOutpostSerializer(user_keys).data)
+
+    @extend_schema(
+        request=KerberosSetPasswordSerializer,
+        responses={204: None},
+    )
+    @action(detail=True, methods=["POST"])
+    @validate(KerberosSetPasswordSerializer)
+    def set_password(self, request: Request, pk=None, body=None) -> Response:
+        """Set a user's password through the Kerberos outpost."""
+        provider = self.get_object()
+        if not provider.kpasswd_enabled:
+            raise Http404
+        username = body.validated_data["username"]
+        match provider.principal_username_attribute:
+            case "email":
+                user = User.objects.filter(email=username).first()
+            case "upn":
+                user = User.objects.filter(attributes__upn=username).first()
+                if user is None:
+                    user = User.objects.filter(username=username).first()
+            case _:
+                user = User.objects.filter(username=username).first()
+        if user is None:
+            raise Http404
+        user.set_password(body.validated_data["password"], request=request)
+        user.save()
+        return Response(status=204)

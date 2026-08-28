@@ -79,6 +79,10 @@ class KerberosProvider(OutpostModel, Provider):
     require_preauthentication = models.BooleanField(default=True)
     udp_enabled = models.BooleanField(default=True)
     tcp_enabled = models.BooleanField(default=True)
+    kpasswd_enabled = models.BooleanField(
+        default=True,
+        help_text=_("Enable RFC 3244 password changes through the Kerberos outpost."),
+    )
     forwardable = models.BooleanField(default=True)
     renewable = models.BooleanField(default=True)
     proxiable = models.BooleanField(default=False)

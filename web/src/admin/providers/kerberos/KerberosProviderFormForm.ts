@@ -266,6 +266,13 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                     label=${msg("TCP enabled", { id: "kerberos.tcp-enabled.label" })}
                     ?checked=${provider.tcpEnabled ?? true}
                 ></ak-switch-input>
+                <ak-switch-input
+                    name="kpasswdEnabled"
+                    label=${msg("Password changes enabled", {
+                        id: "kerberos.kpasswd-enabled.label",
+                    })}
+                    ?checked=${provider.kpasswdEnabled ?? true}
+                ></ak-switch-input>
             </div>
         </ak-form-group>
 
