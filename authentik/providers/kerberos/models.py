@@ -172,6 +172,18 @@ class KerberosServicePrincipal(SerializerModel, PolicyBindingModel):
     uuid = models.UUIDField(default=uuid4, editable=False, primary_key=True)
     provider = models.ForeignKey(KerberosProvider, on_delete=models.CASCADE)
     spn = models.CharField(max_length=1024)
+    service_account = models.ForeignKey(
+        "authentik_core.User",
+        null=True,
+        blank=True,
+        default=None,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        help_text=_(
+            "Optional authentik user (typically a service account) whose policies are "
+            "evaluated when this principal acts as a Kerberos client."
+        ),
+    )
     kvno = models.PositiveIntegerField(default=1)
     keys = models.JSONField(default=dict)
     ok_to_auth_as_delegate = models.BooleanField(

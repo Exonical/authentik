@@ -38,8 +38,19 @@ func (s *providerStore) Lookup(name principal.Principal) (kdb.PrincipalRecord, b
 func (s *providerStore) Authorize(
 	client, service principal.Principal, asExchange bool,
 ) error {
-	if s == nil || client.Realm != s.realm || len(client.Components) != 1 {
+	if s == nil || client.Realm != s.realm || len(client.Components) == 0 {
 		return nil
+	}
+	subject := client.Components[0]
+	clientSPN := ""
+	if len(client.Components) > 1 {
+		if (len(client.Components) == 2 && client.Components[0] == "krbtgt") ||
+			(len(client.Components) == 2 && client.Components[0] == "kadmin" &&
+				client.Components[1] == "changepw") {
+			return nil
+		}
+		clientSPN = strings.Join(client.Components, "/")
+		subject = clientSPN
 	}
 	spn := ""
 	if service.Realm == s.realm && len(service.Components) > 1 &&
@@ -48,7 +59,10 @@ func (s *providerStore) Authorize(
 			service.Components[1] == "changepw") {
 		spn = strings.Join(service.Components, "/")
 	}
-	key := client.Components[0] + "\x00" + spn
+	key := "username\x00" + subject + "\x00" + spn
+	if clientSPN != "" {
+		key = "client_spn\x00" + subject + "\x00" + spn
+	}
 	now := time.Now()
 	s.accessCacheMu.Lock()
 	if cached, ok := s.accessCache[key]; ok && now.Before(cached.expires) {
@@ -61,19 +75,23 @@ func (s *providerStore) Authorize(
 	s.accessCacheMu.Unlock()
 
 	if s.server == nil || s.server.ac == nil || s.server.ac.Client == nil {
-		log.WithField("username", client.Components[0]).
+		log.WithField("username", subject).
 			WithField("spn", spn).Warn("Kerberos policy access check failed")
 		return fmt.Errorf("authentik policy access check failed")
 	}
 	request := s.server.ac.Client.OutpostsAPI.
-		OutpostsKerberosAccessCheck(context.Background(), s.providerID).
-		Username(client.Components[0])
+		OutpostsKerberosAccessCheck(context.Background(), s.providerID)
+	if clientSPN != "" {
+		request = request.ClientSpn(clientSPN)
+	} else {
+		request = request.Username(subject)
+	}
 	if spn != "" {
 		request = request.Spn(spn)
 	}
 	response, _, err := request.Execute()
 	if err != nil || response == nil {
-		logger := log.WithField("username", client.Components[0]).WithField("spn", spn)
+		logger := log.WithField("username", subject).WithField("spn", spn)
 		if err != nil {
 			logger = logger.WithError(err)
 		}
@@ -89,7 +107,7 @@ func (s *providerStore) Authorize(
 	s.accessCache[key] = cachedAccessCheck{allowed: allowed, expires: now.Add(accessCheckCacheTTL)}
 	s.accessCacheMu.Unlock()
 	if !allowed {
-		log.WithField("username", client.Components[0]).
+		log.WithField("username", subject).
 			WithField("spn", spn).Info("Kerberos policy denied access")
 		return fmt.Errorf("authentik policy denied access")
 	}

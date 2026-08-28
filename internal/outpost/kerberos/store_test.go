@@ -144,12 +144,19 @@ func TestStoreAuthorizePolicyDenialAndCacheSeparation(t *testing.T) {
 	}
 }
 
-func TestStoreAuthorizeSkipsNonUserClientsAndUsesAppOnlyServices(t *testing.T) {
+func TestStoreAuthorizeClientSPNAndBypasses(t *testing.T) {
 	requests := 0
 	store := testStore(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests++
-		if r.URL.Query().Get("spn") != "" {
-			t.Errorf("unexpected SPN query for app-only check: %s", r.URL.RawQuery)
+		if r.URL.Query().Get("client_spn") != "" &&
+			(r.URL.Query().Get("client_spn") != "svc/worker" ||
+				r.URL.Query().Get("username") != "" ||
+				r.URL.Query().Get("spn") != "host/service.test") {
+			t.Errorf("unexpected client-SPN access check query: %s", r.URL.RawQuery)
+		}
+		if r.URL.Query().Get("client_spn") == "" &&
+			(r.URL.Query().Get("username") != "alice" || r.URL.Query().Get("spn") != "") {
+			t.Errorf("unexpected access check query: %s", r.URL.RawQuery)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
@@ -162,6 +169,18 @@ func TestStoreAuthorizeSkipsNonUserClientsAndUsesAppOnlyServices(t *testing.T) {
 		false,
 	); err != nil {
 		t.Fatal(err)
+	}
+	for _, client := range []principal.Principal{
+		{Realm: testRealm, Components: []string{"krbtgt", testRealm}},
+		{Realm: testRealm, Components: []string{"kadmin", "changepw"}},
+	} {
+		if err := store.Authorize(
+			client,
+			principal.Principal{Realm: testRealm, Components: []string{"host", "service.test"}},
+			false,
+		); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := store.Authorize(
 		principal.Principal{Realm: "OTHER.TEST", Components: []string{"alice"}},
@@ -177,8 +196,37 @@ func TestStoreAuthorizeSkipsNonUserClientsAndUsesAppOnlyServices(t *testing.T) {
 	); err != nil {
 		t.Fatal(err)
 	}
-	if requests != 1 {
-		t.Fatalf("requests = %d, want 1 app-only check", requests)
+	if requests != 2 {
+		t.Fatalf("requests = %d, want client-SPN and app-only checks", requests)
+	}
+}
+
+func TestStoreAuthorizeClientSPNCacheKeySeparation(t *testing.T) {
+	requests := 0
+	store := testStore(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		allowed := r.URL.Query().Get("username") == "alice" ||
+			r.URL.Query().Get("client_spn") == "svc/worker"
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"access": map[string]interface{}{"passing": allowed, "messages": []string{}, "log_messages": []string{}},
+		})
+	}))
+	service := principal.Principal{Realm: testRealm, Components: []string{"host", "service.test"}}
+	if err := store.Authorize(
+		principal.Principal{Realm: testRealm, Components: []string{"alice"}}, service, false,
+	); err != nil {
+		t.Fatal(err)
+	}
+	client := principal.Principal{Realm: testRealm, Components: []string{"svc", "worker"}}
+	if err := store.Authorize(client, service, false); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.Authorize(client, service, false); err != nil {
+		t.Fatal(err)
+	}
+	if requests != 2 {
+		t.Fatalf("requests = %d, want 2 distinct subject checks with client cache reuse", requests)
 	}
 }
 

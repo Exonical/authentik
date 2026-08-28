@@ -37,6 +37,12 @@ export interface KerberosServicePrincipal {
      */
     spn: string;
     /**
+     * Optional authentik user (typically a service account) whose policies are evaluated when this principal acts as a Kerberos client.
+     * @type {number}
+     * @memberof KerberosServicePrincipal
+     */
+    serviceAccount?: number | null;
+    /**
      *
      * @type {number}
      * @memberof KerberosServicePrincipal
@@ -91,6 +97,12 @@ export function KerberosServicePrincipalFromJSONTyped(
         uuid: json["uuid"],
         provider: json["provider"],
         spn: json["spn"],
+        serviceAccount:
+            json["service_account"] === undefined
+                ? undefined
+                : json["service_account"] === null
+                  ? null
+                  : json["service_account"],
         kvno: json["kvno"],
         keys: json["keys"],
         okToAuthAsDelegate:
@@ -117,6 +129,7 @@ export function KerberosServicePrincipalToJSONTyped(
     return {
         provider: value["provider"],
         spn: value["spn"],
+        service_account: value["serviceAccount"],
         ok_to_auth_as_delegate: value["okToAuthAsDelegate"],
         allowed_delegation_targets: value["allowedDelegationTargets"],
     };

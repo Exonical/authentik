@@ -269,17 +269,23 @@ type ApiOutpostsKerberosAccessCheckRequest struct {
 	ctx        context.Context
 	ApiService *OutpostsAPIService
 	id         int32
-	username   *string
+	clientSpn  *string
 	spn        *string
+	username   *string
 }
 
-func (r ApiOutpostsKerberosAccessCheckRequest) Username(username string) ApiOutpostsKerberosAccessCheckRequest {
-	r.username = &username
+func (r ApiOutpostsKerberosAccessCheckRequest) ClientSpn(clientSpn string) ApiOutpostsKerberosAccessCheckRequest {
+	r.clientSpn = &clientSpn
 	return r
 }
 
 func (r ApiOutpostsKerberosAccessCheckRequest) Spn(spn string) ApiOutpostsKerberosAccessCheckRequest {
 	r.spn = &spn
+	return r
+}
+
+func (r ApiOutpostsKerberosAccessCheckRequest) Username(username string) ApiOutpostsKerberosAccessCheckRequest {
+	r.username = &username
 	return r
 }
 
@@ -326,14 +332,16 @@ func (a *OutpostsAPIService) OutpostsKerberosAccessCheckExecute(r ApiOutpostsKer
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.username == nil {
-		return localVarReturnValue, nil, reportError("username is required and must be specified")
-	}
 
+	if r.clientSpn != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "client_spn", r.clientSpn, "form", "")
+	}
 	if r.spn != nil {
 		parameterAddToHeaderOrQuery(localVarQueryParams, "spn", r.spn, "form", "")
 	}
-	parameterAddToHeaderOrQuery(localVarQueryParams, "username", r.username, "form", "")
+	if r.username != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "username", r.username, "form", "")
+	}
 	// to determine the Content-Type header
 	localVarHTTPContentTypes := []string{}
 
