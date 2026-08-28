@@ -19,8 +19,30 @@ import (
 func newS4UTestServer(
 	t *testing.T, policy delegationPolicy,
 ) (*kdc.Server, *client.Client, principal.Principal, principal.Principal, principal.Principal) {
+	return newS4UTestServerWithAccessCheck(t, policy, func(string, string) bool { return true })
+}
+
+func newS4UTestServerWithAccessCheck(
+	t *testing.T,
+	policy delegationPolicy,
+	accessCheck func(username, spn string) bool,
+) (*kdc.Server, *client.Client, principal.Principal, principal.Principal, principal.Principal) {
 	t.Helper()
 	store := testStore(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v3/outposts/kerberos/1/access_check/" {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"access": map[string]interface{}{
+					"passing": accessCheck(
+						r.URL.Query().Get("username"),
+						r.URL.Query().Get("spn"),
+					),
+					"messages":     []string{},
+					"log_messages": []string{},
+				},
+			})
+			return
+		}
 		if r.URL.Query().Get("username") != "alice" {
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -87,7 +109,7 @@ func newS4UTestServer(
 			AllowRenewable:   true,
 			AllowProxiable:   true,
 		},
-		DelegationPolicy: store.delegationPolicy,
+		CheckAllowedToDelegate: store.checkAllowedToDelegate,
 	}
 	kclient := &client.Client{
 		Now: func() time.Time { return now },
@@ -157,4 +179,58 @@ func TestS4UDelegationPolicy(t *testing.T) {
 			t.Fatal("S4U2Proxy succeeded with delegation disabled")
 		}
 	})
+
+	t.Run("target not allowed", func(t *testing.T) {
+		target := principal.Principal{
+			Realm: testRealm, NameType: principal.NTSrvHst,
+			Components: []string{"HTTP", "backend.test"},
+		}
+		_, kclient, service, _, user := newS4UTestServer(t, delegationPolicy{ok: true})
+		tgt, err := kclient.ASExchange(context.Background(), service, "service-password")
+		if err != nil {
+			t.Fatalf("service AS exchange: %v", err)
+		}
+		self, err := kclient.S4U2Self(context.Background(), tgt, user)
+		if err != nil {
+			t.Fatalf("S4U2Self: %v", err)
+		}
+		if self.Flags&types.TicketForwardable == 0 {
+			t.Fatalf("S4U2Self ticket is not forwardable: %#x", self.Flags)
+		}
+		if _, err := kclient.S4U2Proxy(context.Background(), tgt, self, target); err == nil {
+			t.Fatal("S4U2Proxy succeeded for a target outside the delegation list")
+		}
+	})
+}
+
+func TestS4UProxyImpersonatedUserPolicy(t *testing.T) {
+	var checkedUsername, checkedSPN string
+	_, kclient, service, target, user := newS4UTestServerWithAccessCheck(
+		t,
+		delegationPolicy{
+			ok: true,
+			targets: []principal.Principal{{
+				Realm: testRealm, NameType: principal.NTSrvHst,
+				Components: []string{"HTTP", "backend.test"},
+			}},
+		},
+		func(username, spn string) bool {
+			checkedUsername, checkedSPN = username, spn
+			return false
+		},
+	)
+	tgt, err := kclient.ASExchange(context.Background(), service, "service-password")
+	if err != nil {
+		t.Fatalf("service AS exchange: %v", err)
+	}
+	self, err := kclient.S4U2Self(context.Background(), tgt, user)
+	if err != nil {
+		t.Fatalf("S4U2Self: %v", err)
+	}
+	if _, err := kclient.S4U2Proxy(context.Background(), tgt, self, target); err == nil {
+		t.Fatal("S4U2Proxy succeeded despite impersonated-user policy denial")
+	}
+	if checkedUsername != "alice" || checkedSPN != "HTTP/backend.test" {
+		t.Fatalf("access check = username %q, spn %q", checkedUsername, checkedSPN)
+	}
 }

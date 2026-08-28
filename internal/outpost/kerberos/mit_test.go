@@ -235,8 +235,8 @@ func startMITKDCWithIdentityPolicy(
 			AllowRenewable:   true,
 			AllowProxiable:   true,
 		},
-		DelegationPolicy: store.delegationPolicy,
-		Authorize:        store.Authorize,
+		CheckAllowedToDelegate: store.checkAllowedToDelegate,
+		Authorize:              store.Authorize,
 	}
 	instance := &ProviderInstance{
 		Config: *api.NewKerberosOutpostConfig(1, "test", mitRealm, 3600, 3600, "test"),
@@ -556,8 +556,27 @@ func TestMITInteropS4U(t *testing.T) {
 		t.Fatalf("kvno S4U2Proxy unexpectedly succeeded without allowed target:\n%s", output)
 	} else {
 		t.Logf("kvno denied S4U2Proxy output:\n%s", output)
-		if strings.Contains(output, "Expecting FX_ERROR") {
-			t.Fatalf("kvno S4U2Proxy failed with malformed FAST error:\n%s", output)
+		if !strings.Contains(strings.ToLower(output), "can't fulfill requested option") {
+			t.Fatalf("kvno S4U2Proxy did not report the expected option error:\n%s", output)
+		}
+	}
+
+	deniedUser := startMITKDCWithIdentityPolicy(
+		t, false, false, true, mitUser, mitUser,
+		func(username, clientSPN, spn string) bool {
+			return username != mitUser || spn != "HTTP/backend.test"
+		},
+	)
+	deniedUser.run(t, "", "kinit", "-f", "-kt", deniedUser.keytabPath, mitService)
+	deniedUser.run(t, "", "kvno", "-U", mitUser, mitService)
+	if output, err := deniedUser.runResult(
+		deniedUser.cache, "", "kvno", "-U", mitUser, "-P", "HTTP/backend.test",
+	); err == nil {
+		t.Fatalf("kvno S4U2Proxy unexpectedly succeeded despite impersonated-user policy denial:\n%s", output)
+	} else {
+		t.Logf("kvno impersonated-user policy denial:\n%s", output)
+		if !strings.Contains(strings.ToLower(output), "can't fulfill requested option") {
+			t.Fatalf("kvno impersonated-user denial did not report the expected option error:\n%s", output)
 		}
 	}
 }

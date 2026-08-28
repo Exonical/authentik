@@ -185,6 +185,9 @@ The service principal still needs its keytab to authenticate to the KDC. The
 target service must also have a configured service principal and keytab. Keep
 the target list limited to the services the delegating account needs.
 
+S4U2Proxy also evaluates the impersonated user's authentik application and
+target service-principal policies before issuing the delegated ticket.
+
 ## PKINIT
 
 Public Key Cryptography for Initial Authentication (PKINIT) allows a client to obtain a Kerberos ticket with an X.509 certificate instead of a password. To enable PKINIT, set both certificate fields on the provider:
