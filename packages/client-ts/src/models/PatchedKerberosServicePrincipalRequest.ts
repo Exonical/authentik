@@ -30,6 +30,18 @@ export interface PatchedKerberosServicePrincipalRequest {
      * @memberof PatchedKerberosServicePrincipalRequest
      */
     spn?: string;
+    /**
+     * Allow this service principal to authenticate as a user for delegation.
+     * @type {boolean}
+     * @memberof PatchedKerberosServicePrincipalRequest
+     */
+    okToAuthAsDelegate?: boolean;
+    /**
+     *
+     * @type {Array<string>}
+     * @memberof PatchedKerberosServicePrincipalRequest
+     */
+    allowedDelegationTargets?: Array<string>;
 }
 
 /**
@@ -57,6 +69,12 @@ export function PatchedKerberosServicePrincipalRequestFromJSONTyped(
     return {
         provider: json["provider"] == null ? undefined : json["provider"],
         spn: json["spn"] == null ? undefined : json["spn"],
+        okToAuthAsDelegate:
+            json["ok_to_auth_as_delegate"] == null ? undefined : json["ok_to_auth_as_delegate"],
+        allowedDelegationTargets:
+            json["allowed_delegation_targets"] == null
+                ? undefined
+                : json["allowed_delegation_targets"],
     };
 }
 
@@ -77,5 +95,7 @@ export function PatchedKerberosServicePrincipalRequestToJSONTyped(
     return {
         provider: value["provider"],
         spn: value["spn"],
+        ok_to_auth_as_delegate: value["okToAuthAsDelegate"],
+        allowed_delegation_targets: value["allowedDelegationTargets"],
     };
 }

@@ -14,6 +14,7 @@ import (
 
 	"github.com/Exonical/go-kerberos/krb5/kdb"
 	"github.com/Exonical/go-kerberos/krb5/kdc"
+	"github.com/Exonical/go-kerberos/krb5/principal"
 	log "github.com/sirupsen/logrus"
 
 	"goauthentik.io/internal/outpost/ak"
@@ -59,13 +60,14 @@ func (rs *KerberosServer) Refresh() error {
 			return fmt.Errorf("load provider %d PKINIT configuration: %w", provider.Pk, err)
 		}
 		store := &providerStore{
-			realm:      provider.RealmName,
-			masterKey:  masterKey,
-			allowed:    make(map[int32]bool, len(provider.AllowedEnctypes)),
-			services:   make(map[string]kdb.PrincipalRecord),
-			cache:      make(map[string]cachedUserKey),
-			server:     rs,
-			providerID: provider.Pk,
+			realm:       provider.RealmName,
+			masterKey:   masterKey,
+			allowed:     make(map[int32]bool, len(provider.AllowedEnctypes)),
+			services:    make(map[string]kdb.PrincipalRecord),
+			delegations: make(map[string]delegationPolicy),
+			cache:       make(map[string]cachedUserKey),
+			server:      rs,
+			providerID:  provider.Pk,
 		}
 		for _, enctype := range provider.AllowedEnctypes {
 			store.allowed[int32(enctype)] = true
@@ -87,6 +89,9 @@ func (rs *KerberosServer) Refresh() error {
 					AllowRenewable:   provider.GetRenewable(),
 					AllowProxiable:   provider.GetProxiable(),
 				},
+				DelegationPolicy: func(service principal.Principal) (bool, []principal.Principal) {
+					return store.delegationPolicy(service)
+				},
 				PKINITCertificate: pkinitCertificate,
 				PKINITSigner:      pkinitSigner,
 				PKINITClientCAs:   pkinitClientCAs,
@@ -106,6 +111,21 @@ func (rs *KerberosServer) Refresh() error {
 				return fmt.Errorf("decode service principal %s: %w", service.Spn, err)
 			}
 			store.services[principalKey(record.Name)] = record
+			targets := make([]principal.Principal, 0, len(service.AllowedDelegationTargets))
+			for _, target := range service.AllowedDelegationTargets {
+				parsed, parseErr := principal.Parse(target + "@" + provider.RealmName)
+				if parseErr != nil {
+					instance.log.WithField("spn", service.Spn).
+						WithField("target", target).
+						Warn("Skipping malformed Kerberos delegation target")
+					continue
+				}
+				targets = append(targets, *parsed)
+			}
+			store.delegations[service.Spn] = delegationPolicy{
+				ok:      service.GetOkToAuthAsDelegate(),
+				targets: targets,
+			}
 		}
 		if old := rs.getCurrentProvider(provider.Pk); old != nil {
 			store.cache = old.Store.cache
@@ -196,14 +216,31 @@ type cachedUserKey struct {
 }
 
 type providerStore struct {
-	realm      string
-	masterKey  []byte
-	allowed    map[int32]bool
-	services   map[string]kdb.PrincipalRecord
-	cache      map[string]cachedUserKey
-	cacheMu    sync.Mutex
-	server     *KerberosServer
-	providerID int32
+	realm       string
+	masterKey   []byte
+	allowed     map[int32]bool
+	services    map[string]kdb.PrincipalRecord
+	delegations map[string]delegationPolicy
+	cache       map[string]cachedUserKey
+	cacheMu     sync.Mutex
+	server      *KerberosServer
+	providerID  int32
+}
+
+type delegationPolicy struct {
+	ok      bool
+	targets []principal.Principal
+}
+
+func (s *providerStore) delegationPolicy(service principal.Principal) (bool, []principal.Principal) {
+	if s == nil || service.Realm != s.realm || len(service.Components) < 2 {
+		return false, nil
+	}
+	policy, ok := s.delegations[strings.Join(service.Components, "/")]
+	if !ok {
+		return false, nil
+	}
+	return policy.ok, policy.targets
 }
 
 func parseDuration(expression string) (time.Duration, error) {

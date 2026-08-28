@@ -21,10 +21,12 @@ var _ MappedNullable = &KerberosServicePrincipalOutpost{}
 
 // KerberosServicePrincipalOutpost Service principal data consumed by the KDC outpost.
 type KerberosServicePrincipalOutpost struct {
-	Spn                  string                 `json:"spn"`
-	Kvno                 int32                  `json:"kvno"`
-	Keys                 map[string]interface{} `json:"keys"`
-	AdditionalProperties map[string]interface{}
+	Spn                      string                 `json:"spn"`
+	Kvno                     int32                  `json:"kvno"`
+	Keys                     map[string]interface{} `json:"keys"`
+	OkToAuthAsDelegate       bool                   `json:"ok_to_auth_as_delegate"`
+	AllowedDelegationTargets []string               `json:"allowed_delegation_targets"`
+	AdditionalProperties     map[string]interface{}
 }
 
 type _KerberosServicePrincipalOutpost KerberosServicePrincipalOutpost
@@ -33,11 +35,13 @@ type _KerberosServicePrincipalOutpost KerberosServicePrincipalOutpost
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewKerberosServicePrincipalOutpost(spn string, kvno int32, keys map[string]interface{}) *KerberosServicePrincipalOutpost {
+func NewKerberosServicePrincipalOutpost(spn string, kvno int32, keys map[string]interface{}, okToAuthAsDelegate bool, allowedDelegationTargets []string) *KerberosServicePrincipalOutpost {
 	this := KerberosServicePrincipalOutpost{}
 	this.Spn = spn
 	this.Kvno = kvno
 	this.Keys = keys
+	this.OkToAuthAsDelegate = okToAuthAsDelegate
+	this.AllowedDelegationTargets = allowedDelegationTargets
 	return &this
 }
 
@@ -121,6 +125,54 @@ func (o *KerberosServicePrincipalOutpost) SetKeys(v map[string]interface{}) {
 	o.Keys = v
 }
 
+// GetOkToAuthAsDelegate returns the OkToAuthAsDelegate field value
+func (o *KerberosServicePrincipalOutpost) GetOkToAuthAsDelegate() bool {
+	if o == nil {
+		var ret bool
+		return ret
+	}
+
+	return o.OkToAuthAsDelegate
+}
+
+// GetOkToAuthAsDelegateOk returns a tuple with the OkToAuthAsDelegate field value
+// and a boolean to check if the value has been set.
+func (o *KerberosServicePrincipalOutpost) GetOkToAuthAsDelegateOk() (*bool, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.OkToAuthAsDelegate, true
+}
+
+// SetOkToAuthAsDelegate sets field value
+func (o *KerberosServicePrincipalOutpost) SetOkToAuthAsDelegate(v bool) {
+	o.OkToAuthAsDelegate = v
+}
+
+// GetAllowedDelegationTargets returns the AllowedDelegationTargets field value
+func (o *KerberosServicePrincipalOutpost) GetAllowedDelegationTargets() []string {
+	if o == nil {
+		var ret []string
+		return ret
+	}
+
+	return o.AllowedDelegationTargets
+}
+
+// GetAllowedDelegationTargetsOk returns a tuple with the AllowedDelegationTargets field value
+// and a boolean to check if the value has been set.
+func (o *KerberosServicePrincipalOutpost) GetAllowedDelegationTargetsOk() ([]string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.AllowedDelegationTargets, true
+}
+
+// SetAllowedDelegationTargets sets field value
+func (o *KerberosServicePrincipalOutpost) SetAllowedDelegationTargets(v []string) {
+	o.AllowedDelegationTargets = v
+}
+
 func (o KerberosServicePrincipalOutpost) MarshalJSON() ([]byte, error) {
 	toSerialize, err := o.ToMap()
 	if err != nil {
@@ -134,6 +186,8 @@ func (o KerberosServicePrincipalOutpost) ToMap() (map[string]interface{}, error)
 	toSerialize["spn"] = o.Spn
 	toSerialize["kvno"] = o.Kvno
 	toSerialize["keys"] = o.Keys
+	toSerialize["ok_to_auth_as_delegate"] = o.OkToAuthAsDelegate
+	toSerialize["allowed_delegation_targets"] = o.AllowedDelegationTargets
 
 	for key, value := range o.AdditionalProperties {
 		toSerialize[key] = value
@@ -150,6 +204,8 @@ func (o *KerberosServicePrincipalOutpost) UnmarshalJSON(data []byte) (err error)
 		"spn",
 		"kvno",
 		"keys",
+		"ok_to_auth_as_delegate",
+		"allowed_delegation_targets",
 	}
 
 	allProperties := make(map[string]interface{})
@@ -182,6 +238,8 @@ func (o *KerberosServicePrincipalOutpost) UnmarshalJSON(data []byte) (err error)
 		delete(additionalProperties, "spn")
 		delete(additionalProperties, "kvno")
 		delete(additionalProperties, "keys")
+		delete(additionalProperties, "ok_to_auth_as_delegate")
+		delete(additionalProperties, "allowed_delegation_targets")
 		o.AdditionalProperties = additionalProperties
 	}
 

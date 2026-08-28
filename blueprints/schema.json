@@ -12341,6 +12341,19 @@
                     "maxLength": 1024,
                     "minLength": 1,
                     "title": "Spn"
+                },
+                "ok_to_auth_as_delegate": {
+                    "type": "boolean",
+                    "title": "Ok to auth as delegate",
+                    "description": "Allow this service principal to authenticate as a user for delegation."
+                },
+                "allowed_delegation_targets": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "title": "Allowed delegation targets"
                 }
             },
             "required": []

@@ -9,7 +9,14 @@ from django.utils.translation import gettext_lazy as _
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.decorators import action
-from rest_framework.fields import CharField, IntegerField, ListField, SerializerMethodField
+from rest_framework.exceptions import ValidationError
+from rest_framework.fields import (
+    BooleanField,
+    CharField,
+    IntegerField,
+    ListField,
+    SerializerMethodField,
+)
 from rest_framework.mixins import ListModelMixin
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -80,9 +87,35 @@ class KerberosProviderViewSet(UsedByMixin, ModelViewSet):
 class KerberosServicePrincipalSerializer(ModelSerializer):
     """Kerberos service principal serializer."""
 
+    allowed_delegation_targets = ListField(
+        child=CharField(allow_blank=False, min_length=1),
+        required=False,
+        default=list,
+    )
+
+    def to_internal_value(self, data: dict) -> dict:
+        """Reject non-string targets before the child field can coerce them."""
+        targets = data.get("allowed_delegation_targets")
+        if targets is not None and (
+            not isinstance(targets, list)
+            or any(not isinstance(target, str) or not target.strip() for target in targets)
+        ):
+            raise ValidationError(
+                {"allowed_delegation_targets": _("Delegation targets must be non-empty strings.")}
+            )
+        return super().to_internal_value(data)
+
     class Meta:
         model = KerberosServicePrincipal
-        fields = ["uuid", "provider", "spn", "kvno", "keys"]
+        fields = [
+            "uuid",
+            "provider",
+            "spn",
+            "kvno",
+            "keys",
+            "ok_to_auth_as_delegate",
+            "allowed_delegation_targets",
+        ]
         extra_kwargs = {"keys": {"read_only": True}, "kvno": {"read_only": True}}
 
 
@@ -157,6 +190,8 @@ class KerberosServicePrincipalOutpostSerializer(PassiveSerializer):
     spn = CharField()
     kvno = IntegerField()
     keys = SerializerMethodField()
+    ok_to_auth_as_delegate = BooleanField()
+    allowed_delegation_targets = ListField(child=CharField())
 
     def get_keys(self, obj: KerberosServicePrincipal) -> dict:
         return obj.keys

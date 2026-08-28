@@ -22,12 +22,13 @@ const testRealm = "EXAMPLE.TEST"
 func testStore(t *testing.T, handler http.Handler) *providerStore {
 	t.Helper()
 	store := &providerStore{
-		realm:      testRealm,
-		masterKey:  []byte("provider master key"),
-		allowed:    map[int32]bool{18: true, 20: true},
-		services:   make(map[string]kdb.PrincipalRecord),
-		cache:      make(map[string]cachedUserKey),
-		providerID: 1,
+		realm:       testRealm,
+		masterKey:   []byte("provider master key"),
+		allowed:     map[int32]bool{18: true, 20: true},
+		services:    make(map[string]kdb.PrincipalRecord),
+		delegations: make(map[string]delegationPolicy),
+		cache:       make(map[string]cachedUserKey),
+		providerID:  1,
 	}
 	if handler != nil {
 		server := httptest.NewServer(handler)
@@ -42,6 +43,46 @@ func testStore(t *testing.T, handler http.Handler) *providerStore {
 		store.server = &KerberosServer{ac: &ak.APIController{Client: api.NewAPIClient(cfg)}}
 	}
 	return store
+}
+
+func TestStoreDelegationPolicyMapping(t *testing.T) {
+	store := testStore(t, nil)
+	target := principal.Principal{
+		Realm: testRealm, NameType: principal.NTSrvHst,
+		Components: []string{"HTTP", "backend.test"},
+	}
+	store.delegations["host/service.test"] = delegationPolicy{
+		ok:      true,
+		targets: []principal.Principal{target},
+	}
+
+	service := principal.Principal{
+		Realm: testRealm, NameType: principal.NTSrvHst,
+		Components: []string{"host", "service.test"},
+	}
+	ok, targets := store.delegationPolicy(service)
+	if !ok || len(targets) != 1 || targets[0].String() != target.String() {
+		t.Fatalf("delegationPolicy(%v) = %v, %v", service, ok, targets)
+	}
+
+	for _, unknown := range []principal.Principal{
+		{Realm: testRealm, Components: []string{"host"}},
+		{Realm: "OTHER.TEST", Components: []string{"host", "service.test"}},
+		{Realm: testRealm, Components: []string{"host", "missing.test"}},
+	} {
+		ok, targets = store.delegationPolicy(unknown)
+		if ok || targets != nil {
+			t.Fatalf("delegationPolicy(%v) = %v, %v; want false, nil", unknown, ok, targets)
+		}
+	}
+
+	store.delegations["host/no-delegate.test"] = delegationPolicy{targets: []principal.Principal{target}}
+	ok, targets = store.delegationPolicy(principal.Principal{
+		Realm: testRealm, Components: []string{"host", "no-delegate.test"},
+	})
+	if ok || len(targets) != 1 || targets[0].String() != target.String() {
+		t.Fatalf("delegationPolicy with delegation disabled = %v, %v", ok, targets)
+	}
 }
 
 func TestStoreKrbtgtDerivationMatchesPythonFixture(t *testing.T) {
