@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	beryju.io/ldap v0.2.2
 	beryju.io/radius-eap v0.1.1
-	github.com/Exonical/go-kerberos v0.0.0-20260828013831-5ea2e5110373
+	github.com/Exonical/go-kerberos v0.0.0-20260828023845-d8f999147ac6
 	github.com/avast/retry-go/v4 v4.7.0
 	github.com/getsentry/sentry-go v0.48.0
 	github.com/go-ldap/ldap/v3 v3.4.14
