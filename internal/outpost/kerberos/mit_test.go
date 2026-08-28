@@ -49,10 +49,16 @@ type mitHarness struct {
 }
 
 func startMITKDC(t *testing.T, forceTCP bool) *mitHarness {
-	return startMITKDCWithKpasswd(t, forceTCP, false)
+	return startMITKDCWithDelegation(t, forceTCP, false, true)
 }
 
 func startMITKDCWithKpasswd(t *testing.T, forceTCP, withKpasswd bool) *mitHarness {
+	return startMITKDCWithDelegation(t, forceTCP, withKpasswd, true)
+}
+
+func startMITKDCWithDelegation(
+	t *testing.T, forceTCP, withKpasswd, allowProxy bool,
+) *mitHarness {
 	t.Helper()
 	tools := []string{"kinit", "kvno", "klist"}
 	if withKpasswd {
@@ -129,13 +135,14 @@ func startMITKDCWithKpasswd(t *testing.T, forceTCP, withKpasswd bool) *mitHarnes
 
 	outpost := &KerberosServer{ac: &ak.APIController{Client: api.NewAPIClient(cfg)}}
 	store := &providerStore{
-		realm:      mitRealm,
-		masterKey:  []byte("provider master key"),
-		allowed:    map[int32]bool{18: true},
-		services:   make(map[string]kdb.PrincipalRecord),
-		cache:      make(map[string]cachedUserKey),
-		server:     outpost,
-		providerID: 1,
+		realm:       mitRealm,
+		masterKey:   []byte("provider master key"),
+		allowed:     map[int32]bool{18: true},
+		services:    make(map[string]kdb.PrincipalRecord),
+		delegations: make(map[string]delegationPolicy),
+		cache:       make(map[string]cachedUserKey),
+		server:      outpost,
+		providerID:  1,
 	}
 	serviceRecord, err := store.serviceRecord(mitService, 1, map[string]interface{}{
 		"18": base64.StdEncoding.EncodeToString(serviceKey),
@@ -144,6 +151,29 @@ func startMITKDCWithKpasswd(t *testing.T, forceTCP, withKpasswd bool) *mitHarnes
 		t.Fatal(err)
 	}
 	store.services[principalKey(serviceRecord.Name)] = serviceRecord
+	backendKey := make([]byte, 32)
+	for i := range backendKey {
+		backendKey[i] = byte(33 + i)
+	}
+	backendRecord, err := store.serviceRecord("HTTP/backend.test", 1, map[string]interface{}{
+		"18": base64.StdEncoding.EncodeToString(backendKey),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.services[principalKey(backendRecord.Name)] = backendRecord
+	backend, err := principal.Parse("HTTP/backend.test@" + mitRealm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if allowProxy {
+		store.delegations[mitService] = delegationPolicy{
+			ok:      true,
+			targets: []principal.Principal{*backend},
+		}
+	} else {
+		store.delegations[mitService] = delegationPolicy{ok: true}
+	}
 
 	server := &kdc.Server{
 		Realm:            mitRealm,
@@ -156,6 +186,7 @@ func startMITKDCWithKpasswd(t *testing.T, forceTCP, withKpasswd bool) *mitHarnes
 			AllowRenewable:   true,
 			AllowProxiable:   true,
 		},
+		DelegationPolicy: store.delegationPolicy,
 	}
 	instance := &ProviderInstance{
 		Config: *api.NewKerberosOutpostConfig(1, "test", mitRealm, 3600, 3600, "test"),
@@ -270,7 +301,25 @@ func startMITKDCWithKpasswd(t *testing.T, forceTCP, withKpasswd bool) *mitHarnes
 }
 
 func (h *mitHarness) run(t *testing.T, input, command string, args ...string) string {
+	return h.runWithCache(t, h.cache, input, command, args...)
+}
+
+func (h *mitHarness) runWithCache(t *testing.T, cache, input, command string, args ...string) string {
 	t.Helper()
+	output, err := h.runResult(cache, input, command, args...)
+	if err != nil {
+		trace := ""
+		if h.trace != "" {
+			if data, traceErr := os.ReadFile(h.trace); traceErr == nil {
+				trace = "\nKRB5_TRACE:\n" + string(data)
+			}
+		}
+		t.Fatalf("%s %v failed: %v\n%s%s", command, args, err, output, trace)
+	}
+	return output
+}
+
+func (h *mitHarness) runResult(cache, input, command string, args ...string) (string, error) {
 	cmd := exec.Command(command, args...)
 	env := make([]string, 0, len(os.Environ())+3)
 	for _, value := range os.Environ() {
@@ -283,7 +332,7 @@ func (h *mitHarness) run(t *testing.T, input, command string, args ...string) st
 	}
 	cmd.Env = append(env,
 		"KRB5_CONFIG="+h.config,
-		"KRB5CCNAME=FILE:"+h.cache,
+		"KRB5CCNAME=FILE:"+cache,
 		"KRB5_KTNAME=FILE:"+h.keytabPath,
 	)
 	if h.trace != "" {
@@ -293,16 +342,7 @@ func (h *mitHarness) run(t *testing.T, input, command string, args ...string) st
 		cmd.Stdin = strings.NewReader(input)
 	}
 	output, err := cmd.CombinedOutput()
-	if err != nil {
-		trace := ""
-		if h.trace != "" {
-			if data, traceErr := os.ReadFile(h.trace); traceErr == nil {
-				trace = "\nKRB5_TRACE:\n" + string(data)
-			}
-		}
-		t.Fatalf("%s %v failed: %v\n%s%s", command, args, err, output, trace)
-	}
-	return string(output)
+	return string(output), err
 }
 
 func runMITFlow(t *testing.T, forceTCP bool) {
@@ -373,6 +413,43 @@ func TestMITInteropPolicies(t *testing.T) {
 	}
 	if !strings.Contains(strings.ToLower(flags), "renew until") {
 		t.Fatalf("klist does not show renewable ticket lifetime:\n%s", flags)
+	}
+}
+
+func TestMITInteropS4U(t *testing.T) {
+	h := startMITKDC(t, false)
+	kinit := h.run(t, "", "kinit", "-f", "-kt", h.keytabPath, mitService)
+	t.Logf("kinit service output:\n%s", kinit)
+	klist := h.run(t, "", "klist")
+	t.Logf("klist after service kinit:\n%s", klist)
+	if !strings.Contains(klist, "krbtgt/"+mitRealm+"@"+mitRealm) {
+		t.Fatalf("klist does not show service TGT:\n%s", klist)
+	}
+	self := h.run(t, "", "kvno", "-U", mitUser, mitService)
+	t.Logf("kvno S4U2Self output:\n%s", self)
+	if !strings.Contains(self, mitService+"@"+mitRealm) ||
+		!strings.Contains(self, "kvno = 1") {
+		t.Fatalf("kvno S4U2Self output unexpected:\n%s", self)
+	}
+	proxy := h.run(t, "", "kvno", "-U", mitUser, "-P", "HTTP/backend.test")
+	t.Logf("kvno S4U2Proxy output:\n%s", proxy)
+	if !strings.Contains(proxy, "HTTP/backend.test@"+mitRealm) ||
+		!strings.Contains(proxy, "kvno = 1") {
+		t.Fatalf("kvno S4U2Proxy output unexpected:\n%s", proxy)
+	}
+
+	denied := startMITKDCWithDelegation(t, false, false, false)
+	denied.run(t, "", "kinit", "-f", "-kt", denied.keytabPath, mitService)
+	denied.run(t, "", "kvno", "-U", mitUser, mitService)
+	if output, err := denied.runResult(
+		denied.cache, "", "kvno", "-U", mitUser, "-P", "HTTP/backend.test",
+	); err == nil {
+		t.Fatalf("kvno S4U2Proxy unexpectedly succeeded without allowed target:\n%s", output)
+	} else {
+		t.Logf("kvno denied S4U2Proxy output:\n%s", output)
+		if strings.Contains(output, "Expecting FX_ERROR") {
+			t.Fatalf("kvno S4U2Proxy failed with malformed FAST error:\n%s", output)
+		}
 	}
 }
 
