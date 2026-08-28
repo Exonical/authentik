@@ -70,7 +70,12 @@ func (s *providerStore) syntheticRecord(
 func (s *providerStore) invalidateUserKey(username string) {
 	s.cacheMu.Lock()
 	defer s.cacheMu.Unlock()
-	delete(s.cache, username)
+	for key, cached := range s.cache {
+		if key == username ||
+			(len(cached.record.Name.Components) == 1 && cached.record.Name.Components[0] == username) {
+			delete(s.cache, key)
+		}
+	}
 }
 
 func (s *providerStore) userRecord(name principal.Principal) (kdb.PrincipalRecord, bool, error) {
@@ -79,7 +84,12 @@ func (s *providerStore) userRecord(name principal.Principal) (kdb.PrincipalRecor
 	s.cacheMu.Lock()
 	if cached, ok := s.cache[username]; ok && now.Before(cached.expires) {
 		s.cacheMu.Unlock()
-		return cached.record, true, nil
+		if !cached.found {
+			return kdb.PrincipalRecord{}, false, nil
+		}
+		isCanonical := len(cached.record.Name.Components) == 1 &&
+			cached.record.Name.Components[0] == username
+		return cached.record, isCanonical && len(cached.record.Keys) > 0, nil
 	}
 	s.cacheMu.Unlock()
 
@@ -88,9 +98,18 @@ func (s *providerStore) userRecord(name principal.Principal) (kdb.PrincipalRecor
 		Username(username).Execute()
 	if err != nil {
 		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
+			s.cacheMu.Lock()
+			s.cache[username] = cachedUserKey{expires: now.Add(userKeyCacheTTL)}
+			s.cacheMu.Unlock()
 			return kdb.PrincipalRecord{}, false, nil
 		}
 		return kdb.PrincipalRecord{}, false, fmt.Errorf("retrieve user key for %q: %w", username, err)
+	}
+	canonicalUsername := response.GetPrincipal()
+	if canonicalUsername == "" {
+		return kdb.PrincipalRecord{}, false, fmt.Errorf(
+			"retrieve user key for %q: response has no canonical principal", username,
+		)
 	}
 	keys, err := decodeKeyValues(response.Keys, s.allowed, uint32(response.Kvno), response.Salt)
 	if err != nil {
@@ -98,15 +117,39 @@ func (s *providerStore) userRecord(name principal.Principal) (kdb.PrincipalRecor
 	}
 	record := kdb.PrincipalRecord{
 		Name: principal.Principal{
-			Realm: name.Realm, NameType: principal.NTPrincipal, Components: []string{response.Username},
+			Realm: name.Realm, NameType: principal.NTPrincipal, Components: []string{canonicalUsername},
 		},
 		Keys: keys,
 		KVNO: uint32(response.Kvno),
 	}
+	cached := cachedUserKey{record: record, found: true, expires: now.Add(userKeyCacheTTL)}
 	s.cacheMu.Lock()
-	s.cache[username] = cachedUserKey{record: record, expires: now.Add(userKeyCacheTTL)}
+	s.cache[username] = cached
+	if canonicalUsername != username {
+		s.cache[canonicalUsername] = cached
+	}
 	s.cacheMu.Unlock()
-	return record, len(keys) > 0, nil
+	return record, canonicalUsername == username && len(keys) > 0, nil
+}
+
+func (s *providerStore) ResolveAlias(
+	name principal.Principal,
+) (principal.Principal, bool, error) {
+	if s == nil || name.Realm != s.realm || len(name.Components) != 1 {
+		return principal.Principal{}, false, nil
+	}
+	record, _, err := s.userRecord(name)
+	if err != nil || len(record.Name.Components) != 1 {
+		return principal.Principal{}, false, err
+	}
+	if record.Name.Components[0] == name.Components[0] {
+		return principal.Principal{}, false, nil
+	}
+	return principal.Principal{
+		Realm:      s.realm,
+		NameType:   principal.NTPrincipal,
+		Components: []string{record.Name.Components[0]},
+	}, true, nil
 }
 
 func (s *providerStore) serviceRecord(spn string, kvno int32, values map[string]interface{}) (kdb.PrincipalRecord, error) {
@@ -179,3 +222,4 @@ func deriveSyntheticKey(master []byte, etype crypto.EType, prefix string) ([]byt
 }
 
 var _ kdb.Store = (*providerStore)(nil)
+var _ kdb.AliasResolver = (*providerStore)(nil)

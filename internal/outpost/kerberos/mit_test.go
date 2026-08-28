@@ -36,6 +36,10 @@ import (
 const (
 	mitRealm    = "MITKDC.TEST"
 	mitUser     = "alice"
+	mitAlias    = "alice@example.com"
+	// MIT principal syntax uses a backslash to keep the email address in one
+	// component instead of interpreting its @ as the realm separator.
+	mitAliasArg = `alice\@example.com`
 	mitPassword = "alice-password"
 	mitService  = "host/service.test"
 )
@@ -59,6 +63,20 @@ func startMITKDCWithKpasswd(t *testing.T, forceTCP, withKpasswd bool) *mitHarnes
 func startMITKDCWithDelegation(
 	t *testing.T, forceTCP, withKpasswd, allowProxy bool,
 ) *mitHarness {
+	return startMITKDCWithIdentity(
+		t, forceTCP, withKpasswd, allowProxy, mitUser, mitUser,
+	)
+}
+
+func startMITKDCWithAlias(t *testing.T) *mitHarness {
+	return startMITKDCWithIdentity(t, false, false, true, mitAlias, mitUser)
+}
+
+func startMITKDCWithIdentity(
+	t *testing.T,
+	forceTCP, withKpasswd, allowProxy bool,
+	apiUsername, canonicalUsername string,
+) *mitHarness {
 	t.Helper()
 	tools := []string{"kinit", "kvno", "klist"}
 	if withKpasswd {
@@ -75,7 +93,9 @@ func startMITKDCWithDelegation(
 		t.Fatal(err)
 	}
 	// Same string-to-key behavior as the Python provider (RFC 3962).
-	userKey, err := etype.StringToKey([]byte(mitPassword), []byte(mitRealm+mitUser), nil)
+	userKey, err := etype.StringToKey(
+		[]byte(mitPassword), []byte(mitRealm+canonicalUsername), nil,
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +119,7 @@ func startMITKDCWithDelegation(
 				return
 			}
 			userKey, err = etype.StringToKey(
-				[]byte(request.Password), []byte(mitRealm+request.Username), nil,
+				[]byte(request.Password), []byte(mitRealm+canonicalUsername), nil,
 			)
 			if err != nil {
 				http.Error(w, "bad password", http.StatusBadRequest)
@@ -109,15 +129,17 @@ func startMITKDCWithDelegation(
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
-		if r.URL.Query().Get("username") != mitUser {
+		if r.URL.Query().Get("username") != apiUsername &&
+			r.URL.Query().Get("username") != canonicalUsername {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"username": mitUser,
-			"kvno":     1,
-			"salt":     mitRealm + mitUser,
+			"username":  canonicalUsername,
+			"principal": canonicalUsername,
+			"kvno":      1,
+			"salt":      mitRealm + canonicalUsername,
 			"keys": map[string]string{
 				"18": base64.StdEncoding.EncodeToString(userKey),
 			},
@@ -453,6 +475,29 @@ func TestMITInteropS4U(t *testing.T) {
 	}
 }
 
+func TestMITInteropPrincipalAliasCanonicalization(t *testing.T) {
+	h := startMITKDCWithAlias(t)
+	if output, err := h.runResult(h.cache, mitPassword+"\n", "kinit", mitAliasArg); err == nil {
+		t.Fatalf("kinit with alias unexpectedly succeeded:\n%s", output)
+	} else {
+		t.Logf("kinit without canonicalization output:\n%s", output)
+		if !strings.Contains(strings.ToLower(output), "client") ||
+			!strings.Contains(strings.ToLower(output), "not found") {
+			t.Fatalf("kinit alias failure did not report an unknown client:\n%s", output)
+		}
+	}
+
+	h.run(t, mitPassword+"\n", "kinit", "-C", mitAliasArg)
+	klist := h.run(t, "", "klist")
+	t.Logf("klist after canonicalized alias kinit:\n%s", klist)
+	if !strings.Contains(klist, "Default principal: "+mitUser+"@"+mitRealm) {
+		t.Fatalf("klist does not show canonical default principal:\n%s", klist)
+	}
+	if strings.Contains(klist, "Default principal: "+mitAlias+"@"+mitRealm) {
+		t.Fatalf("klist retained alias default principal:\n%s", klist)
+	}
+}
+
 func TestMITInteropPKINIT(t *testing.T) {
 	for _, tool := range []string{"kinit", "klist"} {
 		if _, err := exec.LookPath(tool); err != nil {
@@ -500,9 +545,10 @@ func TestMITInteropPKINIT(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"username": mitUser,
-			"kvno":     1,
-			"salt":     mitRealm + mitUser,
+			"username":  mitUser,
+			"principal": mitUser,
+			"kvno":      1,
+			"salt":      mitRealm + mitUser,
 			"keys": map[string]string{
 				"18": base64.StdEncoding.EncodeToString(userKey),
 			},

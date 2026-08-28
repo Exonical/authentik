@@ -4,6 +4,7 @@ import base64
 import struct
 import time
 
+from django.db.models import Q
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
 from drf_spectacular.types import OpenApiTypes
@@ -197,13 +198,30 @@ class KerberosServicePrincipalOutpostSerializer(PassiveSerializer):
         return obj.keys
 
 
+def _canonical_principal(provider: KerberosProvider, user: User) -> str | None:
+    match provider.principal_username_attribute:
+        case "email":
+            value = user.email
+        case "upn":
+            value = user.attributes.get("upn") or user.username
+        case _:
+            value = user.username
+    if not isinstance(value, str) or not value.strip():
+        return None
+    return value
+
+
 class KerberosUserKeyOutpostSerializer(PassiveSerializer):
     """User key data consumed by the KDC outpost."""
 
     username = CharField(source="user.username")
+    principal = SerializerMethodField()
     kvno = IntegerField()
     salt = CharField()
     keys = SerializerMethodField()
+
+    def get_principal(self, obj: KerberosUserKeys) -> str:
+        return _canonical_principal(obj.provider, obj.user) or ""
 
     def get_keys(self, obj: KerberosUserKeys) -> dict:
         return obj.keys
@@ -291,18 +309,28 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
         username = request.query_params.get("username")
         if not username:
             return Response({"username": [_("This query parameter is required.")]}, status=400)
-        user_keys_queryset = KerberosUserKeys.objects.select_related("user").filter(
-            provider=provider
-        )
+
+        users = User.objects.all()
         match provider.principal_username_attribute:
             case "email":
-                user_keys = user_keys_queryset.filter(user__email=username).first()
+                user = users.filter(email=username).first()
             case "upn":
-                user_keys = user_keys_queryset.filter(user__attributes__upn=username).first()
-                if user_keys is None:
-                    user_keys = user_keys_queryset.filter(user__username=username).first()
+                user = users.filter(attributes__upn=username).first()
+                if user is None:
+                    user = users.filter(username=username).first()
             case _:
-                user_keys = user_keys_queryset.filter(user__username=username).first()
+                user = users.filter(username=username).first()
+        if user is None:
+            user = users.filter(
+                Q(username=username) | Q(email=username) | Q(attributes__upn=username)
+            ).first()
+        if user is None or _canonical_principal(provider, user) is None:
+            raise Http404
+        user_keys = (
+            KerberosUserKeys.objects.select_related("user", "provider")
+            .filter(provider=provider, user=user)
+            .first()
+        )
         if user_keys is None:
             raise Http404
         return Response(KerberosUserKeyOutpostSerializer(user_keys).data)

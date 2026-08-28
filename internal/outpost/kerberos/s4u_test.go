@@ -27,9 +27,10 @@ func newS4UTestServer(
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"username": "alice",
-			"kvno":     1,
-			"salt":     testRealm + "alice",
+			"username":  "alice",
+			"principal": "alice",
+			"kvno":      1,
+			"salt":      testRealm + "alice",
 			"keys": map[string]string{
 				"18": base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{3}, 32)),
 			},
