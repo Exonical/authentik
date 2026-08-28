@@ -44757,6 +44757,9 @@ components:
       properties:
         username:
           type: string
+        principal:
+          type: string
+          readOnly: true
         kvno:
           type: integer
         salt:
@@ -44768,6 +44771,7 @@ components:
       required:
       - keys
       - kvno
+      - principal
       - salt
       - username
     KeyTypeEnum:

@@ -16,6 +16,8 @@ use serde::{Deserialize, Serialize};
 pub struct KerberosUserKeyOutpost {
     #[serde(rename = "username")]
     pub username: String,
+    #[serde(rename = "principal")]
+    pub principal: String,
     #[serde(rename = "kvno")]
     pub kvno: i32,
     #[serde(rename = "salt")]
@@ -26,9 +28,10 @@ pub struct KerberosUserKeyOutpost {
 
 impl KerberosUserKeyOutpost {
     /// User key data consumed by the KDC outpost.
-    pub fn new(username: String, kvno: i32, salt: String, keys: std::collections::HashMap<String, serde_json::Value>) -> KerberosUserKeyOutpost {
+    pub fn new(username: String, principal: String, kvno: i32, salt: String, keys: std::collections::HashMap<String, serde_json::Value>) -> KerberosUserKeyOutpost {
         KerberosUserKeyOutpost {
             username,
+            principal,
             kvno,
             salt,
             keys,

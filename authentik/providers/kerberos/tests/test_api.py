@@ -160,6 +160,18 @@ class KerberosProviderAPITests(APITestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["username"], user.username)
+        self.assertEqual(response.json()["principal"], user.email)
+
+        alias_response = self.client.get(
+            reverse(
+                "authentik_api:kerberosprovideroutpost-user-key",
+                kwargs={"pk": provider.pk},
+            ),
+            {"username": user.username},
+        )
+        self.assertEqual(alias_response.status_code, 200)
+        self.assertEqual(alias_response.json()["username"], user.username)
+        self.assertEqual(alias_response.json()["principal"], user.email)
 
     def test_user_key_uses_upn_with_username_fallback(self):
         """UPN mapping uses the attribute and falls back to username."""
@@ -200,6 +212,65 @@ class KerberosProviderAPITests(APITestCase):
 
         self.assertEqual(upn_response.status_code, 200)
         self.assertEqual(fallback_response.status_code, 200)
+        self.assertEqual(upn_response.json()["principal"], "user@example.com")
+        self.assertEqual(fallback_response.json()["principal"], "user@example.com")
+
+    def test_user_key_uses_username_as_canonical_principal(self):
+        """Username mapping returns the username as the canonical principal."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.COM",
+            principal_username_attribute="username",
+        )
+        Application.objects.create(
+            name=generate_id(),
+            slug=generate_id(),
+            provider=provider,
+        )
+        user = create_test_user(username=generate_id(), email="user@example.com")
+        KerberosUserKeys.objects.update_or_create(
+            provider=provider,
+            user=user,
+            defaults={"salt": "EXAMPLE.COM" + user.username, "keys": {"18": "key"}},
+        )
+        self.client.force_login(create_test_admin_user())
+
+        response = self.client.get(
+            reverse(
+                "authentik_api:kerberosprovideroutpost-user-key",
+                kwargs={"pk": provider.pk},
+            ),
+            {"username": user.email},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["principal"], user.username)
+
+    def test_user_key_alias_miss_returns_not_found(self):
+        """Unknown aliases and blank canonical values are not returned."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.COM",
+            principal_username_attribute="email",
+        )
+        Application.objects.create(
+            name=generate_id(),
+            slug=generate_id(),
+            provider=provider,
+        )
+        user = create_test_user(username=generate_id(), email="")
+        KerberosUserKeys.objects.update_or_create(
+            provider=provider,
+            user=user,
+            defaults={"salt": "EXAMPLE.COM" + user.username, "keys": {"18": "key"}},
+        )
+        self.client.force_login(create_test_admin_user())
+        url = reverse(
+            "authentik_api:kerberosprovideroutpost-user-key",
+            kwargs={"pk": provider.pk},
+        )
+
+        self.assertEqual(self.client.get(url, {"username": "missing"}).status_code, 404)
+        self.assertEqual(self.client.get(url, {"username": user.username}).status_code, 404)
 
     def test_set_password_changes_user_password_and_keys(self):
         """The outpost can change a user's password through the provider."""

@@ -155,9 +155,10 @@ func TestStoreUserLookupCacheAndUnknown(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"username": "alice",
-			"kvno":     2,
-			"salt":     testRealm + "alice",
+			"username":  "alice",
+			"principal": "alice",
+			"kvno":      2,
+			"salt":      testRealm + "alice",
 			"keys": map[string]string{
 				"18": base64.StdEncoding.EncodeToString(make([]byte, 32)),
 			},
@@ -211,6 +212,78 @@ func TestStoreUserLookupCacheAndUnknown(t *testing.T) {
 		t.Fatal(err)
 	} else if ok {
 		t.Fatal("wrong-realm lookup succeeded")
+	}
+}
+
+func TestStoreUserAliasLookupAndCanonicalCache(t *testing.T) {
+	requests := 0
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		if r.URL.Query().Get("username") != "alice@example.com" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"username":  "alice",
+			"principal": "alice",
+			"kvno":      1,
+			"salt":      testRealm + "alice",
+			"keys": map[string]string{
+				"18": base64.StdEncoding.EncodeToString(make([]byte, 32)),
+			},
+		})
+	})
+	store := testStore(t, handler)
+	alias := principal.Principal{
+		Realm: testRealm, NameType: principal.NTPrincipal, Components: []string{"alice@example.com"},
+	}
+	canonical := principal.Principal{
+		Realm: testRealm, NameType: principal.NTPrincipal, Components: []string{"alice"},
+	}
+
+	resolved, ok, err := store.ResolveAlias(alias)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok || resolved.String() != canonical.String() {
+		t.Fatalf("ResolveAlias(%v) = %v, %v; want %v, true", alias, resolved, ok, canonical)
+	}
+	if requests != 1 {
+		t.Fatalf("requests = %d, want 1", requests)
+	}
+	if _, ok, err := store.Lookup(alias); err != nil {
+		t.Fatal(err)
+	} else if ok {
+		t.Fatal("alias lookup unexpectedly returned a canonical record")
+	}
+	if _, ok, err := store.Lookup(canonical); err != nil {
+		t.Fatal(err)
+	} else if !ok {
+		t.Fatal("canonical lookup failed")
+	}
+	if requests != 1 {
+		t.Fatalf("requests = %d, want 1 after cache reuse", requests)
+	}
+	if _, ok, err := store.ResolveAlias(canonical); err != nil {
+		t.Fatal(err)
+	} else if ok {
+		t.Fatal("canonical principal resolved as an alias")
+	}
+}
+
+func TestStoreAliasLookupGuards(t *testing.T) {
+	store := testStore(t, nil)
+	for _, name := range []principal.Principal{
+		{Realm: "OTHER.TEST", Components: []string{"alice@example.com"}},
+		{Realm: testRealm, Components: []string{"alice", "extra"}},
+		{Realm: testRealm, Components: nil},
+	} {
+		if _, ok, err := store.ResolveAlias(name); err != nil {
+			t.Fatal(err)
+		} else if ok {
+			t.Fatalf("ResolveAlias(%v) unexpectedly succeeded", name)
+		}
 	}
 }
 

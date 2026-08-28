@@ -26,6 +26,12 @@ export interface KerberosUserKeyOutpost {
     username: string;
     /**
      *
+     * @type {string}
+     * @memberof KerberosUserKeyOutpost
+     */
+    readonly principal: string;
+    /**
+     *
      * @type {number}
      * @memberof KerberosUserKeyOutpost
      */
@@ -49,6 +55,7 @@ export interface KerberosUserKeyOutpost {
  */
 export function instanceOfKerberosUserKeyOutpost(value: object): value is KerberosUserKeyOutpost {
     if (!("username" in value) || value["username"] === undefined) return false;
+    if (!("principal" in value) || value["principal"] === undefined) return false;
     if (!("kvno" in value) || value["kvno"] === undefined) return false;
     if (!("salt" in value) || value["salt"] === undefined) return false;
     if (!("keys" in value) || value["keys"] === undefined) return false;
@@ -68,6 +75,7 @@ export function KerberosUserKeyOutpostFromJSONTyped(
     }
     return {
         username: json["username"],
+        principal: json["principal"],
         kvno: json["kvno"],
         salt: json["salt"],
         keys: json["keys"],
@@ -79,7 +87,7 @@ export function KerberosUserKeyOutpostToJSON(json: any): KerberosUserKeyOutpost 
 }
 
 export function KerberosUserKeyOutpostToJSONTyped(
-    value?: Omit<KerberosUserKeyOutpost, "keys"> | null,
+    value?: Omit<KerberosUserKeyOutpost, "principal" | "keys"> | null,
     ignoreDiscriminator: boolean = false,
 ): any {
     if (value == null) {

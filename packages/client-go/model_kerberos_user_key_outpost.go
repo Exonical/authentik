@@ -22,6 +22,7 @@ var _ MappedNullable = &KerberosUserKeyOutpost{}
 // KerberosUserKeyOutpost User key data consumed by the KDC outpost.
 type KerberosUserKeyOutpost struct {
 	Username             string                 `json:"username"`
+	Principal            string                 `json:"principal"`
 	Kvno                 int32                  `json:"kvno"`
 	Salt                 string                 `json:"salt"`
 	Keys                 map[string]interface{} `json:"keys"`
@@ -34,9 +35,10 @@ type _KerberosUserKeyOutpost KerberosUserKeyOutpost
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewKerberosUserKeyOutpost(username string, kvno int32, salt string, keys map[string]interface{}) *KerberosUserKeyOutpost {
+func NewKerberosUserKeyOutpost(username string, principal string, kvno int32, salt string, keys map[string]interface{}) *KerberosUserKeyOutpost {
 	this := KerberosUserKeyOutpost{}
 	this.Username = username
+	this.Principal = principal
 	this.Kvno = kvno
 	this.Salt = salt
 	this.Keys = keys
@@ -73,6 +75,30 @@ func (o *KerberosUserKeyOutpost) GetUsernameOk() (*string, bool) {
 // SetUsername sets field value
 func (o *KerberosUserKeyOutpost) SetUsername(v string) {
 	o.Username = v
+}
+
+// GetPrincipal returns the Principal field value
+func (o *KerberosUserKeyOutpost) GetPrincipal() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.Principal
+}
+
+// GetPrincipalOk returns a tuple with the Principal field value
+// and a boolean to check if the value has been set.
+func (o *KerberosUserKeyOutpost) GetPrincipalOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Principal, true
+}
+
+// SetPrincipal sets field value
+func (o *KerberosUserKeyOutpost) SetPrincipal(v string) {
+	o.Principal = v
 }
 
 // GetKvno returns the Kvno field value
@@ -158,6 +184,7 @@ func (o KerberosUserKeyOutpost) MarshalJSON() ([]byte, error) {
 func (o KerberosUserKeyOutpost) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["username"] = o.Username
+	toSerialize["principal"] = o.Principal
 	toSerialize["kvno"] = o.Kvno
 	toSerialize["salt"] = o.Salt
 	toSerialize["keys"] = o.Keys
@@ -175,6 +202,7 @@ func (o *KerberosUserKeyOutpost) UnmarshalJSON(data []byte) (err error) {
 	// that every required field exists as a key in the generic map.
 	requiredProperties := []string{
 		"username",
+		"principal",
 		"kvno",
 		"salt",
 		"keys",
@@ -208,6 +236,7 @@ func (o *KerberosUserKeyOutpost) UnmarshalJSON(data []byte) (err error) {
 
 	if err = json.Unmarshal(data, &additionalProperties); err == nil {
 		delete(additionalProperties, "username")
+		delete(additionalProperties, "principal")
 		delete(additionalProperties, "kvno")
 		delete(additionalProperties, "salt")
 		delete(additionalProperties, "keys")

@@ -106,6 +106,22 @@ The policy switches control flags that the KDC can place on issued tickets:
 
 For example, with **Email** selected, a user whose email address is `alex@example.com` authenticates as `alex@example.com@EXAMPLE.TEST`.
 
+### Principal aliases and canonicalization
+
+The configured **Principal username attribute** determines the canonical
+principal. A user's other identifiers, such as their username, email address,
+or UPN, can be used as aliases. MIT Kerberos clients can request alias
+canonicalization with `kinit -C`:
+
+```bash
+kinit -C 'alex\@example.com'
+klist
+```
+
+Escape the `@` when it is part of the alias rather than the realm separator.
+The resulting ticket cache uses the canonical principal selected by the
+provider. Without `-C`, an alias is not accepted as a client principal.
+
 ## Service principals
 
 Service principals identify services that accept Kerberos tickets. Create a service principal for each Kerberos-enabled service, using the service name and host name required by that service, such as `HTTP/app.example.com` or `nfs/fileserver.example.com`.

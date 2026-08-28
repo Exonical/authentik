@@ -212,6 +212,7 @@ type ProviderInstance struct {
 
 type cachedUserKey struct {
 	record  kdb.PrincipalRecord
+	found   bool
 	expires time.Time
 }
 
