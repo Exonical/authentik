@@ -31,6 +31,12 @@ export interface PatchedKerberosServicePrincipalRequest {
      */
     spn?: string;
     /**
+     * Optional authentik user (typically a service account) whose policies are evaluated when this principal acts as a Kerberos client.
+     * @type {number}
+     * @memberof PatchedKerberosServicePrincipalRequest
+     */
+    serviceAccount?: number | null;
+    /**
      * Allow this service principal to authenticate as a user for delegation.
      * @type {boolean}
      * @memberof PatchedKerberosServicePrincipalRequest
@@ -69,6 +75,12 @@ export function PatchedKerberosServicePrincipalRequestFromJSONTyped(
     return {
         provider: json["provider"] == null ? undefined : json["provider"],
         spn: json["spn"] == null ? undefined : json["spn"],
+        serviceAccount:
+            json["service_account"] === undefined
+                ? undefined
+                : json["service_account"] === null
+                  ? null
+                  : json["service_account"],
         okToAuthAsDelegate:
             json["ok_to_auth_as_delegate"] == null ? undefined : json["ok_to_auth_as_delegate"],
         allowedDelegationTargets:
@@ -95,6 +107,7 @@ export function PatchedKerberosServicePrincipalRequestToJSONTyped(
     return {
         provider: value["provider"],
         spn: value["spn"],
+        service_account: value["serviceAccount"],
         ok_to_auth_as_delegate: value["okToAuthAsDelegate"],
         allowed_delegation_targets: value["allowedDelegationTargets"],
     };

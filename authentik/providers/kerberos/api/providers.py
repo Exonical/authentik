@@ -116,6 +116,7 @@ class KerberosServicePrincipalSerializer(ModelSerializer):
             "uuid",
             "provider",
             "spn",
+            "service_account",
             "kvno",
             "keys",
             "ok_to_auth_as_delegate",
@@ -355,7 +356,8 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
 
     @extend_schema(
         parameters=[
-            OpenApiParameter("username", OpenApiTypes.STR, required=True),
+            OpenApiParameter("username", OpenApiTypes.STR, required=False),
+            OpenApiParameter("client_spn", OpenApiTypes.STR, required=False),
             OpenApiParameter("spn", OpenApiTypes.STR, required=False),
         ],
         responses={200: KerberosCheckAccessSerializer()},
@@ -366,11 +368,29 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
         """Check application and optional service-principal policy access."""
         provider = self.get_object()
         username = request.query_params.get("username")
-        if not username:
-            return Response({"username": [_("This query parameter is required.")]}, status=400)
-        user = self._resolve_user(provider, username)
-        if user is None:
-            raise Http404
+        client_spn = request.query_params.get("client_spn")
+        if bool(username) == bool(client_spn):
+            return Response(
+                {
+                    "non_field_errors": [
+                        _("Exactly one of username and client_spn must be provided.")
+                    ]
+                },
+                status=400,
+            )
+        if client_spn:
+            client = KerberosServicePrincipal.objects.filter(
+                provider=provider, spn=client_spn
+            ).first()
+            if client is None or client.service_account is None:
+                result = PolicyResult(True)
+                response = KerberosCheckAccessSerializer(instance={"access": result})
+                return Response(response.data)
+            user = client.service_account
+        else:
+            user = self._resolve_user(provider, username)
+            if user is None:
+                raise Http404
 
         app_engine = PolicyEngine(provider.application, user, request)
         app_engine.empty_result = AppAccessWithoutBindings.get()

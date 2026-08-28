@@ -163,8 +163,9 @@ export interface OutpostsInstancesUsedByListRequest {
 
 export interface OutpostsKerberosAccessCheckRequest {
     id: number;
-    username: string;
+    clientSpn?: string;
     spn?: string;
+    username?: string;
 }
 
 export interface OutpostsKerberosListRequest {
@@ -993,14 +994,11 @@ export class OutpostsApi extends runtime.BaseAPI {
             );
         }
 
-        if (requestParameters["username"] == null) {
-            throw new runtime.RequiredError(
-                "username",
-                'Required parameter "username" was null or undefined when calling outpostsKerberosAccessCheck().',
-            );
-        }
-
         const queryParameters: any = {};
+
+        if (requestParameters["clientSpn"] != null) {
+            queryParameters["client_spn"] = requestParameters["clientSpn"];
+        }
 
         if (requestParameters["spn"] != null) {
             queryParameters["spn"] = requestParameters["spn"];

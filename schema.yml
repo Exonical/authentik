@@ -11028,6 +11028,10 @@ paths:
       operationId: outposts_kerberos_access_check
       description: Check application and optional service-principal policy access.
       parameters:
+      - in: query
+        name: client_spn
+        schema:
+          type: string
       - in: path
         name: id
         schema:
@@ -11042,7 +11046,6 @@ paths:
         name: username
         schema:
           type: string
-        required: true
       tags:
       - outposts
       security:
@@ -44383,6 +44386,11 @@ components:
         spn:
           type: string
           maxLength: 1024
+        service_account:
+          type: integer
+          nullable: true
+          description: Optional authentik user (typically a service account) whose
+            policies are evaluated when this principal acts as a Kerberos client.
         kvno:
           type: integer
           readOnly: true
@@ -44439,6 +44447,11 @@ components:
           type: string
           minLength: 1
           maxLength: 1024
+        service_account:
+          type: integer
+          nullable: true
+          description: Optional authentik user (typically a service account) whose
+            policies are evaluated when this principal acts as a Kerberos client.
         ok_to_auth_as_delegate:
           type: boolean
           description: Allow this service principal to authenticate as a user for
@@ -52775,6 +52788,11 @@ components:
           type: string
           minLength: 1
           maxLength: 1024
+        service_account:
+          type: integer
+          nullable: true
+          description: Optional authentik user (typically a service account) whose
+            policies are evaluated when this principal acts as a Kerberos client.
         ok_to_auth_as_delegate:
           type: boolean
           description: Allow this service principal to authenticate as a user for

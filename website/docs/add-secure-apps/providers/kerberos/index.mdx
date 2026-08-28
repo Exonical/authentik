@@ -132,6 +132,11 @@ API.
 
 When a policy denies access, Kerberos clients receive a KDC policy error.
 
+Service principals can optionally be linked to authentik service-account users.
+When a linked principal authenticates as a Kerberos client, the linked user's
+application and service-principal policies are evaluated. Unlinked service
+principals retain the default access behavior.
+
 ## Service principals
 
 Service principals identify services that accept Kerberos tickets. Create a service principal for each Kerberos-enabled service, using the service name and host name required by that service, such as `HTTP/app.example.com` or `nfs/fileserver.example.com`.

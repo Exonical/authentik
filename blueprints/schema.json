@@ -12342,6 +12342,11 @@
                     "minLength": 1,
                     "title": "Spn"
                 },
+                "service_account": {
+                    "type": "integer",
+                    "title": "Service account",
+                    "description": "Optional authentik user (typically a service account) whose policies are evaluated when this principal acts as a Kerberos client."
+                },
                 "ok_to_auth_as_delegate": {
                     "type": "boolean",
                     "title": "Ok to auth as delegate",

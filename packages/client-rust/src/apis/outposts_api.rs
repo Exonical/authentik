@@ -197,19 +197,25 @@ pub async fn outposts_instances_list(configuration: &configuration::Configuratio
 }
 
 /// Check application and optional service-principal policy access.
-pub async fn outposts_kerberos_access_check(configuration: &configuration::Configuration, id: i32, username: &str, spn: Option<&str>) -> Result<models::KerberosCheckAccess, Error<OutpostsKerberosAccessCheckError>> {
+pub async fn outposts_kerberos_access_check(configuration: &configuration::Configuration, id: i32, client_spn: Option<&str>, spn: Option<&str>, username: Option<&str>) -> Result<models::KerberosCheckAccess, Error<OutpostsKerberosAccessCheckError>> {
     // add a prefix to parameters to efficiently prevent name collisions
     let p_path_id = id;
-    let p_query_username = username;
+    let p_query_client_spn = client_spn;
     let p_query_spn = spn;
+    let p_query_username = username;
 
     let uri_str = format!("{}/outposts/kerberos/{id}/access_check/", configuration.base_path, id=p_path_id);
     let mut req_builder = configuration.client.request(reqwest::Method::GET, &uri_str);
 
+    if let Some(ref param_value) = p_query_client_spn {
+        req_builder = req_builder.query(&[("client_spn", &param_value.to_string())]);
+    }
     if let Some(ref param_value) = p_query_spn {
         req_builder = req_builder.query(&[("spn", &param_value.to_string())]);
     }
-    req_builder = req_builder.query(&[("username", &p_query_username.to_string())]);
+    if let Some(ref param_value) = p_query_username {
+        req_builder = req_builder.query(&[("username", &param_value.to_string())]);
+    }
     if let Some(ref user_agent) = configuration.user_agent {
         req_builder = req_builder.header(reqwest::header::USER_AGENT, user_agent.clone());
     }

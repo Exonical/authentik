@@ -79,7 +79,7 @@ func startMITKDCWithIdentity(
 ) *mitHarness {
 	return startMITKDCWithIdentityPolicy(
 		t, forceTCP, withKpasswd, allowProxy, apiUsername, canonicalUsername,
-		func(string, string) bool { return true },
+		func(string, string, string) bool { return true },
 	)
 }
 
@@ -87,7 +87,7 @@ func startMITKDCWithIdentityPolicy(
 	t *testing.T,
 	forceTCP, withKpasswd, allowProxy bool,
 	apiUsername, canonicalUsername string,
-	accessCheck func(username, spn string) bool,
+	accessCheck func(username, clientSPN, spn string) bool,
 ) *mitHarness {
 	t.Helper()
 	tools := []string{"kinit", "kvno", "klist"}
@@ -145,7 +145,11 @@ func startMITKDCWithIdentityPolicy(
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"access": map[string]interface{}{
-					"passing":      accessCheck(r.URL.Query().Get("username"), r.URL.Query().Get("spn")),
+					"passing": accessCheck(
+						r.URL.Query().Get("username"),
+						r.URL.Query().Get("client_spn"),
+						r.URL.Query().Get("spn"),
+					),
 					"messages":     []string{},
 					"log_messages": []string{},
 				},
@@ -465,7 +469,7 @@ func TestMITInteropPolicies(t *testing.T) {
 func TestMITInteropAuthorization(t *testing.T) {
 	denied := startMITKDCWithIdentityPolicy(
 		t, false, false, true, mitUser, mitUser,
-		func(string, string) bool { return false },
+		func(string, string, string) bool { return false },
 	)
 	if output, err := denied.runResult(denied.cache, mitPassword+"\n", "kinit", mitUser); err == nil {
 		t.Fatalf("kinit unexpectedly succeeded despite application policy denial:\n%s", output)
@@ -478,7 +482,7 @@ func TestMITInteropAuthorization(t *testing.T) {
 
 	h := startMITKDCWithIdentityPolicy(
 		t, false, false, true, mitUser, mitUser,
-		func(username, spn string) bool {
+		func(username, clientSPN, spn string) bool {
 			return username == mitUser && spn != mitService
 		},
 	)
@@ -497,6 +501,28 @@ func TestMITInteropAuthorization(t *testing.T) {
 		!strings.Contains(allowed, "kvno = 1") {
 		t.Fatalf("allowed kvno output unexpected:\n%s", allowed)
 	}
+}
+
+func TestMITInteropServiceAccountAuthorization(t *testing.T) {
+	denied := startMITKDCWithIdentityPolicy(
+		t, false, false, true, mitUser, mitUser,
+		func(username, clientSPN, spn string) bool {
+			return clientSPN == "" && username == mitUser && spn == ""
+		},
+	)
+	if output, err := denied.runResult(
+		denied.cache, "", "kinit", "-f", "-kt", denied.keytabPath, mitService,
+	); err == nil {
+		t.Fatalf("service principal kinit unexpectedly succeeded despite linked policy denial:\n%s", output)
+	} else {
+		t.Logf("service principal kinit policy denial:\n%s", output)
+		if !strings.Contains(strings.ToLower(output), "policy") {
+			t.Fatalf("service principal kinit denial did not report a policy error:\n%s", output)
+		}
+	}
+
+	unlinked := startMITKDC(t, false)
+	unlinked.run(t, "", "kinit", "-f", "-kt", unlinked.keytabPath, mitService)
 }
 
 func TestMITInteropS4U(t *testing.T) {

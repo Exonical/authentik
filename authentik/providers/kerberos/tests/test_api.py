@@ -96,16 +96,19 @@ class KerberosProviderAPITests(APITestCase):
             name=generate_id(),
             realm_name="EXAMPLE.COM",
         )
+        service_account = create_test_user(username=generate_id())
         serializer = KerberosServicePrincipalSerializer(
             data={
                 "provider": provider.pk,
                 "spn": "HTTP/example",
+                "service_account": service_account.pk,
                 "ok_to_auth_as_delegate": True,
                 "allowed_delegation_targets": ["nfs/example", "HTTP/other"],
             }
         )
         self.assertTrue(serializer.is_valid(), serializer.errors)
         principal = serializer.save()
+        self.assertEqual(principal.service_account, service_account)
         self.assertTrue(principal.ok_to_auth_as_delegate)
         self.assertEqual(
             principal.allowed_delegation_targets,
@@ -114,6 +117,10 @@ class KerberosProviderAPITests(APITestCase):
         self.assertEqual(
             KerberosServicePrincipalSerializer(principal).data["allowed_delegation_targets"],
             ["nfs/example", "HTTP/other"],
+        )
+        self.assertEqual(
+            KerberosServicePrincipalSerializer(principal).data["service_account"],
+            service_account.pk,
         )
 
     def test_service_principal_serializer_rejects_non_string_targets(self):
@@ -341,6 +348,70 @@ class KerberosProviderAPITests(APITestCase):
         allowed = self.client.get(url, {"username": user.username, "spn": service.spn})
         self.assertEqual(allowed.status_code, 200)
         self.assertTrue(allowed.json()["access"]["passing"])
+
+    def test_access_check_service_account_and_validation(self):
+        """Linked service accounts use their policies, while unlinked clients allow access."""
+        provider = KerberosProvider.objects.create(name=generate_id(), realm_name="EXAMPLE.COM")
+        application = Application.objects.create(
+            name=generate_id(), slug=generate_id(), provider=provider
+        )
+        service_account = create_test_user(username=generate_id())
+        linked = KerberosServicePrincipal.objects.create(
+            provider=provider,
+            spn="host/client",
+            service_account=service_account,
+        )
+        target = KerberosServicePrincipal.objects.create(provider=provider, spn="host/target")
+        self.client.force_login(create_test_admin_user())
+        url = reverse(
+            "authentik_api:kerberosprovideroutpost-access-check",
+            kwargs={"pk": provider.pk},
+        )
+
+        PolicyBinding.objects.create(
+            target=application,
+            policy=DummyPolicy.objects.create(
+                name=generate_id(), result=False, wait_min=0, wait_max=1
+            ),
+            order=0,
+        )
+        denied = self.client.get(url, {"client_spn": linked.spn})
+        self.assertEqual(denied.status_code, 200)
+        self.assertFalse(denied.json()["access"]["passing"])
+
+        PolicyBinding.objects.filter(target=application).delete()
+        PolicyBinding.objects.create(
+            target=target,
+            policy=DummyPolicy.objects.create(
+                name=generate_id(), result=False, wait_min=0, wait_max=1
+            ),
+            order=0,
+        )
+        target_denied = self.client.get(
+            url,
+            {"client_spn": linked.spn, "spn": target.spn},
+        )
+        self.assertEqual(target_denied.status_code, 200)
+        self.assertFalse(target_denied.json()["access"]["passing"])
+
+        PolicyBinding.objects.filter(target=target).delete()
+        target_allowed = self.client.get(
+            url,
+            {"client_spn": linked.spn, "spn": target.spn},
+        )
+        self.assertEqual(target_allowed.status_code, 200)
+        self.assertTrue(target_allowed.json()["access"]["passing"])
+
+        unlinked = self.client.get(url, {"client_spn": "host/unmanaged"})
+        self.assertEqual(unlinked.status_code, 200)
+        self.assertTrue(unlinked.json()["access"]["passing"])
+
+        both = self.client.get(
+            url, {"username": service_account.username, "client_spn": linked.spn}
+        )
+        neither = self.client.get(url)
+        self.assertEqual(both.status_code, 400)
+        self.assertEqual(neither.status_code, 400)
 
     def test_access_check_alias_and_unknown_service(self):
         """Access checks resolve aliases and ignore unmanaged service names."""
