@@ -11023,6 +11023,41 @@ paths:
           $ref: '#/components/responses/ValidationErrorResponse'
         '403':
           $ref: '#/components/responses/GenericErrorResponse'
+  /outposts/kerberos/{id}/access_check/:
+    get:
+      operationId: outposts_kerberos_access_check
+      description: Check application and optional service-principal policy access.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      - in: query
+        name: spn
+        schema:
+          type: string
+      - in: query
+        name: username
+        schema:
+          type: string
+        required: true
+      tags:
+      - outposts
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosCheckAccess'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
   /outposts/kerberos/{id}/service_principals/:
     get:
       operationId: outposts_kerberos_service_principals_list
@@ -44032,6 +44067,14 @@ components:
       - MIT
       - Heimdal
       type: string
+    KerberosCheckAccess:
+      type: object
+      description: Policy access data consumed by the KDC outpost.
+      properties:
+        access:
+          $ref: '#/components/schemas/PolicyTestResult'
+      required:
+      - access
     KerberosOutpostConfig:
       type: object
       description: Kerberos provider serializer for outposts.

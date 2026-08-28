@@ -21,6 +21,10 @@ import {
     DockerServiceConnectionRequestToJSON,
 } from "../models/DockerServiceConnectionRequest";
 import {
+    type KerberosCheckAccess,
+    KerberosCheckAccessFromJSON,
+} from "../models/KerberosCheckAccess";
+import {
     type KerberosSetPasswordRequest,
     KerberosSetPasswordRequestToJSON,
 } from "../models/KerberosSetPasswordRequest";
@@ -155,6 +159,12 @@ export interface OutpostsInstancesUpdateRequest {
 
 export interface OutpostsInstancesUsedByListRequest {
     uuid: string;
+}
+
+export interface OutpostsKerberosAccessCheckRequest {
+    id: number;
+    username: string;
+    spn?: string;
 }
 
 export interface OutpostsKerberosListRequest {
@@ -964,6 +974,87 @@ export class OutpostsApi extends runtime.BaseAPI {
         initOverrides?: RequestInit | runtime.InitOverrideFunction,
     ): Promise<Array<UsedBy>> {
         const response = await this.outpostsInstancesUsedByListRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for outpostsKerberosAccessCheck without sending the request
+     */
+    async outpostsKerberosAccessCheckRequestOpts(
+        requestParameters: OutpostsKerberosAccessCheckRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["id"] == null) {
+            throw new runtime.RequiredError(
+                "id",
+                'Required parameter "id" was null or undefined when calling outpostsKerberosAccessCheck().',
+            );
+        }
+
+        if (requestParameters["username"] == null) {
+            throw new runtime.RequiredError(
+                "username",
+                'Required parameter "username" was null or undefined when calling outpostsKerberosAccessCheck().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters["spn"] != null) {
+            queryParameters["spn"] = requestParameters["spn"];
+        }
+
+        if (requestParameters["username"] != null) {
+            queryParameters["username"] = requestParameters["username"];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/outposts/kerberos/{id}/access_check/`;
+        urlPath = urlPath.replace("{id}", encodeURIComponent(String(requestParameters["id"])));
+
+        return {
+            path: urlPath,
+            method: "GET",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Check application and optional service-principal policy access.
+     */
+    async outpostsKerberosAccessCheckRaw(
+        requestParameters: OutpostsKerberosAccessCheckRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<KerberosCheckAccess>> {
+        const requestOptions = await this.outpostsKerberosAccessCheckRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            KerberosCheckAccessFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Check application and optional service-principal policy access.
+     */
+    async outpostsKerberosAccessCheck(
+        requestParameters: OutpostsKerberosAccessCheckRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<KerberosCheckAccess> {
+        const response = await this.outpostsKerberosAccessCheckRaw(
             requestParameters,
             initOverrides,
         );

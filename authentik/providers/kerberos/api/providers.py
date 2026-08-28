@@ -27,8 +27,12 @@ from authentik.api.validation import validate
 from authentik.core.api.providers import ProviderSerializer
 from authentik.core.api.used_by import UsedByMixin
 from authentik.core.api.utils import ModelSerializer, PassiveSerializer
+from authentik.core.apps import AppAccessWithoutBindings
 from authentik.core.models import User
 from authentik.lib.utils.time import timedelta_from_string
+from authentik.policies.api.exec import PolicyTestResultSerializer
+from authentik.policies.engine import PolicyEngine
+from authentik.policies.types import PolicyResult
 from authentik.providers.kerberos.models import (
     KerberosProvider,
     KerberosServicePrincipal,
@@ -227,6 +231,12 @@ class KerberosUserKeyOutpostSerializer(PassiveSerializer):
         return obj.keys
 
 
+class KerberosCheckAccessSerializer(PassiveSerializer):
+    """Policy access data consumed by the KDC outpost."""
+
+    access = PolicyTestResultSerializer()
+
+
 class KerberosSetPasswordSerializer(PassiveSerializer):
     """Password change request for the Kerberos outpost."""
 
@@ -283,6 +293,27 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
     search_fields = ["name"]
     filterset_fields = ["name"]
 
+    @staticmethod
+    def _resolve_user(provider: KerberosProvider, username: str) -> User | None:
+        """Resolve a principal component using the provider attribute and aliases."""
+        users = User.objects.all()
+        match provider.principal_username_attribute:
+            case "email":
+                user = users.filter(email=username).first()
+            case "upn":
+                user = users.filter(attributes__upn=username).first()
+                if user is None:
+                    user = users.filter(username=username).first()
+            case _:
+                user = users.filter(username=username).first()
+        if user is None:
+            user = users.filter(
+                Q(username=username) | Q(email=username) | Q(attributes__upn=username)
+            ).first()
+        if user is None or _canonical_principal(provider, user) is None:
+            return None
+        return user
+
     @extend_schema(
         responses={200: KerberosServicePrincipalOutpostSerializer(many=True)},
     )
@@ -310,21 +341,8 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
         if not username:
             return Response({"username": [_("This query parameter is required.")]}, status=400)
 
-        users = User.objects.all()
-        match provider.principal_username_attribute:
-            case "email":
-                user = users.filter(email=username).first()
-            case "upn":
-                user = users.filter(attributes__upn=username).first()
-                if user is None:
-                    user = users.filter(username=username).first()
-            case _:
-                user = users.filter(username=username).first()
+        user = self._resolve_user(provider, username)
         if user is None:
-            user = users.filter(
-                Q(username=username) | Q(email=username) | Q(attributes__upn=username)
-            ).first()
-        if user is None or _canonical_principal(provider, user) is None:
             raise Http404
         user_keys = (
             KerberosUserKeys.objects.select_related("user", "provider")
@@ -334,6 +352,43 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
         if user_keys is None:
             raise Http404
         return Response(KerberosUserKeyOutpostSerializer(user_keys).data)
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("username", OpenApiTypes.STR, required=True),
+            OpenApiParameter("spn", OpenApiTypes.STR, required=False),
+        ],
+        responses={200: KerberosCheckAccessSerializer()},
+        operation_id="outposts_kerberos_access_check",
+    )
+    @action(detail=True, methods=["GET"])
+    def access_check(self, request: Request, pk=None) -> Response:
+        """Check application and optional service-principal policy access."""
+        provider = self.get_object()
+        username = request.query_params.get("username")
+        if not username:
+            return Response({"username": [_("This query parameter is required.")]}, status=400)
+        user = self._resolve_user(provider, username)
+        if user is None:
+            raise Http404
+
+        app_engine = PolicyEngine(provider.application, user, request)
+        app_engine.empty_result = AppAccessWithoutBindings.get()
+        app_engine.use_cache = False
+        app_engine.build()
+        result = app_engine.result
+
+        spn = request.query_params.get("spn")
+        if spn:
+            service = KerberosServicePrincipal.objects.filter(provider=provider, spn=spn).first()
+            if service:
+                service_engine = PolicyEngine(service, user, request)
+                service_engine.use_cache = False
+                service_engine.build()
+                result = PolicyResult(result.passing and service_engine.result.passing)
+
+        response = KerberosCheckAccessSerializer(instance={"access": result})
+        return Response(response.data)
 
     @extend_schema(
         request=KerberosSetPasswordSerializer,

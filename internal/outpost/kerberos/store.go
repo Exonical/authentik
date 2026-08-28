@@ -13,6 +13,7 @@ import (
 	"github.com/Exonical/go-kerberos/krb5/crypto"
 	"github.com/Exonical/go-kerberos/krb5/kdb"
 	"github.com/Exonical/go-kerberos/krb5/principal"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/hkdf"
 )
 
@@ -31,6 +32,68 @@ func (s *providerStore) Lookup(name principal.Principal) (kdb.PrincipalRecord, b
 		return record, ok, nil
 	}
 	return s.userRecord(name)
+}
+
+// Authorize enforces authentik policy bindings for user ticket requests.
+func (s *providerStore) Authorize(
+	client, service principal.Principal, asExchange bool,
+) error {
+	if s == nil || client.Realm != s.realm || len(client.Components) != 1 {
+		return nil
+	}
+	spn := ""
+	if service.Realm == s.realm && len(service.Components) > 1 &&
+		!(len(service.Components) == 2 && service.Components[0] == "krbtgt") &&
+		!(len(service.Components) == 2 && service.Components[0] == "kadmin" &&
+			service.Components[1] == "changepw") {
+		spn = strings.Join(service.Components, "/")
+	}
+	key := client.Components[0] + "\x00" + spn
+	now := time.Now()
+	s.accessCacheMu.Lock()
+	if cached, ok := s.accessCache[key]; ok && now.Before(cached.expires) {
+		s.accessCacheMu.Unlock()
+		if cached.allowed {
+			return nil
+		}
+		return fmt.Errorf("authentik policy denied access")
+	}
+	s.accessCacheMu.Unlock()
+
+	if s.server == nil || s.server.ac == nil || s.server.ac.Client == nil {
+		log.WithField("username", client.Components[0]).
+			WithField("spn", spn).Warn("Kerberos policy access check failed")
+		return fmt.Errorf("authentik policy access check failed")
+	}
+	request := s.server.ac.Client.OutpostsAPI.
+		OutpostsKerberosAccessCheck(context.Background(), s.providerID).
+		Username(client.Components[0])
+	if spn != "" {
+		request = request.Spn(spn)
+	}
+	response, _, err := request.Execute()
+	if err != nil || response == nil {
+		logger := log.WithField("username", client.Components[0]).WithField("spn", spn)
+		if err != nil {
+			logger = logger.WithError(err)
+		}
+		logger.Warn("Kerberos policy access check failed")
+		return fmt.Errorf("authentik policy access check failed")
+	}
+	access := response.GetAccess()
+	allowed := access.GetPassing()
+	s.accessCacheMu.Lock()
+	if s.accessCache == nil {
+		s.accessCache = make(map[string]cachedAccessCheck)
+	}
+	s.accessCache[key] = cachedAccessCheck{allowed: allowed, expires: now.Add(accessCheckCacheTTL)}
+	s.accessCacheMu.Unlock()
+	if !allowed {
+		log.WithField("username", client.Components[0]).
+			WithField("spn", spn).Info("Kerberos policy denied access")
+		return fmt.Errorf("authentik policy denied access")
+	}
+	return nil
 }
 
 // krbtgtRecord synthesizes the krbtgt/<realm> principal. Its KVNO is

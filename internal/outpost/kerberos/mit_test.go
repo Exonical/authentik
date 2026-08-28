@@ -34,9 +34,9 @@ import (
 )
 
 const (
-	mitRealm    = "MITKDC.TEST"
-	mitUser     = "alice"
-	mitAlias    = "alice@example.com"
+	mitRealm = "MITKDC.TEST"
+	mitUser  = "alice"
+	mitAlias = "alice@example.com"
 	// MIT principal syntax uses a backslash to keep the email address in one
 	// component instead of interpreting its @ as the realm separator.
 	mitAliasArg = `alice\@example.com`
@@ -76,6 +76,18 @@ func startMITKDCWithIdentity(
 	t *testing.T,
 	forceTCP, withKpasswd, allowProxy bool,
 	apiUsername, canonicalUsername string,
+) *mitHarness {
+	return startMITKDCWithIdentityPolicy(
+		t, forceTCP, withKpasswd, allowProxy, apiUsername, canonicalUsername,
+		func(string, string) bool { return true },
+	)
+}
+
+func startMITKDCWithIdentityPolicy(
+	t *testing.T,
+	forceTCP, withKpasswd, allowProxy bool,
+	apiUsername, canonicalUsername string,
+	accessCheck func(username, spn string) bool,
 ) *mitHarness {
 	t.Helper()
 	tools := []string{"kinit", "kvno", "klist"}
@@ -127,6 +139,17 @@ func startMITKDCWithIdentity(
 			}
 			passwordChanged <- request.Password
 			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if r.URL.Path == "/api/v3/outposts/kerberos/1/access_check/" {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"access": map[string]interface{}{
+					"passing":      accessCheck(r.URL.Query().Get("username"), r.URL.Query().Get("spn")),
+					"messages":     []string{},
+					"log_messages": []string{},
+				},
+			})
 			return
 		}
 		if r.URL.Query().Get("username") != apiUsername &&
@@ -209,6 +232,7 @@ func startMITKDCWithIdentity(
 			AllowProxiable:   true,
 		},
 		DelegationPolicy: store.delegationPolicy,
+		Authorize:        store.Authorize,
 	}
 	instance := &ProviderInstance{
 		Config: *api.NewKerberosOutpostConfig(1, "test", mitRealm, 3600, 3600, "test"),
@@ -435,6 +459,43 @@ func TestMITInteropPolicies(t *testing.T) {
 	}
 	if !strings.Contains(strings.ToLower(flags), "renew until") {
 		t.Fatalf("klist does not show renewable ticket lifetime:\n%s", flags)
+	}
+}
+
+func TestMITInteropAuthorization(t *testing.T) {
+	denied := startMITKDCWithIdentityPolicy(
+		t, false, false, true, mitUser, mitUser,
+		func(string, string) bool { return false },
+	)
+	if output, err := denied.runResult(denied.cache, mitPassword+"\n", "kinit", mitUser); err == nil {
+		t.Fatalf("kinit unexpectedly succeeded despite application policy denial:\n%s", output)
+	} else {
+		t.Logf("kinit application policy denial:\n%s", output)
+		if !strings.Contains(strings.ToLower(output), "policy") {
+			t.Fatalf("kinit denial did not report a policy error:\n%s", output)
+		}
+	}
+
+	h := startMITKDCWithIdentityPolicy(
+		t, false, false, true, mitUser, mitUser,
+		func(username, spn string) bool {
+			return username == mitUser && spn != mitService
+		},
+	)
+	h.run(t, mitPassword+"\n", "kinit", mitUser)
+	if output, err := h.runResult(h.cache, "", "kvno", mitService); err == nil {
+		t.Fatalf("kvno unexpectedly succeeded despite service policy denial:\n%s", output)
+	} else {
+		t.Logf("kvno service policy denial:\n%s", output)
+		if !strings.Contains(strings.ToLower(output), "policy") {
+			t.Fatalf("kvno denial did not report a policy error:\n%s", output)
+		}
+	}
+	allowed := h.run(t, "", "kvno", "HTTP/backend.test")
+	t.Logf("kvno allowed service output:\n%s", allowed)
+	if !strings.Contains(allowed, "HTTP/backend.test@"+mitRealm) ||
+		!strings.Contains(allowed, "kvno = 1") {
+		t.Fatalf("allowed kvno output unexpected:\n%s", allowed)
 	}
 }
 

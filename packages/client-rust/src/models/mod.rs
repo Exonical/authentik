@@ -120,6 +120,8 @@ pub mod iframe_logout_challenge;
 pub use self::iframe_logout_challenge::IframeLogoutChallenge;
 pub mod iframe_logout_challenge_response_request;
 pub use self::iframe_logout_challenge_response_request::IframeLogoutChallengeResponseRequest;
+pub mod kerberos_check_access;
+pub use self::kerberos_check_access::KerberosCheckAccess;
 pub mod kerberos_outpost_config;
 pub use self::kerberos_outpost_config::KerberosOutpostConfig;
 pub mod kerberos_service_principal_outpost;

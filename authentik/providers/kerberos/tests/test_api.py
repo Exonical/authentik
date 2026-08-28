@@ -9,6 +9,8 @@ from authentik.core.models import Application
 from authentik.core.tests.utils import create_test_admin_user, create_test_cert, create_test_user
 from authentik.crypto.models import CertificateKeyPair
 from authentik.lib.generators import generate_id
+from authentik.policies.dummy.models import DummyPolicy
+from authentik.policies.models import PolicyBinding
 from authentik.providers.kerberos.api.providers import KerberosServicePrincipalSerializer
 from authentik.providers.kerberos.models import (
     KerberosProvider,
@@ -271,6 +273,95 @@ class KerberosProviderAPITests(APITestCase):
 
         self.assertEqual(self.client.get(url, {"username": "missing"}).status_code, 404)
         self.assertEqual(self.client.get(url, {"username": user.username}).status_code, 404)
+
+    def test_access_check_application_policy(self):
+        """Application policy bindings allow or deny Kerberos access."""
+        provider = KerberosProvider.objects.create(name=generate_id(), realm_name="EXAMPLE.COM")
+        application = Application.objects.create(
+            name=generate_id(), slug=generate_id(), provider=provider
+        )
+        user = create_test_user()
+        self.client.force_login(create_test_admin_user())
+        url = reverse(
+            "authentik_api:kerberosprovideroutpost-access-check",
+            kwargs={"pk": provider.pk},
+        )
+
+        allowed = self.client.get(url, {"username": user.username})
+        self.assertEqual(allowed.status_code, 200)
+        self.assertTrue(allowed.json()["access"]["passing"])
+
+        PolicyBinding.objects.create(
+            target=application,
+            policy=DummyPolicy.objects.create(
+                name=generate_id(), result=False, wait_min=0, wait_max=1
+            ),
+            order=0,
+        )
+        denied = self.client.get(url, {"username": user.username})
+        self.assertEqual(denied.status_code, 200)
+        self.assertFalse(denied.json()["access"]["passing"])
+
+    def test_access_check_service_principal_policy(self):
+        """Service-principal bindings gate only the matching service ticket."""
+        provider = KerberosProvider.objects.create(name=generate_id(), realm_name="EXAMPLE.COM")
+        Application.objects.create(name=generate_id(), slug=generate_id(), provider=provider)
+        user = create_test_user()
+        service = KerberosServicePrincipal.objects.create(provider=provider, spn="host/example")
+        self.client.force_login(create_test_admin_user())
+        url = reverse(
+            "authentik_api:kerberosprovideroutpost-access-check",
+            kwargs={"pk": provider.pk},
+        )
+
+        self.assertTrue(
+            self.client.get(url, {"username": user.username, "spn": service.spn}).json()["access"][
+                "passing"
+            ]
+        )
+        PolicyBinding.objects.create(
+            target=service,
+            policy=DummyPolicy.objects.create(
+                name=generate_id(), result=False, wait_min=0, wait_max=1
+            ),
+            order=0,
+        )
+        denied = self.client.get(url, {"username": user.username, "spn": service.spn})
+        self.assertEqual(denied.status_code, 200)
+        self.assertFalse(denied.json()["access"]["passing"])
+
+        PolicyBinding.objects.filter(target=service).delete()
+        PolicyBinding.objects.create(
+            target=service,
+            policy=DummyPolicy.objects.create(
+                name=generate_id(), result=True, wait_min=0, wait_max=1
+            ),
+            order=0,
+        )
+        allowed = self.client.get(url, {"username": user.username, "spn": service.spn})
+        self.assertEqual(allowed.status_code, 200)
+        self.assertTrue(allowed.json()["access"]["passing"])
+
+    def test_access_check_alias_and_unknown_service(self):
+        """Access checks resolve aliases and ignore unmanaged service names."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.COM",
+            principal_username_attribute="email",
+        )
+        Application.objects.create(name=generate_id(), slug=generate_id(), provider=provider)
+        user = create_test_user(email="user@example.com")
+        self.client.force_login(create_test_admin_user())
+        url = reverse(
+            "authentik_api:kerberosprovideroutpost-access-check",
+            kwargs={"pk": provider.pk},
+        )
+
+        response = self.client.get(url, {"username": user.username, "spn": "kadmin/changepw"})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["access"]["passing"])
+        missing = self.client.get(url, {"username": "missing@example.com"})
+        self.assertEqual(missing.status_code, 404)
 
     def test_set_password_changes_user_password_and_keys(self):
         """The outpost can change a user's password through the provider."""

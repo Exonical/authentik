@@ -18,6 +18,7 @@ from authentik.crypto.models import CertificateKeyPair
 from authentik.lib.models import SerializerModel
 from authentik.lib.utils.time import timedelta_string_validator
 from authentik.outposts.models import OutpostModel
+from authentik.policies.models import PolicyBindingModel
 
 ENCTYPE_CHOICES = (
     (17, "aes128-cts-hmac-sha1-96"),
@@ -165,7 +166,7 @@ class KerberosProvider(OutpostModel, Provider):
         verbose_name_plural = _("Kerberos Providers")
 
 
-class KerberosServicePrincipal(SerializerModel):
+class KerberosServicePrincipal(SerializerModel, PolicyBindingModel):
     """A service principal and its long-term keys."""
 
     uuid = models.UUIDField(default=uuid4, editable=False, primary_key=True)
