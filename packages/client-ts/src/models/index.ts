@@ -274,6 +274,7 @@ export * from "./InvitationStageRequest";
 export * from "./IssuerModeEnum";
 export * from "./KadminTypeEnum";
 export * from "./KerberosCheckAccess";
+export * from "./KerberosOTPCheck";
 export * from "./KerberosOutpostConfig";
 export * from "./KerberosProvider";
 export * from "./KerberosProviderRequest";

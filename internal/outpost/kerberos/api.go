@@ -15,6 +15,7 @@ import (
 
 	"github.com/Exonical/go-kerberos/krb5/kdb"
 	"github.com/Exonical/go-kerberos/krb5/kdc"
+	"github.com/Exonical/go-kerberos/krb5/otp"
 	"github.com/Exonical/go-kerberos/krb5/pac"
 	"github.com/Exonical/go-kerberos/krb5/principal"
 	log "github.com/sirupsen/logrus"
@@ -86,6 +87,7 @@ func (rs *KerberosServer) Refresh() error {
 			anonymousPKINITEnabled: provider.GetAnonymousPkinitEnabled(),
 			pacEnabled:             provider.GetPacEnabled(),
 			realmSID:               realmSID,
+			otpEnabled:             provider.GetOtpEnabled(),
 		}
 		for _, enctype := range provider.AllowedEnctypes {
 			store.allowed[int32(enctype)] = true
@@ -107,6 +109,7 @@ func (rs *KerberosServer) Refresh() error {
 				PKINITIndicators:            provider.GetPkinitIndicators(),
 				SPAKEPreauthIndicators:      provider.GetSpakeIndicators(),
 				EncryptedChallengeIndicator: provider.GetEncryptedChallengeIndicator(),
+				OTPIndicators:               provider.GetOtpIndicators(),
 				Policy: &kdc.Policy{
 					AllowForwardable: provider.GetForwardable(),
 					AllowRenewable:   provider.GetRenewable(),
@@ -121,6 +124,13 @@ func (rs *KerberosServer) Refresh() error {
 			},
 			KKDCPCertificate: kkdcpCertificate,
 			log:              log.WithField("logger", "authentik.outpost.kerberos").WithField("provider", provider.Name),
+		}
+		if provider.GetOtpEnabled() {
+			instance.KDC.OTPValidator = store.validateOTP
+			instance.KDC.OTPTokenInfo = func(principal.Principal) []otp.TokenInfo {
+				length, format := int32(6), otp.FormatHexadecimal
+				return []otp.TokenInfo{{Length: &length, Format: &format}}
+			}
 		}
 		if provider.GetPacEnabled() && realmSID != nil {
 			instance.KDC.GeneratePACIdentity = store.generatePACIdentity
@@ -299,6 +309,7 @@ type providerStore struct {
 	anonymousPKINITEnabled bool
 	pacEnabled             bool
 	realmSID               *pac.SID
+	otpEnabled             bool
 }
 
 type delegationPolicy struct {

@@ -12335,6 +12335,21 @@
                     "title": "Encrypted challenge indicator",
                     "description": "Indicator asserted after encrypted-challenge preauthentication."
                 },
+                "otp_enabled": {
+                    "type": "boolean",
+                    "title": "Otp enabled",
+                    "description": "Enable RFC 6560 OTP preauthentication backed by the user's authentik TOTP and static authenticator devices."
+                },
+                "otp_indicators": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "title": "Otp indicators"
+                    },
+                    "title": "Otp indicators",
+                    "description": "Authentication indicators asserted after successful OTP preauthentication."
+                },
                 "anonymous_pkinit_enabled": {
                     "type": "boolean",
                     "title": "Anonymous pkinit enabled",

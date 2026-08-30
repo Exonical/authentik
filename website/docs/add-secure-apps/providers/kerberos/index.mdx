@@ -66,6 +66,12 @@ Enter durations using the authentik time delta format, such as `hours=10` or `da
 **SPAKE preauthentication enabled** advertises PA-SPAKE preauthentication (RFC 9588). When
 disabled, clients use the existing encrypted-timestamp preauthentication flow.
 
+**OTP preauthentication enabled** advertises RFC 6560 OTP preauthentication. OTP requests
+must be protected by FAST and are checked against the user's confirmed authentik TOTP and
+static authenticator devices. Static authenticator tokens are consumed after successful use.
+Configure **OTP indicators** to assert authentication indicators after successful OTP
+preauthentication. OTP codes are never cached.
+
 ### Authentication indicators
 
 Authentication indicators record how a Kerberos ticket was obtained. Configure

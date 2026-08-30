@@ -114,6 +114,35 @@ func TestAnonymousPrincipalAuthorization(t *testing.T) {
 	}
 }
 
+func TestStoreValidateOTPDoesNotCache(t *testing.T) {
+	requests := 0
+	store := testStore(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		if r.URL.Query().Get("username") != "alice" || r.URL.Query().Get("value") != "123456" {
+			t.Errorf("unexpected OTP query: %s", r.URL.RawQuery)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]bool{"allowed": true})
+	}))
+	store.otpEnabled = true
+	user := principal.Principal{Realm: testRealm, Components: []string{"alice"}}
+	if err := store.validateOTP(user, "123456"); err != nil {
+		t.Fatalf("first OTP validation failed: %v", err)
+	}
+	if err := store.validateOTP(user, "123456"); err != nil {
+		t.Fatalf("second OTP validation failed: %v", err)
+	}
+	if requests != 2 {
+		t.Fatalf("OTP validation requests = %d, want 2", requests)
+	}
+	if err := store.validateOTP(
+		principal.Principal{Realm: testRealm, Components: []string{"krbtgt", testRealm}},
+		"123456",
+	); err == nil {
+		t.Fatal("special principal OTP validation unexpectedly succeeded")
+	}
+}
+
 func TestStoreAuthorizeAllowAndCache(t *testing.T) {
 	requests := 0
 	store := testStore(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

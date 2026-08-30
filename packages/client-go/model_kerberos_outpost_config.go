@@ -53,6 +53,10 @@ type KerberosOutpostConfig struct {
 	SpakeIndicators []string `json:"spake_indicators,omitempty"`
 	// Indicator asserted after encrypted-challenge preauthentication.
 	EncryptedChallengeIndicator *string `json:"encrypted_challenge_indicator,omitempty"`
+	// Enable RFC 6560 OTP preauthentication backed by the user's authentik TOTP and static authenticator devices.
+	OtpEnabled *bool `json:"otp_enabled,omitempty"`
+	// Authentication indicators asserted after successful OTP preauthentication.
+	OtpIndicators []string `json:"otp_indicators,omitempty"`
 	// Allow anonymous PKINIT requests.
 	AnonymousPkinitEnabled *bool `json:"anonymous_pkinit_enabled,omitempty"`
 	// Enable KDC Proxy over HTTPS (MS-KKDCP).
@@ -843,6 +847,70 @@ func (o *KerberosOutpostConfig) SetEncryptedChallengeIndicator(v string) {
 	o.EncryptedChallengeIndicator = &v
 }
 
+// GetOtpEnabled returns the OtpEnabled field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetOtpEnabled() bool {
+	if o == nil || IsNil(o.OtpEnabled) {
+		var ret bool
+		return ret
+	}
+	return *o.OtpEnabled
+}
+
+// GetOtpEnabledOk returns a tuple with the OtpEnabled field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetOtpEnabledOk() (*bool, bool) {
+	if o == nil || IsNil(o.OtpEnabled) {
+		return nil, false
+	}
+	return o.OtpEnabled, true
+}
+
+// HasOtpEnabled returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasOtpEnabled() bool {
+	if o != nil && !IsNil(o.OtpEnabled) {
+		return true
+	}
+
+	return false
+}
+
+// SetOtpEnabled gets a reference to the given bool and assigns it to the OtpEnabled field.
+func (o *KerberosOutpostConfig) SetOtpEnabled(v bool) {
+	o.OtpEnabled = &v
+}
+
+// GetOtpIndicators returns the OtpIndicators field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetOtpIndicators() []string {
+	if o == nil || IsNil(o.OtpIndicators) {
+		var ret []string
+		return ret
+	}
+	return o.OtpIndicators
+}
+
+// GetOtpIndicatorsOk returns a tuple with the OtpIndicators field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetOtpIndicatorsOk() ([]string, bool) {
+	if o == nil || IsNil(o.OtpIndicators) {
+		return nil, false
+	}
+	return o.OtpIndicators, true
+}
+
+// HasOtpIndicators returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasOtpIndicators() bool {
+	if o != nil && !IsNil(o.OtpIndicators) {
+		return true
+	}
+
+	return false
+}
+
+// SetOtpIndicators gets a reference to the given []string and assigns it to the OtpIndicators field.
+func (o *KerberosOutpostConfig) SetOtpIndicators(v []string) {
+	o.OtpIndicators = v
+}
+
 // GetAnonymousPkinitEnabled returns the AnonymousPkinitEnabled field value if set, zero value otherwise.
 func (o *KerberosOutpostConfig) GetAnonymousPkinitEnabled() bool {
 	if o == nil || IsNil(o.AnonymousPkinitEnabled) {
@@ -1142,6 +1210,12 @@ func (o KerberosOutpostConfig) ToMap() (map[string]interface{}, error) {
 	if !IsNil(o.EncryptedChallengeIndicator) {
 		toSerialize["encrypted_challenge_indicator"] = o.EncryptedChallengeIndicator
 	}
+	if !IsNil(o.OtpEnabled) {
+		toSerialize["otp_enabled"] = o.OtpEnabled
+	}
+	if !IsNil(o.OtpIndicators) {
+		toSerialize["otp_indicators"] = o.OtpIndicators
+	}
 	if !IsNil(o.AnonymousPkinitEnabled) {
 		toSerialize["anonymous_pkinit_enabled"] = o.AnonymousPkinitEnabled
 	}
@@ -1233,6 +1307,8 @@ func (o *KerberosOutpostConfig) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "pkinit_indicators")
 		delete(additionalProperties, "spake_indicators")
 		delete(additionalProperties, "encrypted_challenge_indicator")
+		delete(additionalProperties, "otp_enabled")
+		delete(additionalProperties, "otp_indicators")
 		delete(additionalProperties, "anonymous_pkinit_enabled")
 		delete(additionalProperties, "kkdcp_enabled")
 		delete(additionalProperties, "kkdcp_certificate")

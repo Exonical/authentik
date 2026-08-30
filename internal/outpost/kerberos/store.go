@@ -127,6 +127,33 @@ func (s *providerStore) Authorize(
 	return nil
 }
 
+func (s *providerStore) validateOTP(name principal.Principal, value string) error {
+	if s == nil || !s.otpEnabled || name.Realm != s.realm || len(name.Components) != 1 {
+		return fmt.Errorf("OTP is unavailable for principal")
+	}
+	if s.server == nil || s.server.ac == nil || s.server.ac.Client == nil {
+		return fmt.Errorf("authentik OTP validation failed")
+	}
+	response, _, err := s.server.ac.Client.OutpostsAPI.
+		OutpostsKerberosOtpCheck(context.Background(), s.providerID).
+		Username(name.Components[0]).
+		Value(value).
+		Execute()
+	if err != nil || response == nil {
+		logger := log.WithField("username", name.Components[0])
+		if err != nil {
+			logger = logger.WithError(err)
+		}
+		logger.Warn("Kerberos OTP validation failed")
+		return fmt.Errorf("authentik OTP validation failed")
+	}
+	if !response.GetAllowed() {
+		log.WithField("username", name.Components[0]).Info("Kerberos OTP validation denied")
+		return fmt.Errorf("authentik OTP validation denied")
+	}
+	return nil
+}
+
 func isAnonymousPrincipal(p principal.Principal) bool {
 	return p.NameType == principal.NTWellKnown &&
 		len(p.Components) == 2 &&
