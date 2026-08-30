@@ -11061,6 +11061,42 @@ paths:
           $ref: '#/components/responses/ValidationErrorResponse'
         '403':
           $ref: '#/components/responses/GenericErrorResponse'
+  /outposts/kerberos/{id}/otp_check/:
+    get:
+      operationId: outposts_kerberos_otp_check
+      description: Check a user's authentik TOTP or static authentication token.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      - in: query
+        name: username
+        schema:
+          type: string
+        required: true
+      - in: query
+        name: value
+        schema:
+          type: string
+        required: true
+      tags:
+      - outposts
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosOTPCheck'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
   /outposts/kerberos/{id}/service_principals/:
     get:
       operationId: outposts_kerberos_service_principals_list
@@ -44078,6 +44114,14 @@ components:
           $ref: '#/components/schemas/PolicyTestResult'
       required:
       - access
+    KerberosOTPCheck:
+      type: object
+      description: OTP validation data consumed by the KDC outpost.
+      properties:
+        allowed:
+          type: boolean
+      required:
+      - allowed
     KerberosOutpostConfig:
       type: object
       description: Kerberos provider serializer for outposts.
@@ -44158,6 +44202,15 @@ components:
         encrypted_challenge_indicator:
           type: string
           description: Indicator asserted after encrypted-challenge preauthentication.
+        otp_enabled:
+          type: boolean
+          description: Enable RFC 6560 OTP preauthentication backed by the user's
+            authentik TOTP and static authenticator devices.
+        otp_indicators:
+          type: array
+          items:
+            type: string
+          description: Authentication indicators asserted after successful OTP preauthentication.
         anonymous_pkinit_enabled:
           type: boolean
           description: Allow anonymous PKINIT requests.
@@ -44321,6 +44374,15 @@ components:
         encrypted_challenge_indicator:
           type: string
           description: Indicator asserted after encrypted-challenge preauthentication.
+        otp_enabled:
+          type: boolean
+          description: Enable RFC 6560 OTP preauthentication backed by the user's
+            authentik TOTP and static authenticator devices.
+        otp_indicators:
+          type: array
+          items:
+            type: string
+          description: Authentication indicators asserted after successful OTP preauthentication.
         anonymous_pkinit_enabled:
           type: boolean
           description: Allow anonymous PKINIT requests.
@@ -44463,6 +44525,16 @@ components:
         encrypted_challenge_indicator:
           type: string
           description: Indicator asserted after encrypted-challenge preauthentication.
+        otp_enabled:
+          type: boolean
+          description: Enable RFC 6560 OTP preauthentication backed by the user's
+            authentik TOTP and static authenticator devices.
+        otp_indicators:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: Authentication indicators asserted after successful OTP preauthentication.
         anonymous_pkinit_enabled:
           type: boolean
           description: Allow anonymous PKINIT requests.
@@ -52948,6 +53020,16 @@ components:
         encrypted_challenge_indicator:
           type: string
           description: Indicator asserted after encrypted-challenge preauthentication.
+        otp_enabled:
+          type: boolean
+          description: Enable RFC 6560 OTP preauthentication backed by the user's
+            authentik TOTP and static authenticator devices.
+        otp_indicators:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: Authentication indicators asserted after successful OTP preauthentication.
         anonymous_pkinit_enabled:
           type: boolean
           description: Allow anonymous PKINIT requests.

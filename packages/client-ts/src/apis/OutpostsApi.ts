@@ -24,6 +24,7 @@ import {
     type KerberosCheckAccess,
     KerberosCheckAccessFromJSON,
 } from "../models/KerberosCheckAccess";
+import { type KerberosOTPCheck, KerberosOTPCheckFromJSON } from "../models/KerberosOTPCheck";
 import {
     type KerberosSetPasswordRequest,
     KerberosSetPasswordRequestToJSON,
@@ -174,6 +175,12 @@ export interface OutpostsKerberosListRequest {
     page?: number;
     pageSize?: number;
     search?: string;
+}
+
+export interface OutpostsKerberosOtpCheckRequest {
+    id: number;
+    username: string;
+    value: string;
 }
 
 export interface OutpostsKerberosServicePrincipalsListRequest {
@@ -1131,6 +1138,91 @@ export class OutpostsApi extends runtime.BaseAPI {
         initOverrides?: RequestInit | runtime.InitOverrideFunction,
     ): Promise<PaginatedKerberosOutpostConfigList> {
         const response = await this.outpostsKerberosListRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for outpostsKerberosOtpCheck without sending the request
+     */
+    async outpostsKerberosOtpCheckRequestOpts(
+        requestParameters: OutpostsKerberosOtpCheckRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["id"] == null) {
+            throw new runtime.RequiredError(
+                "id",
+                'Required parameter "id" was null or undefined when calling outpostsKerberosOtpCheck().',
+            );
+        }
+
+        if (requestParameters["username"] == null) {
+            throw new runtime.RequiredError(
+                "username",
+                'Required parameter "username" was null or undefined when calling outpostsKerberosOtpCheck().',
+            );
+        }
+
+        if (requestParameters["value"] == null) {
+            throw new runtime.RequiredError(
+                "value",
+                'Required parameter "value" was null or undefined when calling outpostsKerberosOtpCheck().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters["username"] != null) {
+            queryParameters["username"] = requestParameters["username"];
+        }
+
+        if (requestParameters["value"] != null) {
+            queryParameters["value"] = requestParameters["value"];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/outposts/kerberos/{id}/otp_check/`;
+        urlPath = urlPath.replace("{id}", encodeURIComponent(String(requestParameters["id"])));
+
+        return {
+            path: urlPath,
+            method: "GET",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Check a user\'s authentik TOTP or static authentication token.
+     */
+    async outpostsKerberosOtpCheckRaw(
+        requestParameters: OutpostsKerberosOtpCheckRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<KerberosOTPCheck>> {
+        const requestOptions = await this.outpostsKerberosOtpCheckRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            KerberosOTPCheckFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Check a user\'s authentik TOTP or static authentication token.
+     */
+    async outpostsKerberosOtpCheck(
+        requestParameters: OutpostsKerberosOtpCheckRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<KerberosOTPCheck> {
+        const response = await this.outpostsKerberosOtpCheckRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -189,6 +189,18 @@ export interface KerberosProviderRequest {
      */
     encryptedChallengeIndicator?: string;
     /**
+     * Enable RFC 6560 OTP preauthentication backed by the user's authentik TOTP and static authenticator devices.
+     * @type {boolean}
+     * @memberof KerberosProviderRequest
+     */
+    otpEnabled?: boolean;
+    /**
+     * Authentication indicators asserted after successful OTP preauthentication.
+     * @type {Array<string>}
+     * @memberof KerberosProviderRequest
+     */
+    otpIndicators?: Array<string>;
+    /**
      * Allow anonymous PKINIT requests.
      * @type {boolean}
      * @memberof KerberosProviderRequest
@@ -320,6 +332,8 @@ export function KerberosProviderRequestFromJSONTyped(
             json["encrypted_challenge_indicator"] == null
                 ? undefined
                 : json["encrypted_challenge_indicator"],
+        otpEnabled: json["otp_enabled"] == null ? undefined : json["otp_enabled"],
+        otpIndicators: json["otp_indicators"] == null ? undefined : json["otp_indicators"],
         anonymousPkinitEnabled:
             json["anonymous_pkinit_enabled"] == null ? undefined : json["anonymous_pkinit_enabled"],
         kkdcpEnabled: json["kkdcp_enabled"] == null ? undefined : json["kkdcp_enabled"],
@@ -379,6 +393,8 @@ export function KerberosProviderRequestToJSONTyped(
         pkinit_indicators: value["pkinitIndicators"],
         spake_indicators: value["spakeIndicators"],
         encrypted_challenge_indicator: value["encryptedChallengeIndicator"],
+        otp_enabled: value["otpEnabled"],
+        otp_indicators: value["otpIndicators"],
         anonymous_pkinit_enabled: value["anonymousPkinitEnabled"],
         kkdcp_enabled: value["kkdcpEnabled"],
         kkdcp_certificate: value["kkdcpCertificate"],

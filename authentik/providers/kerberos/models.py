@@ -147,6 +147,19 @@ class KerberosProvider(OutpostModel, Provider):
         blank=True,
         help_text=_("Indicator asserted after encrypted-challenge preauthentication."),
     )
+    otp_enabled = models.BooleanField(
+        default=False,
+        help_text=_(
+            "Enable RFC 6560 OTP preauthentication backed by the user's authentik "
+            "TOTP and static authenticator devices."
+        ),
+    )
+    otp_indicators = ArrayField(
+        models.TextField(),
+        default=list,
+        blank=True,
+        help_text=_("Authentication indicators asserted after successful OTP preauthentication."),
+    )
     anonymous_pkinit_enabled = models.BooleanField(
         default=False,
         help_text=_("Allow anonymous PKINIT requests."),
@@ -178,9 +191,7 @@ class KerberosProvider(OutpostModel, Provider):
         if self.realm_sid:
             validate_realm_sid(self.realm_sid)
         elif self.pac_enabled:
-            self.realm_sid = "S-1-5-21-" + "-".join(
-                str(secrets.randbits(32)) for _ in range(3)
-            )
+            self.realm_sid = "S-1-5-21-" + "-".join(str(secrets.randbits(32)) for _ in range(3))
         return super().save(*args, **kwargs)
 
     @property

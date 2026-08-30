@@ -29,6 +29,7 @@ from authentik.core.api.used_by import UsedByMixin
 from authentik.core.api.utils import ModelSerializer, PassiveSerializer
 from authentik.core.apps import AppAccessWithoutBindings
 from authentik.core.models import User
+from authentik.events.models import Event, EventAction
 from authentik.lib.utils.time import timedelta_from_string
 from authentik.policies.api.exec import PolicyTestResultSerializer
 from authentik.policies.engine import PolicyEngine
@@ -39,6 +40,8 @@ from authentik.providers.kerberos.models import (
     KerberosUserKeys,
     generate_key,
 )
+from authentik.stages.authenticator_static.models import StaticDevice
+from authentik.stages.authenticator_totp.models import TOTPDevice
 
 KEYTAB_KVNO_MAX = 255
 
@@ -73,6 +76,8 @@ class KerberosProviderSerializer(ProviderSerializer):
             "pkinit_indicators",
             "spake_indicators",
             "encrypted_challenge_indicator",
+            "otp_enabled",
+            "otp_indicators",
             "anonymous_pkinit_enabled",
             "kkdcp_enabled",
             "kkdcp_certificate",
@@ -282,6 +287,12 @@ class KerberosCheckAccessSerializer(PassiveSerializer):
     access = PolicyTestResultSerializer()
 
 
+class KerberosOTPCheckSerializer(PassiveSerializer):
+    """OTP validation data consumed by the KDC outpost."""
+
+    allowed = BooleanField()
+
+
 class KerberosSetPasswordSerializer(PassiveSerializer):
     """Password change request for the Kerberos outpost."""
 
@@ -329,6 +340,8 @@ class KerberosOutpostConfigSerializer(ModelSerializer):
             "pkinit_indicators",
             "spake_indicators",
             "encrypted_challenge_indicator",
+            "otp_enabled",
+            "otp_indicators",
             "anonymous_pkinit_enabled",
             "kkdcp_enabled",
             "kkdcp_certificate",
@@ -463,6 +476,43 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
 
         response = KerberosCheckAccessSerializer(instance={"access": result})
         return Response(response.data)
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("username", OpenApiTypes.STR, required=True),
+            OpenApiParameter("value", OpenApiTypes.STR, required=True),
+        ],
+        responses={200: KerberosOTPCheckSerializer()},
+        operation_id="outposts_kerberos_otp_check",
+    )
+    @action(detail=True, methods=["GET"])
+    def otp_check(self, request: Request, pk=None) -> Response:
+        """Check a user's authentik TOTP or static authentication token."""
+        provider = self.get_object()
+        username = request.query_params.get("username")
+        value = request.query_params.get("value")
+        user = self._resolve_user(provider, username or "")
+        allowed = False
+        if user is not None and value:
+            try:
+                for device in TOTPDevice.objects.devices_for_user(user, confirmed=True):
+                    if device.verify_token(value):
+                        allowed = True
+                        break
+                if not allowed:
+                    for device in StaticDevice.objects.devices_for_user(user, confirmed=True):
+                        if device.verify_token(value):
+                            allowed = True
+                            break
+            except Exception:  # noqa: BLE001
+                allowed = False
+        if not allowed:
+            Event.new(
+                EventAction.LOGIN_FAILED,
+                username=username or "",
+                reason="kerberos_otp_denied",
+            ).from_http(request, user=user)
+        return Response({"allowed": allowed})
 
     @extend_schema(
         request=KerberosSetPasswordSerializer,

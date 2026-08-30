@@ -92,6 +92,12 @@ const descriptionLabels: Record<string, string> = {
     "kerberos.encrypted-challenge-indicator.term": msg("Encrypted-challenge indicator", {
         id: "kerberos.encrypted-challenge-indicator.term",
     }),
+    "kerberos.otp.enabled.term": msg("OTP preauthentication enabled", {
+        id: "kerberos.otp.enabled.term",
+    }),
+    "kerberos.otp-indicators.term": msg("OTP indicators", {
+        id: "kerberos.otp-indicators.term",
+    }),
     "kerberos.forwardable.term": msg("Forwardable", { id: "kerberos.forwardable.term" }),
     "kerberos.renewable.term": msg("Renewable", { id: "kerberos.renewable.term" }),
     "kerberos.proxiable.term": msg("Proxiable", { id: "kerberos.proxiable.term" }),
@@ -311,6 +317,16 @@ export class KerberosProviderViewPage extends AKElement {
                                                 "Anonymous PKINIT enabled",
                                                 this.provider.anonymousPkinitEnabled,
                                                 "kerberos.anonymous-pkinit.enabled.term",
+                                            )}
+                                            ${this.renderBoolean(
+                                                "OTP preauthentication enabled",
+                                                this.provider.otpEnabled,
+                                                "kerberos.otp.enabled.term",
+                                            )}
+                                            ${this.renderDescription(
+                                                "OTP indicators",
+                                                this.provider.otpIndicators?.join(", ") || "-",
+                                                "kerberos.otp-indicators.term",
                                             )}
                                             ${this.renderDescription(
                                                 "PKINIT indicators",

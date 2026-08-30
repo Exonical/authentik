@@ -21,6 +21,9 @@ from authentik.providers.kerberos.models import (
     KerberosServicePrincipal,
     KerberosUserKeys,
 )
+from authentik.stages.authenticator.oath import TOTP
+from authentik.stages.authenticator_static.models import StaticDevice, StaticToken
+from authentik.stages.authenticator_totp.models import TOTPDevice
 
 
 class KerberosProviderAPITests(APITestCase):
@@ -65,6 +68,53 @@ class KerberosProviderAPITests(APITestCase):
         self.assertEqual(outpost_data["pkinit_indicators"], ["pkinit"])
         self.assertEqual(outpost_data["spake_indicators"], ["spake", "hardware"])
         self.assertEqual(outpost_data["encrypted_challenge_indicator"], "encrypted")
+
+    def test_otp_settings_serializer_round_trip(self):
+        """OTP settings round-trip through both provider serializers."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.COM",
+            otp_enabled=True,
+            otp_indicators=["otp"],
+        )
+        serializer = KerberosProviderSerializer(provider)
+        self.assertTrue(serializer.data["otp_enabled"])
+        self.assertEqual(serializer.data["otp_indicators"], ["otp"])
+        Application.objects.create(name=generate_id(), slug=generate_id(), provider=provider)
+        outpost_data = KerberosOutpostConfigSerializer(provider).data
+        self.assertTrue(outpost_data["otp_enabled"])
+        self.assertEqual(outpost_data["otp_indicators"], ["otp"])
+
+    def test_otp_check_verifies_confirmed_devices_and_aliases(self):
+        """OTP checks resolve aliases and consume static tokens."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.COM",
+            principal_username_attribute="email",
+        )
+        Application.objects.create(name=generate_id(), slug=generate_id(), provider=provider)
+        user = create_test_user(email="otp@example.com")
+        totp_device = TOTPDevice.objects.create(user=user, name="totp", confirmed=True)
+        static_device = StaticDevice.objects.create(user=user, name="static", confirmed=True)
+        StaticToken.objects.create(device=static_device, token="static-token")
+        self.client.force_login(create_test_admin_user())
+        url = reverse(
+            "authentik_api:kerberosprovideroutpost-otp-check",
+            kwargs={"pk": provider.pk},
+        )
+
+        response = self.client.get(
+            url, {"username": user.email, "value": TOTP(totp_device.bin_key).token()}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["allowed"])
+        response = self.client.get(url, {"username": user.email, "value": "static-token"})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["allowed"])
+        self.assertFalse(StaticToken.objects.filter(token="static-token").exists())
+        response = self.client.get(url, {"username": user.email, "value": "static-token"})
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json()["allowed"])
 
     def test_pac_settings_serializer_round_trip(self):
         """PAC settings round-trip through both provider serializers."""

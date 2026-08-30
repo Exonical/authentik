@@ -389,6 +389,40 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                     ?checked=${provider.anonymousPkinitEnabled ?? false}
                 ></ak-switch-input>
                 <ak-switch-input
+                    name="otpEnabled"
+                    label=${msg("OTP preauthentication enabled", {
+                        id: "kerberos.otp.enabled.label",
+                    })}
+                    ?checked=${provider.otpEnabled ?? false}
+                ></ak-switch-input>
+                <ak-form-element-horizontal
+                    label=${msg("OTP authentication indicators", {
+                        id: "kerberos.otp-indicators.label",
+                    })}
+                    name="otpIndicators"
+                >
+                    <ak-array-input
+                        name="otp-indicator"
+                        .items=${provider.otpIndicators ?? []}
+                        .newItem=${() => ""}
+                        .row=${(indicator: string) => html`
+                            <ak-text-input
+                                name="indicator"
+                                value="${indicator}"
+                                placeholder=${msg("indicator", {
+                                    id: "kerberos.otp-indicators.placeholder",
+                                })}
+                                input-hint="code"
+                            ></ak-text-input>
+                        `}
+                    ></ak-array-input>
+                    <p class="pf-c-form__helper-text">
+                        ${msg("Authentication indicators asserted after successful OTP preauthentication.", {
+                            id: "kerberos.otp-indicators.help",
+                        })}
+                    </p>
+                </ak-form-element-horizontal>
+                <ak-switch-input
                     name="pacEnabled"
                     label=${msg("Include MS-PAC in tickets", {
                         id: "kerberos.pac.enabled.label",
