@@ -48,6 +48,12 @@ export interface KerberosServicePrincipalRequest {
      * @memberof KerberosServicePrincipalRequest
      */
     allowedDelegationTargets?: Array<string>;
+    /**
+     * Authentication indicators required to obtain tickets for this service.
+     * @type {Array<string>}
+     * @memberof KerberosServicePrincipalRequest
+     */
+    requiredAuthIndicators?: Array<string>;
 }
 
 /**
@@ -89,6 +95,8 @@ export function KerberosServicePrincipalRequestFromJSONTyped(
             json["allowed_delegation_targets"] == null
                 ? undefined
                 : json["allowed_delegation_targets"],
+        requiredAuthIndicators:
+            json["required_auth_indicators"] == null ? undefined : json["required_auth_indicators"],
     };
 }
 
@@ -110,5 +118,6 @@ export function KerberosServicePrincipalRequestToJSONTyped(
         service_account: value["serviceAccount"],
         ok_to_auth_as_delegate: value["okToAuthAsDelegate"],
         allowed_delegation_targets: value["allowedDelegationTargets"],
+        required_auth_indicators: value["requiredAuthIndicators"],
     };
 }

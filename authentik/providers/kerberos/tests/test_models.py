@@ -30,6 +30,9 @@ class KerberosProviderTests(TestCase):
         self.assertFalse(provider.anonymous_pkinit_enabled)
         self.assertFalse(provider.kkdcp_enabled)
         self.assertIsNone(provider.kkdcp_certificate)
+        self.assertEqual(provider.pkinit_indicators, [])
+        self.assertEqual(provider.spake_indicators, [])
+        self.assertEqual(provider.encrypted_challenge_indicator, "")
         self.assertFalse(provider.pac_enabled)
         self.assertEqual(provider.realm_sid, "")
 
@@ -71,6 +74,28 @@ class KerberosProviderTests(TestCase):
         self.assertEqual(set(principal.keys), {"18", "20"})
         self.assertEqual(len(base64.b64decode(principal.keys["18"])), 32)
         self.assertEqual(len(base64.b64decode(principal.keys["20"])), 32)
+        self.assertEqual(principal.required_auth_indicators, [])
+
+    def test_auth_indicator_settings_can_be_set(self):
+        """Authentication indicator settings persist on providers and services."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name=generate_id(),
+            pkinit_indicators=["pkinit"],
+            spake_indicators=["spake", "hardware"],
+            encrypted_challenge_indicator="encrypted",
+        )
+        principal = KerberosServicePrincipal.objects.create(
+            provider=provider,
+            spn="HTTP/app.example.com",
+            required_auth_indicators=["pkinit", "hardware"],
+        )
+        provider.refresh_from_db()
+        principal.refresh_from_db()
+        self.assertEqual(provider.pkinit_indicators, ["pkinit"])
+        self.assertEqual(provider.spake_indicators, ["spake", "hardware"])
+        self.assertEqual(provider.encrypted_challenge_indicator, "encrypted")
+        self.assertEqual(principal.required_auth_indicators, ["pkinit", "hardware"])
 
     def test_service_principal_key_lengths_follow_enctypes(self):
         """AES-128 service keys contain 128 bits."""

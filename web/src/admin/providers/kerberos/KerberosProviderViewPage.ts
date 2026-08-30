@@ -83,6 +83,15 @@ const descriptionLabels: Record<string, string> = {
     "kerberos.anonymous-pkinit.enabled.term": msg("Anonymous PKINIT enabled", {
         id: "kerberos.anonymous-pkinit.enabled.term",
     }),
+    "kerberos.pkinit-indicators.term": msg("PKINIT indicators", {
+        id: "kerberos.pkinit-indicators.term",
+    }),
+    "kerberos.spake-indicators.term": msg("SPAKE indicators", {
+        id: "kerberos.spake-indicators.term",
+    }),
+    "kerberos.encrypted-challenge-indicator.term": msg("Encrypted-challenge indicator", {
+        id: "kerberos.encrypted-challenge-indicator.term",
+    }),
     "kerberos.forwardable.term": msg("Forwardable", { id: "kerberos.forwardable.term" }),
     "kerberos.renewable.term": msg("Renewable", { id: "kerberos.renewable.term" }),
     "kerberos.proxiable.term": msg("Proxiable", { id: "kerberos.proxiable.term" }),
@@ -302,6 +311,21 @@ export class KerberosProviderViewPage extends AKElement {
                                                 "Anonymous PKINIT enabled",
                                                 this.provider.anonymousPkinitEnabled,
                                                 "kerberos.anonymous-pkinit.enabled.term",
+                                            )}
+                                            ${this.renderDescription(
+                                                "PKINIT indicators",
+                                                this.provider.pkinitIndicators?.join(", ") || "-",
+                                                "kerberos.pkinit-indicators.term",
+                                            )}
+                                            ${this.renderDescription(
+                                                "SPAKE indicators",
+                                                this.provider.spakeIndicators?.join(", ") || "-",
+                                                "kerberos.spake-indicators.term",
+                                            )}
+                                            ${this.renderDescription(
+                                                "Encrypted-challenge indicator",
+                                                this.provider.encryptedChallengeIndicator || "-",
+                                                "kerberos.encrypted-challenge-indicator.term",
                                             )}
                                             ${this.renderBoolean(
                                                 "MS-PAC enabled",

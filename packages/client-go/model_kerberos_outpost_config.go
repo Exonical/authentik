@@ -47,6 +47,12 @@ type KerberosOutpostConfig struct {
 	PkinitClientCa NullableString `json:"pkinit_client_ca,omitempty"`
 	// Require RFC 8070 freshness tokens on PKINIT requests.
 	PkinitRequireFreshness *bool `json:"pkinit_require_freshness,omitempty"`
+	// Authentication indicators asserted after successful PKINIT.
+	PkinitIndicators []string `json:"pkinit_indicators,omitempty"`
+	// Indicators asserted after SPAKE preauthentication.
+	SpakeIndicators []string `json:"spake_indicators,omitempty"`
+	// Indicator asserted after encrypted-challenge preauthentication.
+	EncryptedChallengeIndicator *string `json:"encrypted_challenge_indicator,omitempty"`
 	// Allow anonymous PKINIT requests.
 	AnonymousPkinitEnabled *bool `json:"anonymous_pkinit_enabled,omitempty"`
 	// Enable KDC Proxy over HTTPS (MS-KKDCP).
@@ -741,6 +747,102 @@ func (o *KerberosOutpostConfig) SetPkinitRequireFreshness(v bool) {
 	o.PkinitRequireFreshness = &v
 }
 
+// GetPkinitIndicators returns the PkinitIndicators field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetPkinitIndicators() []string {
+	if o == nil || IsNil(o.PkinitIndicators) {
+		var ret []string
+		return ret
+	}
+	return o.PkinitIndicators
+}
+
+// GetPkinitIndicatorsOk returns a tuple with the PkinitIndicators field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetPkinitIndicatorsOk() ([]string, bool) {
+	if o == nil || IsNil(o.PkinitIndicators) {
+		return nil, false
+	}
+	return o.PkinitIndicators, true
+}
+
+// HasPkinitIndicators returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasPkinitIndicators() bool {
+	if o != nil && !IsNil(o.PkinitIndicators) {
+		return true
+	}
+
+	return false
+}
+
+// SetPkinitIndicators gets a reference to the given []string and assigns it to the PkinitIndicators field.
+func (o *KerberosOutpostConfig) SetPkinitIndicators(v []string) {
+	o.PkinitIndicators = v
+}
+
+// GetSpakeIndicators returns the SpakeIndicators field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetSpakeIndicators() []string {
+	if o == nil || IsNil(o.SpakeIndicators) {
+		var ret []string
+		return ret
+	}
+	return o.SpakeIndicators
+}
+
+// GetSpakeIndicatorsOk returns a tuple with the SpakeIndicators field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetSpakeIndicatorsOk() ([]string, bool) {
+	if o == nil || IsNil(o.SpakeIndicators) {
+		return nil, false
+	}
+	return o.SpakeIndicators, true
+}
+
+// HasSpakeIndicators returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasSpakeIndicators() bool {
+	if o != nil && !IsNil(o.SpakeIndicators) {
+		return true
+	}
+
+	return false
+}
+
+// SetSpakeIndicators gets a reference to the given []string and assigns it to the SpakeIndicators field.
+func (o *KerberosOutpostConfig) SetSpakeIndicators(v []string) {
+	o.SpakeIndicators = v
+}
+
+// GetEncryptedChallengeIndicator returns the EncryptedChallengeIndicator field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetEncryptedChallengeIndicator() string {
+	if o == nil || IsNil(o.EncryptedChallengeIndicator) {
+		var ret string
+		return ret
+	}
+	return *o.EncryptedChallengeIndicator
+}
+
+// GetEncryptedChallengeIndicatorOk returns a tuple with the EncryptedChallengeIndicator field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetEncryptedChallengeIndicatorOk() (*string, bool) {
+	if o == nil || IsNil(o.EncryptedChallengeIndicator) {
+		return nil, false
+	}
+	return o.EncryptedChallengeIndicator, true
+}
+
+// HasEncryptedChallengeIndicator returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasEncryptedChallengeIndicator() bool {
+	if o != nil && !IsNil(o.EncryptedChallengeIndicator) {
+		return true
+	}
+
+	return false
+}
+
+// SetEncryptedChallengeIndicator gets a reference to the given string and assigns it to the EncryptedChallengeIndicator field.
+func (o *KerberosOutpostConfig) SetEncryptedChallengeIndicator(v string) {
+	o.EncryptedChallengeIndicator = &v
+}
+
 // GetAnonymousPkinitEnabled returns the AnonymousPkinitEnabled field value if set, zero value otherwise.
 func (o *KerberosOutpostConfig) GetAnonymousPkinitEnabled() bool {
 	if o == nil || IsNil(o.AnonymousPkinitEnabled) {
@@ -1031,6 +1133,15 @@ func (o KerberosOutpostConfig) ToMap() (map[string]interface{}, error) {
 	if !IsNil(o.PkinitRequireFreshness) {
 		toSerialize["pkinit_require_freshness"] = o.PkinitRequireFreshness
 	}
+	if !IsNil(o.PkinitIndicators) {
+		toSerialize["pkinit_indicators"] = o.PkinitIndicators
+	}
+	if !IsNil(o.SpakeIndicators) {
+		toSerialize["spake_indicators"] = o.SpakeIndicators
+	}
+	if !IsNil(o.EncryptedChallengeIndicator) {
+		toSerialize["encrypted_challenge_indicator"] = o.EncryptedChallengeIndicator
+	}
 	if !IsNil(o.AnonymousPkinitEnabled) {
 		toSerialize["anonymous_pkinit_enabled"] = o.AnonymousPkinitEnabled
 	}
@@ -1119,6 +1230,9 @@ func (o *KerberosOutpostConfig) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "pkinit_certificate")
 		delete(additionalProperties, "pkinit_client_ca")
 		delete(additionalProperties, "pkinit_require_freshness")
+		delete(additionalProperties, "pkinit_indicators")
+		delete(additionalProperties, "spake_indicators")
+		delete(additionalProperties, "encrypted_challenge_indicator")
 		delete(additionalProperties, "anonymous_pkinit_enabled")
 		delete(additionalProperties, "kkdcp_enabled")
 		delete(additionalProperties, "kkdcp_certificate")

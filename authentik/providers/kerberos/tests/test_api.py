@@ -37,6 +37,9 @@ class KerberosProviderAPITests(APITestCase):
             anonymous_pkinit_enabled=True,
             kkdcp_enabled=True,
             kkdcp_certificate=certificate,
+            pkinit_indicators=["pkinit"],
+            spake_indicators=["spake", "hardware"],
+            encrypted_challenge_indicator="encrypted",
         )
         serializer = KerberosProviderSerializer(provider)
         self.assertTrue(serializer.data["spake_enabled"])
@@ -44,6 +47,9 @@ class KerberosProviderAPITests(APITestCase):
         self.assertTrue(serializer.data["anonymous_pkinit_enabled"])
         self.assertTrue(serializer.data["kkdcp_enabled"])
         self.assertEqual(serializer.data["kkdcp_certificate"], certificate.pk)
+        self.assertEqual(serializer.data["pkinit_indicators"], ["pkinit"])
+        self.assertEqual(serializer.data["spake_indicators"], ["spake", "hardware"])
+        self.assertEqual(serializer.data["encrypted_challenge_indicator"], "encrypted")
 
         Application.objects.create(
             name=generate_id(),
@@ -56,6 +62,9 @@ class KerberosProviderAPITests(APITestCase):
         self.assertTrue(outpost_data["anonymous_pkinit_enabled"])
         self.assertTrue(outpost_data["kkdcp_enabled"])
         self.assertEqual(outpost_data["kkdcp_certificate"], certificate.pk)
+        self.assertEqual(outpost_data["pkinit_indicators"], ["pkinit"])
+        self.assertEqual(outpost_data["spake_indicators"], ["spake", "hardware"])
+        self.assertEqual(outpost_data["encrypted_challenge_indicator"], "encrypted")
 
     def test_pac_settings_serializer_round_trip(self):
         """PAC settings round-trip through both provider serializers."""
@@ -155,6 +164,7 @@ class KerberosProviderAPITests(APITestCase):
                 "service_account": service_account.pk,
                 "ok_to_auth_as_delegate": True,
                 "allowed_delegation_targets": ["nfs/example", "HTTP/other"],
+                "required_auth_indicators": ["pkinit", "hardware"],
             }
         )
         self.assertTrue(serializer.is_valid(), serializer.errors)
@@ -165,6 +175,7 @@ class KerberosProviderAPITests(APITestCase):
             principal.allowed_delegation_targets,
             ["nfs/example", "HTTP/other"],
         )
+        self.assertEqual(principal.required_auth_indicators, ["pkinit", "hardware"])
         self.assertEqual(
             KerberosServicePrincipalSerializer(principal).data["allowed_delegation_targets"],
             ["nfs/example", "HTTP/other"],
@@ -172,6 +183,10 @@ class KerberosProviderAPITests(APITestCase):
         self.assertEqual(
             KerberosServicePrincipalSerializer(principal).data["service_account"],
             service_account.pk,
+        )
+        self.assertEqual(
+            KerberosServicePrincipalSerializer(principal).data["required_auth_indicators"],
+            ["pkinit", "hardware"],
         )
 
     def test_service_principal_serializer_rejects_non_string_targets(self):

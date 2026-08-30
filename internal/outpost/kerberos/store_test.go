@@ -332,6 +332,42 @@ func TestStoreServiceLookup(t *testing.T) {
 	}
 }
 
+func TestServiceRecordAuthIndicators(t *testing.T) {
+	store := &providerStore{
+		realm:   testRealm,
+		allowed: map[int32]bool{18: true},
+	}
+	key := make([]byte, 32)
+	record, err := store.serviceRecordWithIndicators(
+		"host/service.test",
+		1,
+		map[string]interface{}{
+			"18": base64.StdEncoding.EncodeToString(key),
+		},
+		[]string{"pkinit", "hardware"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := record.Strings["require_auth"]; got != "pkinit hardware" {
+		t.Fatalf("require_auth = %q, want %q", got, "pkinit hardware")
+	}
+	withoutIndicators, err := store.serviceRecordWithIndicators(
+		"host/other.test",
+		1,
+		map[string]interface{}{
+			"18": base64.StdEncoding.EncodeToString(key),
+		},
+		nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(withoutIndicators.Strings) != 0 {
+		t.Fatalf("auth indicators unexpectedly set: %#v", withoutIndicators.Strings)
+	}
+}
+
 func TestStoreUserLookupCacheAndUnknown(t *testing.T) {
 	requests := 0
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

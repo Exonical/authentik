@@ -44145,6 +44145,19 @@ components:
         pkinit_require_freshness:
           type: boolean
           description: Require RFC 8070 freshness tokens on PKINIT requests.
+        pkinit_indicators:
+          type: array
+          items:
+            type: string
+          description: Authentication indicators asserted after successful PKINIT.
+        spake_indicators:
+          type: array
+          items:
+            type: string
+          description: Indicators asserted after SPAKE preauthentication.
+        encrypted_challenge_indicator:
+          type: string
+          description: Indicator asserted after encrypted-challenge preauthentication.
         anonymous_pkinit_enabled:
           type: boolean
           description: Allow anonymous PKINIT requests.
@@ -44295,6 +44308,19 @@ components:
         pkinit_require_freshness:
           type: boolean
           description: Require RFC 8070 freshness tokens on PKINIT requests.
+        pkinit_indicators:
+          type: array
+          items:
+            type: string
+          description: Authentication indicators asserted after successful PKINIT.
+        spake_indicators:
+          type: array
+          items:
+            type: string
+          description: Indicators asserted after SPAKE preauthentication.
+        encrypted_challenge_indicator:
+          type: string
+          description: Indicator asserted after encrypted-challenge preauthentication.
         anonymous_pkinit_enabled:
           type: boolean
           description: Allow anonymous PKINIT requests.
@@ -44422,6 +44448,21 @@ components:
         pkinit_require_freshness:
           type: boolean
           description: Require RFC 8070 freshness tokens on PKINIT requests.
+        pkinit_indicators:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: Authentication indicators asserted after successful PKINIT.
+        spake_indicators:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: Indicators asserted after SPAKE preauthentication.
+        encrypted_challenge_indicator:
+          type: string
+          description: Indicator asserted after encrypted-challenge preauthentication.
         anonymous_pkinit_enabled:
           type: boolean
           description: Allow anonymous PKINIT requests.
@@ -44476,6 +44517,12 @@ components:
           items:
             type: string
             minLength: 1
+        required_auth_indicators:
+          type: array
+          items:
+            type: string
+          description: Authentication indicators required to obtain tickets for this
+            service.
       required:
       - keys
       - kvno
@@ -44500,11 +44547,16 @@ components:
           type: array
           items:
             type: string
+        required_auth_indicators:
+          type: array
+          items:
+            type: string
       required:
       - allowed_delegation_targets
       - keys
       - kvno
       - ok_to_auth_as_delegate
+      - required_auth_indicators
       - spn
     KerberosServicePrincipalRequest:
       type: object
@@ -44530,6 +44582,13 @@ components:
           items:
             type: string
             minLength: 1
+        required_auth_indicators:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: Authentication indicators required to obtain tickets for this
+            service.
       required:
       - provider
       - spn
@@ -52874,6 +52933,21 @@ components:
         pkinit_require_freshness:
           type: boolean
           description: Require RFC 8070 freshness tokens on PKINIT requests.
+        pkinit_indicators:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: Authentication indicators asserted after successful PKINIT.
+        spake_indicators:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: Indicators asserted after SPAKE preauthentication.
+        encrypted_challenge_indicator:
+          type: string
+          description: Indicator asserted after encrypted-challenge preauthentication.
         anonymous_pkinit_enabled:
           type: boolean
           description: Allow anonymous PKINIT requests.
@@ -52915,6 +52989,13 @@ components:
           items:
             type: string
             minLength: 1
+        required_auth_indicators:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: Authentication indicators required to obtain tickets for this
+            service.
     PatchedKerberosSourcePropertyMappingRequest:
       type: object
       description: Kerberos PropertyMapping Serializer

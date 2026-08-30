@@ -66,6 +66,23 @@ Enter durations using the authentik time delta format, such as `hours=10` or `da
 **SPAKE preauthentication enabled** advertises PA-SPAKE preauthentication (RFC 9588). When
 disabled, clients use the existing encrypted-timestamp preauthentication flow.
 
+### Authentication indicators
+
+Authentication indicators record how a Kerberos ticket was obtained. Configure
+**PKINIT indicators** to assert indicators after successful certificate-based
+authentication, **SPAKE indicators** to assert indicators after successful
+PA-SPAKE authentication, and **Encrypted-challenge indicator** to assert one
+indicator after successful FAST encrypted-challenge preauthentication. These
+indicators are asserted only by their corresponding authentication mechanism;
+configuring an indicator does not make other authentication methods satisfy it.
+
+Service principals can set **Required authentication indicators**. The KDC
+requires at least one of the listed indicators (an ANY-match policy) in the
+ticket's authentication history before issuing a ticket for that service. For
+example, a service requiring `pkinit` accepts a PKINIT-authenticated ticket but
+rejects a password-authenticated ticket without that indicator. authentik does
+not currently assert indicators for OTP preauthentication.
+
 ### Microsoft PAC
 
 Kerberos providers can include a Microsoft Privilege Attribute Certificate (MS-PAC) in

@@ -104,6 +104,9 @@ func (rs *KerberosServer) Refresh() error {
 				DisablePreauth:         !provider.GetRequirePreauthentication(),
 				EnableSPAKE:            provider.GetSpakeEnabled(),
 				PKINITRequireFreshness: provider.GetPkinitRequireFreshness(),
+				PKINITIndicators:       provider.GetPkinitIndicators(),
+				SPAKEPreauthIndicators: provider.GetSpakeIndicators(),
+				EncryptedChallengeIndicator: provider.GetEncryptedChallengeIndicator(),
 				Policy: &kdc.Policy{
 					AllowForwardable: provider.GetForwardable(),
 					AllowRenewable:   provider.GetRenewable(),
@@ -130,7 +133,12 @@ func (rs *KerberosServer) Refresh() error {
 			return err
 		}
 		for _, service := range services {
-			record, err := store.serviceRecord(service.Spn, service.Kvno, service.Keys)
+			record, err := store.serviceRecordWithIndicators(
+				service.Spn,
+				service.Kvno,
+				service.Keys,
+				service.GetRequiredAuthIndicators(),
+			)
 			if err != nil {
 				return fmt.Errorf("decode service principal %s: %w", service.Spn, err)
 			}

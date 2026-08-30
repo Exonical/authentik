@@ -171,6 +171,24 @@ export interface PatchedKerberosProviderRequest {
      */
     pkinitRequireFreshness?: boolean;
     /**
+     * Authentication indicators asserted after successful PKINIT.
+     * @type {Array<string>}
+     * @memberof PatchedKerberosProviderRequest
+     */
+    pkinitIndicators?: Array<string>;
+    /**
+     * Indicators asserted after SPAKE preauthentication.
+     * @type {Array<string>}
+     * @memberof PatchedKerberosProviderRequest
+     */
+    spakeIndicators?: Array<string>;
+    /**
+     * Indicator asserted after encrypted-challenge preauthentication.
+     * @type {string}
+     * @memberof PatchedKerberosProviderRequest
+     */
+    encryptedChallengeIndicator?: string;
+    /**
      * Allow anonymous PKINIT requests.
      * @type {boolean}
      * @memberof PatchedKerberosProviderRequest
@@ -290,6 +308,12 @@ export function PatchedKerberosProviderRequestFromJSONTyped(
                   : json["pkinit_client_ca"],
         pkinitRequireFreshness:
             json["pkinit_require_freshness"] == null ? undefined : json["pkinit_require_freshness"],
+        pkinitIndicators: json["pkinit_indicators"] == null ? undefined : json["pkinit_indicators"],
+        spakeIndicators: json["spake_indicators"] == null ? undefined : json["spake_indicators"],
+        encryptedChallengeIndicator:
+            json["encrypted_challenge_indicator"] == null
+                ? undefined
+                : json["encrypted_challenge_indicator"],
         anonymousPkinitEnabled:
             json["anonymous_pkinit_enabled"] == null ? undefined : json["anonymous_pkinit_enabled"],
         kkdcpEnabled: json["kkdcp_enabled"] == null ? undefined : json["kkdcp_enabled"],
@@ -346,6 +370,9 @@ export function PatchedKerberosProviderRequestToJSONTyped(
         pkinit_certificate: value["pkinitCertificate"],
         pkinit_client_ca: value["pkinitClientCa"],
         pkinit_require_freshness: value["pkinitRequireFreshness"],
+        pkinit_indicators: value["pkinitIndicators"],
+        spake_indicators: value["spakeIndicators"],
+        encrypted_challenge_indicator: value["encryptedChallengeIndicator"],
         anonymous_pkinit_enabled: value["anonymousPkinitEnabled"],
         kkdcp_enabled: value["kkdcpEnabled"],
         kkdcp_certificate: value["kkdcpCertificate"],

@@ -124,6 +124,35 @@ export class ServicePrincipalForm extends ModelForm<
                 </p>
             </ak-form-element-horizontal>
 
+            <ak-form-element-horizontal
+                label=${msg("Required authentication indicators", {
+                    id: "kerberos.service-principal.required-auth-indicators.label",
+                })}
+                name="requiredAuthIndicators"
+            >
+                <ak-array-input
+                    name="required-auth-indicator"
+                    .items=${this.instance?.requiredAuthIndicators ?? []}
+                    .newItem=${() => ""}
+                    .row=${(indicator: string) => html`
+                        <ak-text-input
+                            name="indicator"
+                            value="${indicator}"
+                            placeholder=${msg("indicator", {
+                                id: "kerberos.service-principal.required-auth-indicators.placeholder",
+                            })}
+                            input-hint="code"
+                        ></ak-text-input>
+                    `}
+                ></ak-array-input>
+                <p class="pf-c-form__helper-text">
+                    ${msg(
+                        "Any one of these indicators must be present to obtain tickets for this service.",
+                        { id: "kerberos.service-principal.required-auth-indicators.help" },
+                    )}
+                </p>
+            </ak-form-element-horizontal>
+
             <ak-switch-input
                 name="okToAuthAsDelegate"
                 label=${msg("Allow delegation", {
