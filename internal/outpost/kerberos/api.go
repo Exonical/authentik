@@ -24,8 +24,6 @@ import (
 	api "goauthentik.io/packages/client-go"
 )
 
-const otpFormatDecimal int32 = 0
-
 const userKeyCacheTTL = time.Minute
 const accessCheckCacheTTL = time.Minute
 
@@ -131,7 +129,7 @@ func (rs *KerberosServer) Refresh() error {
 		if provider.GetOtpEnabled() {
 			instance.KDC.OTPValidator = store.validateOTP
 			instance.KDC.OTPTokenInfo = func(principal.Principal) []otp.TokenInfo {
-				length, format := int32(6), otpFormatDecimal
+				length, format := int32(6), otp.FormatDecimal
 				return []otp.TokenInfo{{Length: &length, Format: &format}}
 			}
 		}
