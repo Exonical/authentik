@@ -23,10 +23,13 @@ var _ MappedNullable = &KerberosUserKeyOutpost{}
 // KerberosUserKeyOutpost User key data consumed by the KDC outpost.
 type KerberosUserKeyOutpost struct {
 	Username             string                 `json:"username"`
+	Enabled              bool                   `json:"enabled"`
 	Principal            string                 `json:"principal"`
 	Kvno                 int32                  `json:"kvno"`
 	Salt                 string                 `json:"salt"`
 	Keys                 map[string]interface{} `json:"keys"`
+	MaxTicketLifetime    NullableInt32          `json:"max_ticket_lifetime"`
+	MaxRenewLifetime     NullableInt32          `json:"max_renew_lifetime"`
 	PacUserId            int32                  `json:"pac_user_id"`
 	PacPrimaryGroupId    int32                  `json:"pac_primary_group_id"`
 	PacGroupIds          []int32                `json:"pac_group_ids"`
@@ -42,13 +45,16 @@ type _KerberosUserKeyOutpost KerberosUserKeyOutpost
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewKerberosUserKeyOutpost(username string, principal string, kvno int32, salt string, keys map[string]interface{}, pacUserId int32, pacPrimaryGroupId int32, pacGroupIds []int32, pacName string, pacUpn string, passwordExpiration NullableTime) *KerberosUserKeyOutpost {
+func NewKerberosUserKeyOutpost(username string, enabled bool, principal string, kvno int32, salt string, keys map[string]interface{}, maxTicketLifetime NullableInt32, maxRenewLifetime NullableInt32, pacUserId int32, pacPrimaryGroupId int32, pacGroupIds []int32, pacName string, pacUpn string, passwordExpiration NullableTime) *KerberosUserKeyOutpost {
 	this := KerberosUserKeyOutpost{}
 	this.Username = username
+	this.Enabled = enabled
 	this.Principal = principal
 	this.Kvno = kvno
 	this.Salt = salt
 	this.Keys = keys
+	this.MaxTicketLifetime = maxTicketLifetime
+	this.MaxRenewLifetime = maxRenewLifetime
 	this.PacUserId = pacUserId
 	this.PacPrimaryGroupId = pacPrimaryGroupId
 	this.PacGroupIds = pacGroupIds
@@ -88,6 +94,30 @@ func (o *KerberosUserKeyOutpost) GetUsernameOk() (*string, bool) {
 // SetUsername sets field value
 func (o *KerberosUserKeyOutpost) SetUsername(v string) {
 	o.Username = v
+}
+
+// GetEnabled returns the Enabled field value
+func (o *KerberosUserKeyOutpost) GetEnabled() bool {
+	if o == nil {
+		var ret bool
+		return ret
+	}
+
+	return o.Enabled
+}
+
+// GetEnabledOk returns a tuple with the Enabled field value
+// and a boolean to check if the value has been set.
+func (o *KerberosUserKeyOutpost) GetEnabledOk() (*bool, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.Enabled, true
+}
+
+// SetEnabled sets field value
+func (o *KerberosUserKeyOutpost) SetEnabled(v bool) {
+	o.Enabled = v
 }
 
 // GetPrincipal returns the Principal field value
@@ -184,6 +214,58 @@ func (o *KerberosUserKeyOutpost) GetKeysOk() (map[string]interface{}, bool) {
 // SetKeys sets field value
 func (o *KerberosUserKeyOutpost) SetKeys(v map[string]interface{}) {
 	o.Keys = v
+}
+
+// GetMaxTicketLifetime returns the MaxTicketLifetime field value
+// If the value is explicit nil, the zero value for int32 will be returned
+func (o *KerberosUserKeyOutpost) GetMaxTicketLifetime() int32 {
+	if o == nil || o.MaxTicketLifetime.Get() == nil {
+		var ret int32
+		return ret
+	}
+
+	return *o.MaxTicketLifetime.Get()
+}
+
+// GetMaxTicketLifetimeOk returns a tuple with the MaxTicketLifetime field value
+// and a boolean to check if the value has been set.
+// NOTE: If the value is an explicit nil, `nil, true` will be returned
+func (o *KerberosUserKeyOutpost) GetMaxTicketLifetimeOk() (*int32, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.MaxTicketLifetime.Get(), o.MaxTicketLifetime.IsSet()
+}
+
+// SetMaxTicketLifetime sets field value
+func (o *KerberosUserKeyOutpost) SetMaxTicketLifetime(v int32) {
+	o.MaxTicketLifetime.Set(&v)
+}
+
+// GetMaxRenewLifetime returns the MaxRenewLifetime field value
+// If the value is explicit nil, the zero value for int32 will be returned
+func (o *KerberosUserKeyOutpost) GetMaxRenewLifetime() int32 {
+	if o == nil || o.MaxRenewLifetime.Get() == nil {
+		var ret int32
+		return ret
+	}
+
+	return *o.MaxRenewLifetime.Get()
+}
+
+// GetMaxRenewLifetimeOk returns a tuple with the MaxRenewLifetime field value
+// and a boolean to check if the value has been set.
+// NOTE: If the value is an explicit nil, `nil, true` will be returned
+func (o *KerberosUserKeyOutpost) GetMaxRenewLifetimeOk() (*int32, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.MaxRenewLifetime.Get(), o.MaxRenewLifetime.IsSet()
+}
+
+// SetMaxRenewLifetime sets field value
+func (o *KerberosUserKeyOutpost) SetMaxRenewLifetime(v int32) {
+	o.MaxRenewLifetime.Set(&v)
 }
 
 // GetPacUserId returns the PacUserId field value
@@ -343,10 +425,13 @@ func (o KerberosUserKeyOutpost) MarshalJSON() ([]byte, error) {
 func (o KerberosUserKeyOutpost) ToMap() (map[string]interface{}, error) {
 	toSerialize := map[string]interface{}{}
 	toSerialize["username"] = o.Username
+	toSerialize["enabled"] = o.Enabled
 	toSerialize["principal"] = o.Principal
 	toSerialize["kvno"] = o.Kvno
 	toSerialize["salt"] = o.Salt
 	toSerialize["keys"] = o.Keys
+	toSerialize["max_ticket_lifetime"] = o.MaxTicketLifetime.Get()
+	toSerialize["max_renew_lifetime"] = o.MaxRenewLifetime.Get()
 	toSerialize["pac_user_id"] = o.PacUserId
 	toSerialize["pac_primary_group_id"] = o.PacPrimaryGroupId
 	toSerialize["pac_group_ids"] = o.PacGroupIds
@@ -367,10 +452,13 @@ func (o *KerberosUserKeyOutpost) UnmarshalJSON(data []byte) (err error) {
 	// that every required field exists as a key in the generic map.
 	requiredProperties := []string{
 		"username",
+		"enabled",
 		"principal",
 		"kvno",
 		"salt",
 		"keys",
+		"max_ticket_lifetime",
+		"max_renew_lifetime",
 		"pac_user_id",
 		"pac_primary_group_id",
 		"pac_group_ids",
@@ -407,10 +495,13 @@ func (o *KerberosUserKeyOutpost) UnmarshalJSON(data []byte) (err error) {
 
 	if err = json.Unmarshal(data, &additionalProperties); err == nil {
 		delete(additionalProperties, "username")
+		delete(additionalProperties, "enabled")
 		delete(additionalProperties, "principal")
 		delete(additionalProperties, "kvno")
 		delete(additionalProperties, "salt")
 		delete(additionalProperties, "keys")
+		delete(additionalProperties, "max_ticket_lifetime")
+		delete(additionalProperties, "max_renew_lifetime")
 		delete(additionalProperties, "pac_user_id")
 		delete(additionalProperties, "pac_primary_group_id")
 		delete(additionalProperties, "pac_group_ids")

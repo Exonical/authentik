@@ -232,6 +232,45 @@ class KerberosProviderAPITests(APITestCase):
             user.password_change_date + timedelta(days=30),
         )
 
+    def test_user_key_account_state_and_lifetime_overrides(self):
+        """User key payload maps account state and valid lifetime attributes."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.COM",
+        )
+        user = create_test_user()
+        user.is_active = False
+        user.attributes = {
+            "krb5MaxLife": "3600",
+            "krb5MaxRenew": 7200,
+        }
+        user.save()
+        user_keys, _ = KerberosUserKeys.objects.update_or_create(
+            user=user,
+            provider=provider,
+            defaults={"salt": "salt", "keys": {"18": "a2V5"}},
+        )
+
+        payload = KerberosUserKeyOutpostSerializer(user_keys).data
+        self.assertFalse(payload["enabled"])
+        self.assertEqual(payload["max_ticket_lifetime"], 3600)
+        self.assertEqual(payload["max_renew_lifetime"], 7200)
+
+        user.attributes = {
+            "krb5MaxLife": "-1",
+            "krb5MaxRenew": "not-a-number",
+        }
+        user.save()
+        user_keys.user.refresh_from_db()
+        payload = KerberosUserKeyOutpostSerializer(user_keys).data
+        self.assertIsNone(payload["max_ticket_lifetime"])
+        self.assertIsNone(payload["max_renew_lifetime"])
+
+        user.is_active = True
+        user.save()
+        user_keys.user.refresh_from_db()
+        self.assertTrue(KerberosUserKeyOutpostSerializer(user_keys).data["enabled"])
+
     def test_outpost_config(self):
         """An application-backed provider is visible to outposts."""
         certificate = create_test_cert()

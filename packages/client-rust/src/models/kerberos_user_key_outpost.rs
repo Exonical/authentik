@@ -16,6 +16,8 @@ use serde::{Deserialize, Serialize};
 pub struct KerberosUserKeyOutpost {
     #[serde(rename = "username")]
     pub username: String,
+    #[serde(rename = "enabled")]
+    pub enabled: bool,
     #[serde(rename = "principal")]
     pub principal: String,
     #[serde(rename = "kvno")]
@@ -24,17 +26,42 @@ pub struct KerberosUserKeyOutpost {
     pub salt: String,
     #[serde(rename = "keys")]
     pub keys: std::collections::HashMap<String, serde_json::Value>,
+    #[serde(rename = "max_ticket_lifetime", deserialize_with = "Option::deserialize")]
+    pub max_ticket_lifetime: Option<i32>,
+    #[serde(rename = "max_renew_lifetime", deserialize_with = "Option::deserialize")]
+    pub max_renew_lifetime: Option<i32>,
+    #[serde(rename = "pac_user_id")]
+    pub pac_user_id: i32,
+    #[serde(rename = "pac_primary_group_id")]
+    pub pac_primary_group_id: i32,
+    #[serde(rename = "pac_group_ids")]
+    pub pac_group_ids: Vec<i32>,
+    #[serde(rename = "pac_name")]
+    pub pac_name: String,
+    #[serde(rename = "pac_upn")]
+    pub pac_upn: String,
+    #[serde(rename = "password_expiration", deserialize_with = "Option::deserialize")]
+    pub password_expiration: Option<chrono::DateTime<chrono::FixedOffset>>,
 }
 
 impl KerberosUserKeyOutpost {
     /// User key data consumed by the KDC outpost.
-    pub fn new(username: String, principal: String, kvno: i32, salt: String, keys: std::collections::HashMap<String, serde_json::Value>) -> KerberosUserKeyOutpost {
+    pub fn new(username: String, enabled: bool, principal: String, kvno: i32, salt: String, keys: std::collections::HashMap<String, serde_json::Value>, max_ticket_lifetime: Option<i32>, max_renew_lifetime: Option<i32>, pac_user_id: i32, pac_primary_group_id: i32, pac_group_ids: Vec<i32>, pac_name: String, pac_upn: String, password_expiration: Option<chrono::DateTime<chrono::FixedOffset>>) -> KerberosUserKeyOutpost {
         KerberosUserKeyOutpost {
             username,
+            enabled,
             principal,
             kvno,
             salt,
             keys,
+            max_ticket_lifetime,
+            max_renew_lifetime,
+            pac_user_id,
+            pac_primary_group_id,
+            pac_group_ids,
+            pac_name,
+            pac_upn,
+            password_expiration,
         }
     }
 }

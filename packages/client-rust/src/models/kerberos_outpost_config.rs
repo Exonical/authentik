@@ -34,6 +34,9 @@ pub struct KerberosOutpostConfig {
     pub allowed_enctypes: Option<Vec<models::AllowedEnctypesEnum>>,
     #[serde(rename = "require_preauthentication", skip_serializing_if = "Option::is_none")]
     pub require_preauthentication: Option<bool>,
+    /// Advertise PA-SPAKE preauthentication (RFC 9588).
+    #[serde(rename = "spake_enabled", skip_serializing_if = "Option::is_none")]
+    pub spake_enabled: Option<bool>,
     #[serde(rename = "udp_enabled", skip_serializing_if = "Option::is_none")]
     pub udp_enabled: Option<bool>,
     #[serde(rename = "tcp_enabled", skip_serializing_if = "Option::is_none")]
@@ -55,6 +58,39 @@ pub struct KerberosOutpostConfig {
     /// CA certificate used to validate PKINIT client certificates.
     #[serde(rename = "pkinit_client_ca", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
     pub pkinit_client_ca: Option<Option<uuid::Uuid>>,
+    /// Require RFC 8070 freshness tokens on PKINIT requests.
+    #[serde(rename = "pkinit_require_freshness", skip_serializing_if = "Option::is_none")]
+    pub pkinit_require_freshness: Option<bool>,
+    /// Authentication indicators asserted after successful PKINIT.
+    #[serde(rename = "pkinit_indicators", skip_serializing_if = "Option::is_none")]
+    pub pkinit_indicators: Option<Vec<String>>,
+    /// Indicators asserted after SPAKE preauthentication.
+    #[serde(rename = "spake_indicators", skip_serializing_if = "Option::is_none")]
+    pub spake_indicators: Option<Vec<String>>,
+    /// Indicator asserted after encrypted-challenge preauthentication.
+    #[serde(rename = "encrypted_challenge_indicator", skip_serializing_if = "Option::is_none")]
+    pub encrypted_challenge_indicator: Option<String>,
+    /// Enable RFC 6560 OTP preauthentication backed by the user's authentik TOTP and static authenticator devices.
+    #[serde(rename = "otp_enabled", skip_serializing_if = "Option::is_none")]
+    pub otp_enabled: Option<bool>,
+    /// Authentication indicators asserted after successful OTP preauthentication.
+    #[serde(rename = "otp_indicators", skip_serializing_if = "Option::is_none")]
+    pub otp_indicators: Option<Vec<String>>,
+    /// Allow anonymous PKINIT requests.
+    #[serde(rename = "anonymous_pkinit_enabled", skip_serializing_if = "Option::is_none")]
+    pub anonymous_pkinit_enabled: Option<bool>,
+    /// Enable KDC Proxy over HTTPS (MS-KKDCP).
+    #[serde(rename = "kkdcp_enabled", skip_serializing_if = "Option::is_none")]
+    pub kkdcp_enabled: Option<bool>,
+    /// Certificate/key pair the KDC Proxy listener uses for TLS.
+    #[serde(rename = "kkdcp_certificate", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
+    pub kkdcp_certificate: Option<Option<uuid::Uuid>>,
+    /// Include an MS-PAC in issued tickets.
+    #[serde(rename = "pac_enabled", skip_serializing_if = "Option::is_none")]
+    pub pac_enabled: Option<bool>,
+    /// Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.
+    #[serde(rename = "realm_sid", skip_serializing_if = "Option::is_none")]
+    pub realm_sid: Option<String>,
     #[serde(rename = "master_key", skip_serializing_if = "Option::is_none")]
     pub master_key: Option<String>,
     #[serde(rename = "application_slug")]
@@ -75,6 +111,7 @@ impl KerberosOutpostConfig {
             default_ticket_renew_lifetime: None,
             allowed_enctypes: None,
             require_preauthentication: None,
+            spake_enabled: None,
             udp_enabled: None,
             tcp_enabled: None,
             kpasswd_enabled: None,
@@ -84,6 +121,17 @@ impl KerberosOutpostConfig {
             principal_username_attribute: None,
             pkinit_certificate: None,
             pkinit_client_ca: None,
+            pkinit_require_freshness: None,
+            pkinit_indicators: None,
+            spake_indicators: None,
+            encrypted_challenge_indicator: None,
+            otp_enabled: None,
+            otp_indicators: None,
+            anonymous_pkinit_enabled: None,
+            kkdcp_enabled: None,
+            kkdcp_certificate: None,
+            pac_enabled: None,
+            realm_sid: None,
             master_key: None,
             application_slug,
         }
