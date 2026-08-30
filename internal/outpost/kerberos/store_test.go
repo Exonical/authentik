@@ -107,6 +107,7 @@ func TestStoreUserRecordPasswordExpiration(t *testing.T) {
 			"keys": {"18": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="},
 			"max_ticket_lifetime": null,
 			"max_renew_lifetime": null,
+			"requires_password_change": false,
 			"pac_user_id": 0,
 			"pac_primary_group_id": 0,
 			"pac_group_ids": [],
@@ -143,6 +144,7 @@ func TestStoreUserRecordAccountStateAndLifetimes(t *testing.T) {
 			"keys": {"18": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="},
 			"max_ticket_lifetime": 3600,
 			"max_renew_lifetime": 7200,
+			"requires_password_change": true,
 			"pac_user_id": 0,
 			"pac_primary_group_id": 0,
 			"pac_group_ids": [],
@@ -162,6 +164,9 @@ func TestStoreUserRecordAccountStateAndLifetimes(t *testing.T) {
 	}
 	if record.Flags&kdb.DisallowAllTickets == 0 {
 		t.Fatalf("user flags = %#x, missing DisallowAllTickets", record.Flags)
+	}
+	if record.Flags&kdb.RequiresPWChange == 0 {
+		t.Fatalf("user flags = %#x, missing RequiresPWChange", record.Flags)
 	}
 	if record.MaxLife != time.Hour {
 		t.Fatalf("max ticket lifetime = %v, want 1h", record.MaxLife)
@@ -186,6 +191,41 @@ func TestStoreUserRecordAccountStateAndLifetimes(t *testing.T) {
 	}
 	if record.Flags&kdb.DisallowAllTickets != 0 {
 		t.Fatalf("enabled user flags = %#x, unexpectedly includes DisallowAllTickets", record.Flags)
+	}
+}
+
+func TestStoreUserRecordRequiresPasswordChangeFalse(t *testing.T) {
+	store := testStore(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"username": "alice",
+			"enabled": true,
+			"principal": "alice",
+			"kvno": 1,
+			"salt": "EXAMPLE.TESTalice",
+			"keys": {"18": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="},
+			"max_ticket_lifetime": null,
+			"max_renew_lifetime": null,
+			"requires_password_change": false,
+			"pac_user_id": 0,
+			"pac_primary_group_id": 0,
+			"pac_group_ids": [],
+			"pac_name": "Alice",
+			"pac_upn": "alice@example.test",
+			"password_expiration": null
+		}`))
+	}))
+	record, found, err := store.userRecord(principal.Principal{
+		Realm: testRealm, Components: []string{"alice"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found {
+		t.Fatal("user record was not found")
+	}
+	if record.Flags&kdb.RequiresPWChange != 0 {
+		t.Fatalf("user flags = %#x, unexpectedly includes RequiresPWChange", record.Flags)
 	}
 }
 
@@ -593,19 +633,20 @@ func TestCrossRealmProviderStores(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"username":             "alice",
-			"enabled":              true,
-			"principal":            "alice",
-			"kvno":                 1,
-			"salt":                 testRealm + "alice",
-			"max_ticket_lifetime":  nil,
-			"max_renew_lifetime":   nil,
-			"password_expiration":  nil,
-			"pac_user_id":          0,
-			"pac_primary_group_id": 0,
-			"pac_group_ids":        []int32{},
-			"pac_name":             "alice",
-			"pac_upn":              "alice@" + testRealm,
+			"username":                 "alice",
+			"enabled":                  true,
+			"principal":                "alice",
+			"kvno":                     1,
+			"salt":                     testRealm + "alice",
+			"max_ticket_lifetime":      nil,
+			"max_renew_lifetime":       nil,
+			"requires_password_change": false,
+			"password_expiration":      nil,
+			"pac_user_id":              0,
+			"pac_primary_group_id":     0,
+			"pac_group_ids":            []int32{},
+			"pac_name":                 "alice",
+			"pac_upn":                  "alice@" + testRealm,
 			"keys": map[string]string{
 				"18": base64.StdEncoding.EncodeToString(userKey),
 			},
@@ -737,19 +778,20 @@ func TestStoreUserLookupCacheAndUnknown(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"username":             "alice",
-			"enabled":              true,
-			"principal":            "alice",
-			"kvno":                 2,
-			"salt":                 testRealm + "alice",
-			"max_ticket_lifetime":  nil,
-			"max_renew_lifetime":   nil,
-			"pac_user_id":          2001,
-			"pac_primary_group_id": 2001,
-			"pac_group_ids":        []int32{},
-			"pac_name":             "alice",
-			"pac_upn":              "alice@" + testRealm,
-			"password_expiration":  nil,
+			"username":                 "alice",
+			"enabled":                  true,
+			"principal":                "alice",
+			"kvno":                     2,
+			"salt":                     testRealm + "alice",
+			"max_ticket_lifetime":      nil,
+			"max_renew_lifetime":       nil,
+			"requires_password_change": false,
+			"pac_user_id":              2001,
+			"pac_primary_group_id":     2001,
+			"pac_group_ids":            []int32{},
+			"pac_name":                 "alice",
+			"pac_upn":                  "alice@" + testRealm,
+			"password_expiration":      nil,
 			"keys": map[string]string{
 				"18": base64.StdEncoding.EncodeToString(make([]byte, 32)),
 			},
@@ -816,19 +858,20 @@ func TestStoreUserAliasLookupAndCanonicalCache(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"username":             "alice",
-			"enabled":              true,
-			"principal":            "alice",
-			"kvno":                 1,
-			"salt":                 testRealm + "alice",
-			"max_ticket_lifetime":  nil,
-			"max_renew_lifetime":   nil,
-			"pac_user_id":          2001,
-			"pac_primary_group_id": 2001,
-			"pac_group_ids":        []int32{},
-			"pac_name":             "alice",
-			"pac_upn":              "alice@" + testRealm,
-			"password_expiration":  nil,
+			"username":                 "alice",
+			"enabled":                  true,
+			"principal":                "alice",
+			"kvno":                     1,
+			"salt":                     testRealm + "alice",
+			"max_ticket_lifetime":      nil,
+			"max_renew_lifetime":       nil,
+			"requires_password_change": false,
+			"pac_user_id":              2001,
+			"pac_primary_group_id":     2001,
+			"pac_group_ids":            []int32{},
+			"pac_name":                 "alice",
+			"pac_upn":                  "alice@" + testRealm,
+			"password_expiration":      nil,
 			"keys": map[string]string{
 				"18": base64.StdEncoding.EncodeToString(make([]byte, 32)),
 			},

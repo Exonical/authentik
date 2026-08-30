@@ -68,6 +68,12 @@ export interface KerberosUserKeyOutpost {
     readonly maxRenewLifetime: number | null;
     /**
      *
+     * @type {boolean}
+     * @memberof KerberosUserKeyOutpost
+     */
+    readonly requiresPasswordChange: boolean;
+    /**
+     *
      * @type {number}
      * @memberof KerberosUserKeyOutpost
      */
@@ -126,6 +132,13 @@ export function instanceOfKerberosUserKeyOutpost(value: object): value is Kerber
             !("max_renew_lifetime" in (value as Record<string, any>))) ||
         ((value as Record<string, any>)["maxRenewLifetime"] === undefined &&
             (value as Record<string, any>)["max_renew_lifetime"] === undefined)
+    )
+        return false;
+    if (
+        (!("requiresPasswordChange" in (value as Record<string, any>)) &&
+            !("requires_password_change" in (value as Record<string, any>))) ||
+        ((value as Record<string, any>)["requiresPasswordChange"] === undefined &&
+            (value as Record<string, any>)["requires_password_change"] === undefined)
     )
         return false;
     if (
@@ -193,6 +206,7 @@ export function KerberosUserKeyOutpostFromJSONTyped(
         keys: json["keys"],
         maxTicketLifetime: json["max_ticket_lifetime"],
         maxRenewLifetime: json["max_renew_lifetime"],
+        requiresPasswordChange: json["requires_password_change"],
         pacUserId: json["pac_user_id"],
         pacPrimaryGroupId: json["pac_primary_group_id"],
         pacGroupIds: json["pac_group_ids"],
@@ -214,6 +228,7 @@ export function KerberosUserKeyOutpostToJSONTyped(
         | "keys"
         | "maxTicketLifetime"
         | "maxRenewLifetime"
+        | "requiresPasswordChange"
         | "pacUserId"
         | "pacPrimaryGroupId"
         | "pacGroupIds"

@@ -69,16 +69,18 @@ func mitTOTP(secret string, now time.Time) string {
 }
 
 type mitHarness struct {
-	config          string
-	cache           string
-	keytabPath      string
-	trace           string
-	passwordChanged chan string
-	store           *providerStore
-	server          *kdc.Server
-	userEnabled     *bool
-	userMaxLife     *int32
-	stateMu         *sync.RWMutex
+	config                 string
+	cache                  string
+	keytabPath             string
+	trace                  string
+	passwordChanged        chan string
+	store                  *providerStore
+	server                 *kdc.Server
+	userEnabled            *bool
+	userMaxLife            *int32
+	requiresPasswordChange *bool
+	resetPassword          *bool
+	stateMu                *sync.RWMutex
 }
 
 func startMITKDC(t *testing.T, forceTCP bool) *mitHarness {
@@ -163,6 +165,8 @@ func startMITKDCWithIdentityPolicyOptions(
 	}
 	userEnabled := true
 	userMaxLife := int32(0)
+	requiresPasswordChange := false
+	resetPassword := false
 	stateMu := &sync.RWMutex{}
 
 	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -175,13 +179,18 @@ func startMITKDCWithIdentityPolicyOptions(
 				http.Error(w, "bad request", http.StatusBadRequest)
 				return
 			}
-			userKey, err = etype.StringToKey(
+			newUserKey, err := etype.StringToKey(
 				[]byte(request.Password), []byte(mitRealm+canonicalUsername), nil,
 			)
 			if err != nil {
 				http.Error(w, "bad password", http.StatusBadRequest)
 				return
 			}
+			stateMu.Lock()
+			userKey = newUserKey
+			requiresPasswordChange = false
+			resetPassword = false
+			stateMu.Unlock()
 			passwordChanged <- request.Password
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -216,24 +225,27 @@ func startMITKDCWithIdentityPolicyOptions(
 		stateMu.RLock()
 		enabled := userEnabled
 		maxLife := userMaxLife
+		requiresPWChange := requiresPasswordChange
+		currentUserKey := append([]byte(nil), userKey...)
 		stateMu.RUnlock()
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"username":             canonicalUsername,
-			"enabled":              enabled,
-			"principal":            canonicalUsername,
-			"kvno":                 1,
-			"salt":                 mitRealm + canonicalUsername,
-			"max_ticket_lifetime":  maxLife,
-			"max_renew_lifetime":   0,
-			"pac_user_id":          2001,
-			"pac_primary_group_id": 2001,
-			"pac_group_ids":        []int32{},
-			"pac_name":             canonicalUsername,
-			"pac_upn":              canonicalUsername + "@" + mitRealm,
-			"password_expiration":  nil,
+			"username":                 canonicalUsername,
+			"enabled":                  enabled,
+			"principal":                canonicalUsername,
+			"kvno":                     1,
+			"salt":                     mitRealm + canonicalUsername,
+			"max_ticket_lifetime":      maxLife,
+			"max_renew_lifetime":       0,
+			"requires_password_change": requiresPWChange,
+			"pac_user_id":              2001,
+			"pac_primary_group_id":     2001,
+			"pac_group_ids":            []int32{},
+			"pac_name":                 canonicalUsername,
+			"pac_upn":                  canonicalUsername + "@" + mitRealm,
+			"password_expiration":      nil,
 			"keys": map[string]string{
-				"18": base64.StdEncoding.EncodeToString(userKey),
+				"18": base64.StdEncoding.EncodeToString(currentUserKey),
 			},
 		})
 	}))
@@ -419,16 +431,18 @@ func startMITKDCWithIdentityPolicyOptions(
 	}
 
 	return &mitHarness{
-		config:          configPath,
-		cache:           filepath.Join(dir, "ccache"),
-		keytabPath:      keytabPath,
-		trace:           filepath.Join(dir, "trace"),
-		passwordChanged: passwordChanged,
-		store:           store,
-		server:          server,
-		userEnabled:     &userEnabled,
-		userMaxLife:     &userMaxLife,
-		stateMu:         stateMu,
+		config:                 configPath,
+		cache:                  filepath.Join(dir, "ccache"),
+		keytabPath:             keytabPath,
+		trace:                  filepath.Join(dir, "trace"),
+		passwordChanged:        passwordChanged,
+		store:                  store,
+		server:                 server,
+		userEnabled:            &userEnabled,
+		userMaxLife:            &userMaxLife,
+		requiresPasswordChange: &requiresPasswordChange,
+		resetPassword:          &resetPassword,
+		stateMu:                stateMu,
 	}
 }
 
@@ -722,7 +736,21 @@ func TestMITInteropAuthIndicators(t *testing.T) {
 func TestMITInteropKpasswd(t *testing.T) {
 	const newPassword = "alice-new-password"
 	h := startMITKDCWithKpasswd(t, false, true)
-	h.run(t, mitPassword+"\n", "kinit", mitUser)
+	h.stateMu.Lock()
+	*h.requiresPasswordChange = true
+	*h.resetPassword = true
+	h.stateMu.Unlock()
+	if output, err := h.runResult(h.cache, mitPassword+"\n", "kinit", mitUser); err == nil {
+		t.Fatalf("kinit unexpectedly succeeded with required password change:\n%s", output)
+	} else {
+		lower := strings.ToLower(output)
+		if !strings.Contains(lower, "password has expired") &&
+			!strings.Contains(lower, "password expired") &&
+			!strings.Contains(lower, "must be changed") &&
+			!strings.Contains(lower, "password change") {
+			t.Fatalf("kinit did not report password-change requirement:\n%s", output)
+		}
+	}
 	h.run(t, mitPassword+"\n"+newPassword+"\n"+newPassword+"\n", "kpasswd", mitUser)
 	select {
 	case password := <-h.passwordChanged:
@@ -732,6 +760,19 @@ func TestMITInteropKpasswd(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("timed out waiting for password API call")
 	}
+	h.stateMu.RLock()
+	resetPassword := *h.resetPassword
+	requiresPasswordChange := *h.requiresPasswordChange
+	h.stateMu.RUnlock()
+	if resetPassword {
+		t.Fatal("reset_password was not cleared after password change")
+	}
+	if requiresPasswordChange {
+		t.Fatal("requires_password_change was not cleared after password change")
+	}
+	h.store.cacheMu.Lock()
+	h.store.cache = make(map[string]cachedUserKey)
+	h.store.cacheMu.Unlock()
 	h.run(t, newPassword+"\n", "kinit", mitUser)
 	if output := h.run(t, "", "klist"); !strings.Contains(
 		output, "krbtgt/"+mitRealm+"@"+mitRealm,
@@ -1100,13 +1141,14 @@ func runMITPKINITWithAnonymousEnabled(
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"username":            mitUser,
-			"enabled":             true,
-			"principal":           mitUser,
-			"kvno":                1,
-			"salt":                mitRealm + mitUser,
-			"max_ticket_lifetime": nil,
-			"max_renew_lifetime":  nil,
+			"username":                 mitUser,
+			"enabled":                  true,
+			"principal":                mitUser,
+			"kvno":                     1,
+			"salt":                     mitRealm + mitUser,
+			"max_ticket_lifetime":      nil,
+			"max_renew_lifetime":       nil,
+			"requires_password_change": false,
 			"keys": map[string]string{
 				"18": base64.StdEncoding.EncodeToString(userKey),
 			},

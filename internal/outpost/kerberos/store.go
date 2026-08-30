@@ -282,6 +282,9 @@ func (s *providerStore) userRecord(name principal.Principal) (kdb.PrincipalRecor
 	if !response.GetEnabled() {
 		record.Flags |= kdb.DisallowAllTickets
 	}
+	if response.GetRequiresPasswordChange() {
+		record.Flags |= kdb.RequiresPWChange
+	}
 	cached := cachedUserKey{
 		record: record, identity: response, found: true, expires: now.Add(userKeyCacheTTL),
 	}
