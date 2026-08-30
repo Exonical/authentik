@@ -622,7 +622,7 @@ func TestMITInteropOTP(t *testing.T) {
 	h.server.OTPValidator = h.store.validateOTP
 	h.server.OTPIndicators = []string{"otp"}
 	h.server.OTPTokenInfo = func(principal.Principal) []otp.TokenInfo {
-		length, format := int32(6), otpFormatDecimal
+		length, format := int32(6), otp.FormatDecimal
 		return []otp.TokenInfo{{Length: &length, Format: &format}}
 	}
 	expected := mitTOTP(mitOTPSecret, time.Now())
