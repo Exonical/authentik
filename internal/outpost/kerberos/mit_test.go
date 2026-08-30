@@ -31,6 +31,7 @@ import (
 	"github.com/Exonical/go-kerberos/krb5/client"
 	"github.com/Exonical/go-kerberos/krb5/crypto"
 	"github.com/Exonical/go-kerberos/krb5/kdb"
+	"github.com/Exonical/go-kerberos/krb5/kdb/mitdump"
 	"github.com/Exonical/go-kerberos/krb5/kdc"
 	"github.com/Exonical/go-kerberos/krb5/keytab"
 	"github.com/Exonical/go-kerberos/krb5/kkdcp"
@@ -1300,4 +1301,342 @@ func mitPKINITInteger(value int64) []byte {
 func mitPKINTOID(value asn1.ObjectIdentifier) []byte {
 	encoded, _ := asn1.Marshal(value)
 	return encoded
+}
+
+func TestMITPeerRealmCrossRealm(t *testing.T) {
+	for _, tool := range []string{"kdb5_util", "krb5kdc", "kinit", "kvno"} {
+		if _, err := exec.LookPath(tool); err != nil {
+			t.Skipf("%s not installed, skipping MIT peer-realm interop", tool)
+		}
+	}
+
+	const (
+		localRealm   = "EXAMPLE.TEST"
+		peerRealm    = "MIT.TEST"
+		peerUser     = "alice"
+		peerPassword = "alice-password"
+		service      = "host/service"
+	)
+	registry := crypto.NewRegistry()
+	etype, err := registry.Get(crypto.EnctypeAES256SHA1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	trustKey := make([]byte, etype.KeySize())
+	for i := range trustKey {
+		trustKey[i] = byte(i + 1)
+	}
+	goKDCAddress := startCrossRealmGoKDC(t, localRealm, peerRealm, peerUser, peerPassword, service, trustKey)
+
+	dir := t.TempDir()
+	mitListener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	mitPort := mitListener.Addr().(*net.TCPAddr).Port
+	if err := mitListener.Close(); err != nil {
+		t.Fatal(err)
+	}
+	mitConfig := filepath.Join(dir, "krb5.conf")
+	mitKDCConfig := filepath.Join(dir, "kdc.conf")
+	database := filepath.Join(dir, "principal")
+	acl := filepath.Join(dir, "kadm5.acl")
+	stash := filepath.Join(dir, ".k5."+peerRealm)
+	if err := os.WriteFile(acl, []byte("*/admin@"+peerRealm+" *\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(mitConfig, []byte(fmt.Sprintf(`[libdefaults]
+ default_realm = %s
+ dns_lookup_kdc = false
+ dns_lookup_realm = false
+ udp_preference_limit = 1
+[realms]
+ %s = {
+  kdc = 127.0.0.1:%d
+  admin_server = 127.0.0.1:%d
+ }
+ %s = {
+  kdc = %s
+ }
+`, peerRealm, peerRealm, mitPort, mitPort, localRealm, goKDCAddress)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(mitKDCConfig, []byte(fmt.Sprintf(`[kdcdefaults]
+ kdc_ports = %d
+ kdc_tcp_ports = %d
+[realms]
+ %s = {
+  database_name = %s
+  admin_database_name = %s.kadm5
+  acl_file = %s
+  key_stash_file = %s
+ }
+`, mitPort, mitPort, peerRealm, database, database, acl, stash)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	mitEnv := append(os.Environ(),
+		"KRB5_CONFIG="+mitConfig,
+		"KRB5_KDC_PROFILE="+mitKDCConfig,
+	)
+	runCrossRealmCommand(t, mitEnv, "kdb5_util", "create", "-r", peerRealm,
+		"-d", database, "-s", "-P", "master-password")
+
+	keytabPath := filepath.Join(dir, "incoming.keytab")
+	kt := &keytab.Keytab{Entries: []keytab.Entry{{
+		Principal: mustPrincipal(t, "krbtgt/"+localRealm+"@"+peerRealm),
+		KVNO:      1,
+		Enctype:   crypto.EnctypeAES256SHA1,
+		Key:       trustKey,
+	}}}
+	keytabFile, err := os.OpenFile(keytabPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := keytab.Write(keytabFile, kt); err != nil {
+		_ = keytabFile.Close()
+		t.Fatal(err)
+	}
+	if err := keytabFile.Close(); err != nil {
+		t.Fatal(err)
+	}
+	parsedKeytabFile, err := os.Open(keytabPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsedKeytab, err := keytab.Read(parsedKeytabFile)
+	_ = parsedKeytabFile.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(parsedKeytab.Entries) != 1 {
+		t.Fatalf("parsed incoming trust keytab entries = %d, want 1", len(parsedKeytab.Entries))
+	}
+	incoming := parsedKeytab.Entries[0]
+	incomingName := incoming.Principal
+	databaseDump := kdb.NewDatabase(peerRealm)
+	if err := databaseDump.ApplyPrincipal(kdb.PrincipalRecord{
+		Name: incomingName,
+		Keys: map[int32]kdb.Key{incoming.Enctype: {
+			Enctype: incoming.Enctype,
+			KVNO:    incoming.KVNO,
+			Key:     incoming.Key,
+		}},
+		KVNO: incoming.KVNO,
+	}, false); err != nil {
+		t.Fatal(err)
+	}
+	mitStash, err := mitdump.ReadStash(stash, peerRealm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dump, err := mitdump.DumpWithMasterKey(databaseDump, mitStash.Enctype, mitStash.Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dumpPath := filepath.Join(dir, "trust.dump")
+	if err := os.WriteFile(dumpPath, dump, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	runCrossRealmCommand(t, mitEnv, "kdb5_util", "load", "-update", "-r", peerRealm,
+		"-d", database, dumpPath)
+	runCrossRealmCommand(t, mitEnv, "kadmin.local", "-r", peerRealm, "-d", database,
+		"-q", "addprinc -pw "+peerPassword+" "+peerUser)
+
+	mitKDCLog, err := os.OpenFile(filepath.Join(dir, "krb5kdc.log"),
+		os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	kdcProcess := exec.Command("krb5kdc", "-n", "-r", peerRealm)
+	kdcProcess.Env = mitEnv
+	kdcProcess.Stdout = mitKDCLog
+	kdcProcess.Stderr = mitKDCLog
+	if err := kdcProcess.Start(); err != nil {
+		_ = mitKDCLog.Close()
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_ = kdcProcess.Process.Kill()
+		_ = kdcProcess.Wait()
+		_ = mitKDCLog.Close()
+	})
+	waitForTCPAddress(t, fmt.Sprintf("127.0.0.1:%d", mitPort))
+	cache := filepath.Join(dir, "alice.ccache")
+	runCrossRealmCommandWithInput(t, mitEnv, cache, peerPassword+"\n",
+		"kinit", peerUser+"@"+peerRealm)
+	output := runCrossRealmCommandWithEnv(t, mitEnv, cache,
+		"kvno", service+"@"+localRealm)
+	if !strings.Contains(output, service+"@"+localRealm) {
+		t.Fatalf("cross-realm kvno output = %q", output)
+	}
+	tickets := runCrossRealmCommandWithEnv(t, mitEnv, cache, "klist")
+	for _, servicePrincipal := range []string{
+		"krbtgt/" + localRealm + "@" + peerRealm,
+		service + "@" + localRealm,
+	} {
+		if !strings.Contains(tickets, servicePrincipal) {
+			t.Fatalf("klist output missing %s:\n%s", servicePrincipal, tickets)
+		}
+	}
+}
+
+func mustPrincipal(t *testing.T, value string) principal.Principal {
+	t.Helper()
+	parsed, err := principal.Parse(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return *parsed
+}
+
+func runCrossRealmCommand(t *testing.T, env []string, command string, args ...string) string {
+	t.Helper()
+	cmd := exec.Command(command, args...)
+	cmd.Env = env
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("%s %v failed: %v\n%s", command, args, err, output)
+	}
+	return string(output)
+}
+
+func runCrossRealmCommandWithInput(
+	t *testing.T, env []string, cache, input, command string, args ...string,
+) string {
+	t.Helper()
+	cmd := exec.Command(command, args...)
+	cmd.Env = append(env, "KRB5CCNAME=FILE:"+cache)
+	cmd.Stdin = strings.NewReader(input)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("%s %v failed: %v\n%s", command, args, err, output)
+	}
+	return string(output)
+}
+
+func runCrossRealmCommandWithEnv(
+	t *testing.T, env []string, cache, command string, args ...string,
+) string {
+	t.Helper()
+	cmd := exec.Command(command, args...)
+	cmd.Env = append(env, "KRB5CCNAME=FILE:"+cache)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("%s %v failed: %v\n%s", command, args, err, output)
+	}
+	return string(output)
+}
+
+func waitForTCPAddress(t *testing.T, address string) {
+	t.Helper()
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		conn, err := net.DialTimeout("tcp", address, 100*time.Millisecond)
+		if err == nil {
+			_ = conn.Close()
+			return
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
+	t.Fatalf("timed out waiting for TCP listener %s", address)
+}
+
+func startCrossRealmGoKDC(
+	t *testing.T,
+	localRealm, peerRealm, username, password, service string, trustKey []byte,
+) string {
+	t.Helper()
+	etype, err := crypto.NewRegistry().Get(crypto.EnctypeAES256SHA1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	userKey, err := etype.StringToKey([]byte(password), []byte(localRealm+username), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("username") != username {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"username":            username,
+			"principal":           username,
+			"kvno":                1,
+			"salt":                localRealm + username,
+			"password_expiration": nil,
+			"keys": map[string]string{
+				"18": base64.StdEncoding.EncodeToString(userKey),
+			},
+		})
+	}))
+	t.Cleanup(apiServer.Close)
+	parsedURL, err := url.Parse(apiServer.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	config := api.NewConfiguration()
+	config.Host = parsedURL.Host
+	config.Scheme = parsedURL.Scheme
+	config.Servers = api.ServerConfigurations{{URL: "/api/v3"}}
+	outpost := &KerberosServer{ac: &ak.APIController{Client: api.NewAPIClient(config)}}
+	store := &providerStore{
+		realm:      localRealm,
+		allowed:    map[int32]bool{18: true},
+		services:   make(map[string]kdb.PrincipalRecord),
+		trusts:     make(map[string]kdb.PrincipalRecord),
+		cache:      make(map[string]cachedUserKey),
+		server:     outpost,
+		providerID: 1,
+	}
+	serviceRecord, err := store.serviceRecord(service, 1, map[string]interface{}{
+		"18": base64.StdEncoding.EncodeToString(trustKey),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.services[principalKey(serviceRecord.Name)] = serviceRecord
+	trustRecord, err := store.trustRecord(
+		"krbtgt/"+localRealm, peerRealm, 1,
+		map[string]interface{}{"18": base64.StdEncoding.EncodeToString(trustKey)},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.trusts[principalKey(trustRecord.Name)] = trustRecord
+	server := &kdc.Server{
+		Realm:            localRealm,
+		DB:               store,
+		ClockSkew:        5 * time.Minute,
+		MaxTicketLife:    10 * time.Hour,
+		MaxRenewableLife: 24 * time.Hour,
+		Policy: &kdc.Policy{
+			AllowForwardable: true,
+			AllowRenewable:   true,
+		},
+		Authorize: store.Authorize,
+	}
+	udpConn, err := net.ListenPacket("udp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tcpListener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		_ = udpConn.Close()
+		t.Fatal(err)
+	}
+	tcpPort := tcpListener.Addr().(*net.TCPAddr).Port
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		done <- server.ListenAndServe(ctx, udpConn, tcpListener)
+	}()
+	t.Cleanup(func() {
+		cancel()
+		_ = udpConn.Close()
+		_ = tcpListener.Close()
+		<-done
+	})
+	return fmt.Sprintf("127.0.0.1:%d", tcpPort)
 }
