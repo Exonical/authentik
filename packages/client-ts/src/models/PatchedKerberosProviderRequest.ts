@@ -105,6 +105,12 @@ export interface PatchedKerberosProviderRequest {
      */
     requirePreauthentication?: boolean;
     /**
+     * Advertise PA-SPAKE preauthentication (RFC 9588).
+     * @type {boolean}
+     * @memberof PatchedKerberosProviderRequest
+     */
+    spakeEnabled?: boolean;
+    /**
      *
      * @type {boolean}
      * @memberof PatchedKerberosProviderRequest
@@ -158,6 +164,30 @@ export interface PatchedKerberosProviderRequest {
      * @memberof PatchedKerberosProviderRequest
      */
     pkinitClientCa?: string | null;
+    /**
+     * Require RFC 8070 freshness tokens on PKINIT requests.
+     * @type {boolean}
+     * @memberof PatchedKerberosProviderRequest
+     */
+    pkinitRequireFreshness?: boolean;
+    /**
+     * Allow anonymous PKINIT requests.
+     * @type {boolean}
+     * @memberof PatchedKerberosProviderRequest
+     */
+    anonymousPkinitEnabled?: boolean;
+    /**
+     * Enable KDC Proxy over HTTPS (MS-KKDCP).
+     * @type {boolean}
+     * @memberof PatchedKerberosProviderRequest
+     */
+    kkdcpEnabled?: boolean;
+    /**
+     * Certificate/key pair the KDC Proxy listener uses for TLS.
+     * @type {string}
+     * @memberof PatchedKerberosProviderRequest
+     */
+    kkdcpCertificate?: string | null;
 }
 
 /**
@@ -223,6 +253,7 @@ export function PatchedKerberosProviderRequestFromJSONTyped(
             json["require_preauthentication"] == null
                 ? undefined
                 : json["require_preauthentication"],
+        spakeEnabled: json["spake_enabled"] == null ? undefined : json["spake_enabled"],
         udpEnabled: json["udp_enabled"] == null ? undefined : json["udp_enabled"],
         tcpEnabled: json["tcp_enabled"] == null ? undefined : json["tcp_enabled"],
         kpasswdEnabled: json["kpasswd_enabled"] == null ? undefined : json["kpasswd_enabled"],
@@ -245,6 +276,17 @@ export function PatchedKerberosProviderRequestFromJSONTyped(
                 : json["pkinit_client_ca"] === null
                   ? null
                   : json["pkinit_client_ca"],
+        pkinitRequireFreshness:
+            json["pkinit_require_freshness"] == null ? undefined : json["pkinit_require_freshness"],
+        anonymousPkinitEnabled:
+            json["anonymous_pkinit_enabled"] == null ? undefined : json["anonymous_pkinit_enabled"],
+        kkdcpEnabled: json["kkdcp_enabled"] == null ? undefined : json["kkdcp_enabled"],
+        kkdcpCertificate:
+            json["kkdcp_certificate"] === undefined
+                ? undefined
+                : json["kkdcp_certificate"] === null
+                  ? null
+                  : json["kkdcp_certificate"],
     };
 }
 
@@ -277,6 +319,7 @@ export function PatchedKerberosProviderRequestToJSONTyped(
                 ? undefined
                 : (value["allowedEnctypes"] as Array<any>).map(AllowedEnctypesEnumToJSON),
         require_preauthentication: value["requirePreauthentication"],
+        spake_enabled: value["spakeEnabled"],
         udp_enabled: value["udpEnabled"],
         tcp_enabled: value["tcpEnabled"],
         kpasswd_enabled: value["kpasswdEnabled"],
@@ -288,5 +331,9 @@ export function PatchedKerberosProviderRequestToJSONTyped(
         ),
         pkinit_certificate: value["pkinitCertificate"],
         pkinit_client_ca: value["pkinitClientCa"],
+        pkinit_require_freshness: value["pkinitRequireFreshness"],
+        anonymous_pkinit_enabled: value["anonymousPkinitEnabled"],
+        kkdcp_enabled: value["kkdcpEnabled"],
+        kkdcp_certificate: value["kkdcpCertificate"],
     };
 }

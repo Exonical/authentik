@@ -12254,6 +12254,11 @@
                     "type": "boolean",
                     "title": "Require preauthentication"
                 },
+                "spake_enabled": {
+                    "type": "boolean",
+                    "title": "Spake enabled",
+                    "description": "Advertise PA-SPAKE preauthentication (RFC 9588)."
+                },
                 "udp_enabled": {
                     "type": "boolean",
                     "title": "Udp enabled"
@@ -12299,6 +12304,27 @@
                     "format": "uuid",
                     "title": "Pkinit client ca",
                     "description": "CA certificate used to validate PKINIT client certificates."
+                },
+                "pkinit_require_freshness": {
+                    "type": "boolean",
+                    "title": "Pkinit require freshness",
+                    "description": "Require RFC 8070 freshness tokens on PKINIT requests."
+                },
+                "anonymous_pkinit_enabled": {
+                    "type": "boolean",
+                    "title": "Anonymous pkinit enabled",
+                    "description": "Allow anonymous PKINIT requests."
+                },
+                "kkdcp_enabled": {
+                    "type": "boolean",
+                    "title": "Kkdcp enabled",
+                    "description": "Enable KDC Proxy over HTTPS (MS-KKDCP)."
+                },
+                "kkdcp_certificate": {
+                    "type": "string",
+                    "format": "uuid",
+                    "title": "Kkdcp certificate",
+                    "description": "Certificate/key pair the KDC Proxy listener uses for TLS."
                 }
             },
             "required": []

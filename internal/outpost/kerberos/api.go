@@ -3,6 +3,7 @@ package kerberos
 import (
 	"context"
 	"crypto"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
 	"errors"
@@ -60,16 +61,18 @@ func (rs *KerberosServer) Refresh() error {
 		if err != nil {
 			return fmt.Errorf("load provider %d PKINIT configuration: %w", provider.Pk, err)
 		}
+		kkdcpCertificate := rs.kkdcpConfig(provider)
 		store := &providerStore{
-			realm:       provider.RealmName,
-			masterKey:   masterKey,
-			allowed:     make(map[int32]bool, len(provider.AllowedEnctypes)),
-			services:    make(map[string]kdb.PrincipalRecord),
-			delegations: make(map[string]delegationPolicy),
-			cache:       make(map[string]cachedUserKey),
-			accessCache: make(map[string]cachedAccessCheck),
-			server:      rs,
-			providerID:  provider.Pk,
+			realm:                  provider.RealmName,
+			masterKey:              masterKey,
+			allowed:                make(map[int32]bool, len(provider.AllowedEnctypes)),
+			services:               make(map[string]kdb.PrincipalRecord),
+			delegations:            make(map[string]delegationPolicy),
+			cache:                  make(map[string]cachedUserKey),
+			accessCache:            make(map[string]cachedAccessCheck),
+			server:                 rs,
+			providerID:             provider.Pk,
+			anonymousPKINITEnabled: provider.GetAnonymousPkinitEnabled(),
 		}
 		for _, enctype := range provider.AllowedEnctypes {
 			store.allowed[int32(enctype)] = true
@@ -78,14 +81,16 @@ func (rs *KerberosServer) Refresh() error {
 			Config: provider,
 			Store:  store,
 			KDC: &kdc.Server{
-				Realm:                provider.RealmName,
-				DB:                   store,
-				ClockSkew:            5 * time.Minute,
-				MaxTicketLife:        time.Duration(provider.MaximumTicketLifetime) * time.Second,
-				MaxRenewableLife:     time.Duration(provider.MaximumTicketRenewLifetime) * time.Second,
-				DefaultTicketLife:    defaultTicketLife,
-				DefaultRenewableLife: defaultRenewableLife,
-				DisablePreauth:       !provider.GetRequirePreauthentication(),
+				Realm:                  provider.RealmName,
+				DB:                     store,
+				ClockSkew:              5 * time.Minute,
+				MaxTicketLife:          time.Duration(provider.MaximumTicketLifetime) * time.Second,
+				MaxRenewableLife:       time.Duration(provider.MaximumTicketRenewLifetime) * time.Second,
+				DefaultTicketLife:      defaultTicketLife,
+				DefaultRenewableLife:   defaultRenewableLife,
+				DisablePreauth:         !provider.GetRequirePreauthentication(),
+				EnableSPAKE:            provider.GetSpakeEnabled(),
+				PKINITRequireFreshness: provider.GetPkinitRequireFreshness(),
 				Policy: &kdc.Policy{
 					AllowForwardable: provider.GetForwardable(),
 					AllowRenewable:   provider.GetRenewable(),
@@ -97,7 +102,8 @@ func (rs *KerberosServer) Refresh() error {
 				PKINITSigner:           pkinitSigner,
 				PKINITClientCAs:        pkinitClientCAs,
 			},
-			log: log.WithField("logger", "authentik.outpost.kerberos").WithField("provider", provider.Name),
+			KKDCPCertificate: kkdcpCertificate,
+			log:              log.WithField("logger", "authentik.outpost.kerberos").WithField("provider", provider.Name),
 		}
 		services, err := ak.Paginator(
 			rs.ac.Client.OutpostsAPI.OutpostsKerberosServicePrincipalsList(context.Background(), provider.Pk),
@@ -139,6 +145,34 @@ func (rs *KerberosServer) Refresh() error {
 	rs.mu.Unlock()
 	rs.log.Info("Update kerberos providers")
 	return nil
+}
+
+func (rs *KerberosServer) kkdcpConfig(provider api.KerberosOutpostConfig) *tls.Certificate {
+	if !provider.GetKkdcpEnabled() {
+		return nil
+	}
+	certificateUUID := provider.GetKkdcpCertificate()
+	if certificateUUID == "" {
+		rs.log.WithField("provider", provider.Name).
+			Warn("KKDCP is enabled but no TLS certificate is configured")
+		return nil
+	}
+	if rs.cs == nil {
+		rs.log.WithField("provider", provider.Name).
+			Warn("KKDCP is enabled but the certificate store is not initialized")
+		return nil
+	}
+	if err := rs.cs.AddKeypair(certificateUUID); err != nil {
+		rs.log.WithField("provider", provider.Name).
+			WithError(err).Warn("Failed to fetch KKDCP TLS certificate")
+		return nil
+	}
+	certificate := rs.cs.Get(certificateUUID)
+	if certificate == nil {
+		rs.log.WithField("provider", provider.Name).
+			Warn("KKDCP TLS certificate was not found")
+	}
+	return certificate
 }
 
 func (rs *KerberosServer) pkinitConfig(
@@ -206,10 +240,11 @@ func (rs *KerberosServer) pkinitConfig(
 }
 
 type ProviderInstance struct {
-	Config api.KerberosOutpostConfig
-	Store  *providerStore
-	KDC    *kdc.Server
-	log    *log.Entry
+	Config           api.KerberosOutpostConfig
+	Store            *providerStore
+	KDC              *kdc.Server
+	KKDCPCertificate *tls.Certificate
+	log              *log.Entry
 }
 
 type cachedUserKey struct {
@@ -224,17 +259,18 @@ type cachedAccessCheck struct {
 }
 
 type providerStore struct {
-	realm         string
-	masterKey     []byte
-	allowed       map[int32]bool
-	services      map[string]kdb.PrincipalRecord
-	delegations   map[string]delegationPolicy
-	cache         map[string]cachedUserKey
-	cacheMu       sync.Mutex
-	accessCache   map[string]cachedAccessCheck
-	accessCacheMu sync.Mutex
-	server        *KerberosServer
-	providerID    int32
+	realm                  string
+	masterKey              []byte
+	allowed                map[int32]bool
+	services               map[string]kdb.PrincipalRecord
+	delegations            map[string]delegationPolicy
+	cache                  map[string]cachedUserKey
+	cacheMu                sync.Mutex
+	accessCache            map[string]cachedAccessCheck
+	accessCacheMu          sync.Mutex
+	server                 *KerberosServer
+	providerID             int32
+	anonymousPKINITEnabled bool
 }
 
 type delegationPolicy struct {

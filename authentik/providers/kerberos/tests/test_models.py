@@ -18,6 +18,18 @@ from authentik.providers.kerberos.models import (
 class KerberosProviderTests(TestCase):
     """Test Kerberos provider models."""
 
+    def test_advanced_protocol_settings_default_disabled(self):
+        """Advanced protocol features are disabled by default."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name=generate_id(),
+        )
+        self.assertFalse(provider.spake_enabled)
+        self.assertFalse(provider.pkinit_require_freshness)
+        self.assertFalse(provider.anonymous_pkinit_enabled)
+        self.assertFalse(provider.kkdcp_enabled)
+        self.assertIsNone(provider.kkdcp_certificate)
+
     def test_service_principal_keys(self):
         """Service principal keys are generated per allowed enctype."""
         provider = KerberosProvider.objects.create(name=generate_id(), realm_name=generate_id())

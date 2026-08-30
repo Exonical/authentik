@@ -31,8 +31,10 @@ type KerberosOutpostConfig struct {
 	DefaultTicketRenewLifetime *string               `json:"default_ticket_renew_lifetime,omitempty"`
 	AllowedEnctypes            []AllowedEnctypesEnum `json:"allowed_enctypes,omitempty"`
 	RequirePreauthentication   *bool                 `json:"require_preauthentication,omitempty"`
-	UdpEnabled                 *bool                 `json:"udp_enabled,omitempty"`
-	TcpEnabled                 *bool                 `json:"tcp_enabled,omitempty"`
+	// Advertise PA-SPAKE preauthentication (RFC 9588).
+	SpakeEnabled *bool `json:"spake_enabled,omitempty"`
+	UdpEnabled   *bool `json:"udp_enabled,omitempty"`
+	TcpEnabled   *bool `json:"tcp_enabled,omitempty"`
 	// Enable RFC 3244 password changes through the Kerberos outpost.
 	KpasswdEnabled             *bool                           `json:"kpasswd_enabled,omitempty"`
 	Forwardable                *bool                           `json:"forwardable,omitempty"`
@@ -42,7 +44,15 @@ type KerberosOutpostConfig struct {
 	// Certificate/key pair the KDC uses to sign PKINIT replies. Requires a private key.
 	PkinitCertificate NullableString `json:"pkinit_certificate,omitempty"`
 	// CA certificate used to validate PKINIT client certificates.
-	PkinitClientCa       NullableString `json:"pkinit_client_ca,omitempty"`
+	PkinitClientCa NullableString `json:"pkinit_client_ca,omitempty"`
+	// Require RFC 8070 freshness tokens on PKINIT requests.
+	PkinitRequireFreshness *bool `json:"pkinit_require_freshness,omitempty"`
+	// Allow anonymous PKINIT requests.
+	AnonymousPkinitEnabled *bool `json:"anonymous_pkinit_enabled,omitempty"`
+	// Enable KDC Proxy over HTTPS (MS-KKDCP).
+	KkdcpEnabled *bool `json:"kkdcp_enabled,omitempty"`
+	// Certificate/key pair the KDC Proxy listener uses for TLS.
+	KkdcpCertificate     NullableString `json:"kkdcp_certificate,omitempty"`
 	MasterKey            *string        `json:"master_key,omitempty"`
 	ApplicationSlug      string         `json:"application_slug"`
 	AdditionalProperties map[string]interface{}
@@ -351,6 +361,38 @@ func (o *KerberosOutpostConfig) HasRequirePreauthentication() bool {
 // SetRequirePreauthentication gets a reference to the given bool and assigns it to the RequirePreauthentication field.
 func (o *KerberosOutpostConfig) SetRequirePreauthentication(v bool) {
 	o.RequirePreauthentication = &v
+}
+
+// GetSpakeEnabled returns the SpakeEnabled field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetSpakeEnabled() bool {
+	if o == nil || IsNil(o.SpakeEnabled) {
+		var ret bool
+		return ret
+	}
+	return *o.SpakeEnabled
+}
+
+// GetSpakeEnabledOk returns a tuple with the SpakeEnabled field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetSpakeEnabledOk() (*bool, bool) {
+	if o == nil || IsNil(o.SpakeEnabled) {
+		return nil, false
+	}
+	return o.SpakeEnabled, true
+}
+
+// HasSpakeEnabled returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasSpakeEnabled() bool {
+	if o != nil && !IsNil(o.SpakeEnabled) {
+		return true
+	}
+
+	return false
+}
+
+// SetSpakeEnabled gets a reference to the given bool and assigns it to the SpakeEnabled field.
+func (o *KerberosOutpostConfig) SetSpakeEnabled(v bool) {
+	o.SpakeEnabled = &v
 }
 
 // GetUdpEnabled returns the UdpEnabled field value if set, zero value otherwise.
@@ -663,6 +705,145 @@ func (o *KerberosOutpostConfig) UnsetPkinitClientCa() {
 	o.PkinitClientCa.Unset()
 }
 
+// GetPkinitRequireFreshness returns the PkinitRequireFreshness field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetPkinitRequireFreshness() bool {
+	if o == nil || IsNil(o.PkinitRequireFreshness) {
+		var ret bool
+		return ret
+	}
+	return *o.PkinitRequireFreshness
+}
+
+// GetPkinitRequireFreshnessOk returns a tuple with the PkinitRequireFreshness field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetPkinitRequireFreshnessOk() (*bool, bool) {
+	if o == nil || IsNil(o.PkinitRequireFreshness) {
+		return nil, false
+	}
+	return o.PkinitRequireFreshness, true
+}
+
+// HasPkinitRequireFreshness returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasPkinitRequireFreshness() bool {
+	if o != nil && !IsNil(o.PkinitRequireFreshness) {
+		return true
+	}
+
+	return false
+}
+
+// SetPkinitRequireFreshness gets a reference to the given bool and assigns it to the PkinitRequireFreshness field.
+func (o *KerberosOutpostConfig) SetPkinitRequireFreshness(v bool) {
+	o.PkinitRequireFreshness = &v
+}
+
+// GetAnonymousPkinitEnabled returns the AnonymousPkinitEnabled field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetAnonymousPkinitEnabled() bool {
+	if o == nil || IsNil(o.AnonymousPkinitEnabled) {
+		var ret bool
+		return ret
+	}
+	return *o.AnonymousPkinitEnabled
+}
+
+// GetAnonymousPkinitEnabledOk returns a tuple with the AnonymousPkinitEnabled field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetAnonymousPkinitEnabledOk() (*bool, bool) {
+	if o == nil || IsNil(o.AnonymousPkinitEnabled) {
+		return nil, false
+	}
+	return o.AnonymousPkinitEnabled, true
+}
+
+// HasAnonymousPkinitEnabled returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasAnonymousPkinitEnabled() bool {
+	if o != nil && !IsNil(o.AnonymousPkinitEnabled) {
+		return true
+	}
+
+	return false
+}
+
+// SetAnonymousPkinitEnabled gets a reference to the given bool and assigns it to the AnonymousPkinitEnabled field.
+func (o *KerberosOutpostConfig) SetAnonymousPkinitEnabled(v bool) {
+	o.AnonymousPkinitEnabled = &v
+}
+
+// GetKkdcpEnabled returns the KkdcpEnabled field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetKkdcpEnabled() bool {
+	if o == nil || IsNil(o.KkdcpEnabled) {
+		var ret bool
+		return ret
+	}
+	return *o.KkdcpEnabled
+}
+
+// GetKkdcpEnabledOk returns a tuple with the KkdcpEnabled field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetKkdcpEnabledOk() (*bool, bool) {
+	if o == nil || IsNil(o.KkdcpEnabled) {
+		return nil, false
+	}
+	return o.KkdcpEnabled, true
+}
+
+// HasKkdcpEnabled returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasKkdcpEnabled() bool {
+	if o != nil && !IsNil(o.KkdcpEnabled) {
+		return true
+	}
+
+	return false
+}
+
+// SetKkdcpEnabled gets a reference to the given bool and assigns it to the KkdcpEnabled field.
+func (o *KerberosOutpostConfig) SetKkdcpEnabled(v bool) {
+	o.KkdcpEnabled = &v
+}
+
+// GetKkdcpCertificate returns the KkdcpCertificate field value if set, zero value otherwise (both if not set or set to explicit null).
+func (o *KerberosOutpostConfig) GetKkdcpCertificate() string {
+	if o == nil || IsNil(o.KkdcpCertificate.Get()) {
+		var ret string
+		return ret
+	}
+	return *o.KkdcpCertificate.Get()
+}
+
+// GetKkdcpCertificateOk returns a tuple with the KkdcpCertificate field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+// NOTE: If the value is an explicit nil, `nil, true` will be returned
+func (o *KerberosOutpostConfig) GetKkdcpCertificateOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.KkdcpCertificate.Get(), o.KkdcpCertificate.IsSet()
+}
+
+// HasKkdcpCertificate returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasKkdcpCertificate() bool {
+	if o != nil && o.KkdcpCertificate.IsSet() {
+		return true
+	}
+
+	return false
+}
+
+// SetKkdcpCertificate gets a reference to the given NullableString and assigns it to the KkdcpCertificate field.
+func (o *KerberosOutpostConfig) SetKkdcpCertificate(v string) {
+	o.KkdcpCertificate.Set(&v)
+}
+
+// SetKkdcpCertificateNil sets the value for KkdcpCertificate to be an explicit nil
+func (o *KerberosOutpostConfig) SetKkdcpCertificateNil() {
+	o.KkdcpCertificate.Set(nil)
+}
+
+// UnsetKkdcpCertificate ensures that no value is present for KkdcpCertificate, not even an explicit nil
+func (o *KerberosOutpostConfig) UnsetKkdcpCertificate() {
+	o.KkdcpCertificate.Unset()
+}
+
 // GetMasterKey returns the MasterKey field value if set, zero value otherwise.
 func (o *KerberosOutpostConfig) GetMasterKey() string {
 	if o == nil || IsNil(o.MasterKey) {
@@ -749,6 +930,9 @@ func (o KerberosOutpostConfig) ToMap() (map[string]interface{}, error) {
 	if !IsNil(o.RequirePreauthentication) {
 		toSerialize["require_preauthentication"] = o.RequirePreauthentication
 	}
+	if !IsNil(o.SpakeEnabled) {
+		toSerialize["spake_enabled"] = o.SpakeEnabled
+	}
 	if !IsNil(o.UdpEnabled) {
 		toSerialize["udp_enabled"] = o.UdpEnabled
 	}
@@ -775,6 +959,18 @@ func (o KerberosOutpostConfig) ToMap() (map[string]interface{}, error) {
 	}
 	if o.PkinitClientCa.IsSet() {
 		toSerialize["pkinit_client_ca"] = o.PkinitClientCa.Get()
+	}
+	if !IsNil(o.PkinitRequireFreshness) {
+		toSerialize["pkinit_require_freshness"] = o.PkinitRequireFreshness
+	}
+	if !IsNil(o.AnonymousPkinitEnabled) {
+		toSerialize["anonymous_pkinit_enabled"] = o.AnonymousPkinitEnabled
+	}
+	if !IsNil(o.KkdcpEnabled) {
+		toSerialize["kkdcp_enabled"] = o.KkdcpEnabled
+	}
+	if o.KkdcpCertificate.IsSet() {
+		toSerialize["kkdcp_certificate"] = o.KkdcpCertificate.Get()
 	}
 	if !IsNil(o.MasterKey) {
 		toSerialize["master_key"] = o.MasterKey
@@ -838,6 +1034,7 @@ func (o *KerberosOutpostConfig) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "default_ticket_renew_lifetime")
 		delete(additionalProperties, "allowed_enctypes")
 		delete(additionalProperties, "require_preauthentication")
+		delete(additionalProperties, "spake_enabled")
 		delete(additionalProperties, "udp_enabled")
 		delete(additionalProperties, "tcp_enabled")
 		delete(additionalProperties, "kpasswd_enabled")
@@ -847,6 +1044,10 @@ func (o *KerberosOutpostConfig) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "principal_username_attribute")
 		delete(additionalProperties, "pkinit_certificate")
 		delete(additionalProperties, "pkinit_client_ca")
+		delete(additionalProperties, "pkinit_require_freshness")
+		delete(additionalProperties, "anonymous_pkinit_enabled")
+		delete(additionalProperties, "kkdcp_enabled")
+		delete(additionalProperties, "kkdcp_certificate")
 		delete(additionalProperties, "master_key")
 		delete(additionalProperties, "application_slug")
 		o.AdditionalProperties = additionalProperties
