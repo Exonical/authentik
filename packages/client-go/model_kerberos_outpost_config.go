@@ -52,9 +52,13 @@ type KerberosOutpostConfig struct {
 	// Enable KDC Proxy over HTTPS (MS-KKDCP).
 	KkdcpEnabled *bool `json:"kkdcp_enabled,omitempty"`
 	// Certificate/key pair the KDC Proxy listener uses for TLS.
-	KkdcpCertificate     NullableString `json:"kkdcp_certificate,omitempty"`
-	MasterKey            *string        `json:"master_key,omitempty"`
-	ApplicationSlug      string         `json:"application_slug"`
+	KkdcpCertificate NullableString `json:"kkdcp_certificate,omitempty"`
+	// Include an MS-PAC in issued tickets.
+	PacEnabled *bool `json:"pac_enabled,omitempty"`
+	// Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.
+	RealmSid             *string `json:"realm_sid,omitempty"`
+	MasterKey            *string `json:"master_key,omitempty"`
+	ApplicationSlug      string  `json:"application_slug"`
 	AdditionalProperties map[string]interface{}
 }
 
@@ -844,6 +848,70 @@ func (o *KerberosOutpostConfig) UnsetKkdcpCertificate() {
 	o.KkdcpCertificate.Unset()
 }
 
+// GetPacEnabled returns the PacEnabled field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetPacEnabled() bool {
+	if o == nil || IsNil(o.PacEnabled) {
+		var ret bool
+		return ret
+	}
+	return *o.PacEnabled
+}
+
+// GetPacEnabledOk returns a tuple with the PacEnabled field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetPacEnabledOk() (*bool, bool) {
+	if o == nil || IsNil(o.PacEnabled) {
+		return nil, false
+	}
+	return o.PacEnabled, true
+}
+
+// HasPacEnabled returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasPacEnabled() bool {
+	if o != nil && !IsNil(o.PacEnabled) {
+		return true
+	}
+
+	return false
+}
+
+// SetPacEnabled gets a reference to the given bool and assigns it to the PacEnabled field.
+func (o *KerberosOutpostConfig) SetPacEnabled(v bool) {
+	o.PacEnabled = &v
+}
+
+// GetRealmSid returns the RealmSid field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetRealmSid() string {
+	if o == nil || IsNil(o.RealmSid) {
+		var ret string
+		return ret
+	}
+	return *o.RealmSid
+}
+
+// GetRealmSidOk returns a tuple with the RealmSid field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetRealmSidOk() (*string, bool) {
+	if o == nil || IsNil(o.RealmSid) {
+		return nil, false
+	}
+	return o.RealmSid, true
+}
+
+// HasRealmSid returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasRealmSid() bool {
+	if o != nil && !IsNil(o.RealmSid) {
+		return true
+	}
+
+	return false
+}
+
+// SetRealmSid gets a reference to the given string and assigns it to the RealmSid field.
+func (o *KerberosOutpostConfig) SetRealmSid(v string) {
+	o.RealmSid = &v
+}
+
 // GetMasterKey returns the MasterKey field value if set, zero value otherwise.
 func (o *KerberosOutpostConfig) GetMasterKey() string {
 	if o == nil || IsNil(o.MasterKey) {
@@ -972,6 +1040,12 @@ func (o KerberosOutpostConfig) ToMap() (map[string]interface{}, error) {
 	if o.KkdcpCertificate.IsSet() {
 		toSerialize["kkdcp_certificate"] = o.KkdcpCertificate.Get()
 	}
+	if !IsNil(o.PacEnabled) {
+		toSerialize["pac_enabled"] = o.PacEnabled
+	}
+	if !IsNil(o.RealmSid) {
+		toSerialize["realm_sid"] = o.RealmSid
+	}
 	if !IsNil(o.MasterKey) {
 		toSerialize["master_key"] = o.MasterKey
 	}
@@ -1048,6 +1122,8 @@ func (o *KerberosOutpostConfig) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "anonymous_pkinit_enabled")
 		delete(additionalProperties, "kkdcp_enabled")
 		delete(additionalProperties, "kkdcp_certificate")
+		delete(additionalProperties, "pac_enabled")
+		delete(additionalProperties, "realm_sid")
 		delete(additionalProperties, "master_key")
 		delete(additionalProperties, "application_slug")
 		o.AdditionalProperties = additionalProperties

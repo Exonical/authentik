@@ -243,6 +243,18 @@ export interface KerberosProvider {
      */
     kkdcpCertificate?: string | null;
     /**
+     * Include an MS-PAC in issued tickets.
+     * @type {boolean}
+     * @memberof KerberosProvider
+     */
+    pacEnabled?: boolean;
+    /**
+     * Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.
+     * @type {string}
+     * @memberof KerberosProvider
+     */
+    realmSid?: string;
+    /**
      *
      * @type {string}
      * @memberof KerberosProvider
@@ -433,6 +445,8 @@ export function KerberosProviderFromJSONTyped(
                 : json["kkdcp_certificate"] === null
                   ? null
                   : json["kkdcp_certificate"],
+        pacEnabled: json["pac_enabled"] == null ? undefined : json["pac_enabled"],
+        realmSid: json["realm_sid"] == null ? undefined : json["realm_sid"],
         masterKey: json["master_key"],
         outpostSet: json["outpost_set"],
     };
@@ -496,5 +510,7 @@ export function KerberosProviderToJSONTyped(
         anonymous_pkinit_enabled: value["anonymousPkinitEnabled"],
         kkdcp_enabled: value["kkdcpEnabled"],
         kkdcp_certificate: value["kkdcpCertificate"],
+        pac_enabled: value["pacEnabled"],
+        realm_sid: value["realmSid"],
     };
 }

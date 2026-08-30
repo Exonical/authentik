@@ -12325,6 +12325,16 @@
                     "format": "uuid",
                     "title": "Kkdcp certificate",
                     "description": "Certificate/key pair the KDC Proxy listener uses for TLS."
+                },
+                "pac_enabled": {
+                    "type": "boolean",
+                    "title": "Pac enabled",
+                    "description": "Include an MS-PAC in issued tickets."
+                },
+                "realm_sid": {
+                    "type": "string",
+                    "title": "Realm sid",
+                    "description": "Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3."
                 }
             },
             "required": []

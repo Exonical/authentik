@@ -188,6 +188,18 @@ export interface KerberosProviderRequest {
      * @memberof KerberosProviderRequest
      */
     kkdcpCertificate?: string | null;
+    /**
+     * Include an MS-PAC in issued tickets.
+     * @type {boolean}
+     * @memberof KerberosProviderRequest
+     */
+    pacEnabled?: boolean;
+    /**
+     * Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.
+     * @type {string}
+     * @memberof KerberosProviderRequest
+     */
+    realmSid?: string;
 }
 
 /**
@@ -293,6 +305,8 @@ export function KerberosProviderRequestFromJSONTyped(
                 : json["kkdcp_certificate"] === null
                   ? null
                   : json["kkdcp_certificate"],
+        pacEnabled: json["pac_enabled"] == null ? undefined : json["pac_enabled"],
+        realmSid: json["realm_sid"] == null ? undefined : json["realm_sid"],
     };
 }
 
@@ -341,5 +355,7 @@ export function KerberosProviderRequestToJSONTyped(
         anonymous_pkinit_enabled: value["anonymousPkinitEnabled"],
         kkdcp_enabled: value["kkdcpEnabled"],
         kkdcp_certificate: value["kkdcpCertificate"],
+        pac_enabled: value["pacEnabled"],
+        realm_sid: value["realmSid"],
     };
 }

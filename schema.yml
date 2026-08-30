@@ -44171,6 +44171,12 @@ components:
           format: uuid
           nullable: true
           description: Certificate/key pair the KDC Proxy listener uses for TLS.
+        pac_enabled:
+          type: boolean
+          description: Include an MS-PAC in issued tickets.
+        realm_sid:
+          type: string
+          description: Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.
         master_key:
           type: string
         application_slug:
@@ -44315,6 +44321,12 @@ components:
           format: uuid
           nullable: true
           description: Certificate/key pair the KDC Proxy listener uses for TLS.
+        pac_enabled:
+          type: boolean
+          description: Include an MS-PAC in issued tickets.
+        realm_sid:
+          type: string
+          description: Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.
         master_key:
           type: string
           readOnly: true
@@ -44436,6 +44448,12 @@ components:
           format: uuid
           nullable: true
           description: Certificate/key pair the KDC Proxy listener uses for TLS.
+        pac_enabled:
+          type: boolean
+          description: Include an MS-PAC in issued tickets.
+        realm_sid:
+          type: string
+          description: Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.
       required:
       - name
       - realm_name
@@ -44890,9 +44908,30 @@ components:
           type: object
           additionalProperties: {}
           readOnly: true
+        pac_user_id:
+          type: integer
+          readOnly: true
+        pac_primary_group_id:
+          type: integer
+          readOnly: true
+        pac_group_ids:
+          type: array
+          items:
+            type: integer
+          readOnly: true
+        pac_name:
+          type: string
+        pac_upn:
+          type: string
+          readOnly: true
       required:
       - keys
       - kvno
+      - pac_group_ids
+      - pac_name
+      - pac_primary_group_id
+      - pac_upn
+      - pac_user_id
       - principal
       - salt
       - username
@@ -52861,6 +52900,12 @@ components:
           format: uuid
           nullable: true
           description: Certificate/key pair the KDC Proxy listener uses for TLS.
+        pac_enabled:
+          type: boolean
+          description: Include an MS-PAC in issued tickets.
+        realm_sid:
+          type: string
+          description: Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.
     PatchedKerberosServicePrincipalRequest:
       type: object
       description: Kerberos service principal serializer.
