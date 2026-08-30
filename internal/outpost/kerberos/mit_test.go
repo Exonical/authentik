@@ -2,13 +2,16 @@ package kerberos
 
 import (
 	"context"
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha1"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
@@ -24,13 +27,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Exonical/go-kerberos/krb5/ccache"
 	"github.com/Exonical/go-kerberos/krb5/client"
 	"github.com/Exonical/go-kerberos/krb5/crypto"
 	"github.com/Exonical/go-kerberos/krb5/kdb"
 	"github.com/Exonical/go-kerberos/krb5/kdc"
 	"github.com/Exonical/go-kerberos/krb5/keytab"
 	"github.com/Exonical/go-kerberos/krb5/kkdcp"
+	"github.com/Exonical/go-kerberos/krb5/otp"
 	"github.com/Exonical/go-kerberos/krb5/principal"
+	"github.com/Exonical/go-kerberos/krb5/protocol"
+	"github.com/Exonical/go-kerberos/krb5/types"
 
 	"goauthentik.io/internal/outpost/ak"
 	api "goauthentik.io/packages/client-go"
@@ -42,10 +49,22 @@ const (
 	mitAlias = "alice@example.com"
 	// MIT principal syntax uses a backslash to keep the email address in one
 	// component instead of interpreting its @ as the realm separator.
-	mitAliasArg = `alice\@example.com`
-	mitPassword = "alice-password"
-	mitService  = "host/service.test"
+	mitAliasArg  = `alice\@example.com`
+	mitPassword  = "alice-password"
+	mitService   = "host/service.test"
+	mitOTPSecret = "12345678901234567890"
 )
+
+func mitTOTP(secret string, now time.Time) string {
+	var counter [8]byte
+	binary.BigEndian.PutUint64(counter[:], uint64(now.Unix()/30))
+	mac := hmac.New(sha1.New, []byte(secret))
+	_, _ = mac.Write(counter[:])
+	sum := mac.Sum(nil)
+	offset := sum[len(sum)-1] & 0x0f
+	value := binary.BigEndian.Uint32(sum[offset:offset+4]) & 0x7fffffff
+	return fmt.Sprintf("%06d", value%1000000)
+}
 
 type mitHarness struct {
 	config          string
@@ -157,6 +176,13 @@ func startMITKDCWithIdentityPolicyOptions(
 			}
 			passwordChanged <- request.Password
 			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if r.URL.Path == "/api/v3/outposts/kerberos/1/otp_check/" {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]bool{
+				"allowed": r.URL.Query().Get("value") == mitTOTP(mitOTPSecret, time.Now()),
+			})
 			return
 		}
 		if r.URL.Path == "/api/v3/outposts/kerberos/1/access_check/" {
@@ -387,6 +413,34 @@ func startMITKDCWithIdentityPolicyOptions(
 	}
 }
 
+func readMITArmorCredentials(t *testing.T, path string) *client.Credentials {
+	t.Helper()
+	file, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("open armor ccache: %v", err)
+	}
+	defer file.Close()
+	cache, err := ccache.Read(file)
+	if err != nil {
+		t.Fatalf("read armor ccache: %v", err)
+	}
+	for _, item := range cache.Credentials {
+		if len(item.Server.Components) == 2 && item.Server.Components[0] == "krbtgt" {
+			return &client.Credentials{
+				Client: item.Client,
+				Server: item.Server,
+				Key: protocol.EncryptionKey{
+					KeyType: item.Enctype, KeyValue: item.Key,
+				},
+				Flags:  types.TicketFlags(item.TicketFlags),
+				Ticket: item.Ticket,
+			}
+		}
+	}
+	t.Fatal("armor ccache contains no TGT")
+	return nil
+}
+
 func (h *mitHarness) run(t *testing.T, input, command string, args ...string) string {
 	return h.runWithCache(t, h.cache, input, command, args...)
 }
@@ -473,6 +527,97 @@ func TestMITInteropSPAKE(t *testing.T) {
 	}
 	if !strings.Contains(strings.ToLower(string(trace)), "spake") {
 		t.Fatalf("MIT trace did not show SPAKE preauthentication:\n%s", trace)
+	}
+}
+
+func TestMITInteropOTP(t *testing.T) {
+	h := startMITKDCWithIdentityPolicyOptions(
+		t, false, false, true, mitUser, mitUser,
+		func(string, string, string) bool { return true },
+		false, false, nil, []string{"otp"},
+	)
+	armorPath := filepath.Join(filepath.Dir(h.cache), "otp-armor.ccache")
+	h.runWithCache(t, armorPath, "", "kinit", "-f", "-kt", h.keytabPath, mitService)
+	h.store.otpEnabled = true
+	h.server.OTPValidator = h.store.validateOTP
+	h.server.OTPIndicators = []string{"otp"}
+	h.server.OTPTokenInfo = func(principal.Principal) []otp.TokenInfo {
+		length, format := int32(6), otpFormatDecimal
+		return []otp.TokenInfo{{Length: &length, Format: &format}}
+	}
+	expected := mitTOTP(mitOTPSecret, time.Now())
+	wrong := "000000"
+	if wrong == expected {
+		wrong = "111111"
+	}
+
+	otpPlugin := false
+	for _, path := range []string{
+		"/usr/lib/krb5/plugins/preauth/otp.so",
+		"/usr/lib64/krb5/plugins/preauth/otp.so",
+		"/usr/lib/x86_64-linux-gnu/krb5/plugins/preauth/otp.so",
+	} {
+		if _, err := os.Stat(path); err == nil {
+			otpPlugin = true
+			break
+		}
+	}
+	if otpPlugin {
+		wrongCache := filepath.Join(filepath.Dir(h.cache), "otp-wrong.ccache")
+		if output, err := h.runResult(
+			wrongCache, wrong+"\n", "kinit", "-T", armorPath, mitUser,
+		); err == nil {
+			t.Fatalf("MIT OTP kinit unexpectedly accepted wrong code:\n%s", output)
+		}
+		h.runWithCache(t, h.cache, expected+"\n", "kinit", "-T", armorPath, mitUser)
+		if output := h.run(t, "", "klist"); !strings.Contains(
+			output, "krbtgt/"+mitRealm+"@"+mitRealm,
+		) {
+			t.Fatalf("MIT OTP kinit did not obtain a TGT:\n%s", output)
+		}
+		h.run(t, "", "kvno", mitService)
+		return
+	}
+
+	output, err := h.runResult(
+		filepath.Join(filepath.Dir(h.cache), "mit-otp-unavailable.ccache"),
+		expected+"\n", "kinit", "-T", armorPath, mitUser,
+	)
+	trace, traceErr := os.ReadFile(h.trace)
+	if traceErr != nil {
+		t.Fatalf("read MIT OTP trace: %v", traceErr)
+	}
+	t.Logf("MIT PA-OTP unavailable; kinit error=%v output=%s trace:\n%s", err, output, trace)
+
+	armor := readMITArmorCredentials(t, armorPath)
+	goClient := &client.Client{
+		Exchange: func(_ context.Context, _ string, payload []byte) ([]byte, error) {
+			return h.server.HandleMessage(payload), nil
+		},
+	}
+	user, err := principal.Parse(mitUser + "@" + mitRealm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := goClient.ASExchangeFASTOTP(
+		context.Background(), *user, armor,
+		func(otp.Challenge) (string, string, error) { return wrong, "", nil },
+	); err == nil {
+		t.Fatal("Go OTP exchange unexpectedly accepted wrong code")
+	}
+	credentials, err := goClient.ASExchangeFASTOTP(
+		context.Background(), *user, armor,
+		func(otp.Challenge) (string, string, error) { return expected, "", nil },
+	)
+	if err != nil {
+		t.Fatalf("Go OTP exchange failed: %v", err)
+	}
+	service, err := principal.Parse(mitService + "@" + mitRealm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := goClient.TGSExchange(context.Background(), credentials, *service); err != nil {
+		t.Fatalf("Go OTP service ticket exchange failed: %v", err)
 	}
 }
 
