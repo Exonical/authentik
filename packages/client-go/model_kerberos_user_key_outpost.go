@@ -22,21 +22,22 @@ var _ MappedNullable = &KerberosUserKeyOutpost{}
 
 // KerberosUserKeyOutpost User key data consumed by the KDC outpost.
 type KerberosUserKeyOutpost struct {
-	Username             string                 `json:"username"`
-	Enabled              bool                   `json:"enabled"`
-	Principal            string                 `json:"principal"`
-	Kvno                 int32                  `json:"kvno"`
-	Salt                 string                 `json:"salt"`
-	Keys                 map[string]interface{} `json:"keys"`
-	MaxTicketLifetime    NullableInt32          `json:"max_ticket_lifetime"`
-	MaxRenewLifetime     NullableInt32          `json:"max_renew_lifetime"`
-	PacUserId            int32                  `json:"pac_user_id"`
-	PacPrimaryGroupId    int32                  `json:"pac_primary_group_id"`
-	PacGroupIds          []int32                `json:"pac_group_ids"`
-	PacName              string                 `json:"pac_name"`
-	PacUpn               string                 `json:"pac_upn"`
-	PasswordExpiration   NullableTime           `json:"password_expiration"`
-	AdditionalProperties map[string]interface{}
+	Username               string                 `json:"username"`
+	Enabled                bool                   `json:"enabled"`
+	Principal              string                 `json:"principal"`
+	Kvno                   int32                  `json:"kvno"`
+	Salt                   string                 `json:"salt"`
+	Keys                   map[string]interface{} `json:"keys"`
+	MaxTicketLifetime      NullableInt32          `json:"max_ticket_lifetime"`
+	MaxRenewLifetime       NullableInt32          `json:"max_renew_lifetime"`
+	RequiresPasswordChange bool                   `json:"requires_password_change"`
+	PacUserId              int32                  `json:"pac_user_id"`
+	PacPrimaryGroupId      int32                  `json:"pac_primary_group_id"`
+	PacGroupIds            []int32                `json:"pac_group_ids"`
+	PacName                string                 `json:"pac_name"`
+	PacUpn                 string                 `json:"pac_upn"`
+	PasswordExpiration     NullableTime           `json:"password_expiration"`
+	AdditionalProperties   map[string]interface{}
 }
 
 type _KerberosUserKeyOutpost KerberosUserKeyOutpost
@@ -45,7 +46,7 @@ type _KerberosUserKeyOutpost KerberosUserKeyOutpost
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewKerberosUserKeyOutpost(username string, enabled bool, principal string, kvno int32, salt string, keys map[string]interface{}, maxTicketLifetime NullableInt32, maxRenewLifetime NullableInt32, pacUserId int32, pacPrimaryGroupId int32, pacGroupIds []int32, pacName string, pacUpn string, passwordExpiration NullableTime) *KerberosUserKeyOutpost {
+func NewKerberosUserKeyOutpost(username string, enabled bool, principal string, kvno int32, salt string, keys map[string]interface{}, maxTicketLifetime NullableInt32, maxRenewLifetime NullableInt32, requiresPasswordChange bool, pacUserId int32, pacPrimaryGroupId int32, pacGroupIds []int32, pacName string, pacUpn string, passwordExpiration NullableTime) *KerberosUserKeyOutpost {
 	this := KerberosUserKeyOutpost{}
 	this.Username = username
 	this.Enabled = enabled
@@ -55,6 +56,7 @@ func NewKerberosUserKeyOutpost(username string, enabled bool, principal string, 
 	this.Keys = keys
 	this.MaxTicketLifetime = maxTicketLifetime
 	this.MaxRenewLifetime = maxRenewLifetime
+	this.RequiresPasswordChange = requiresPasswordChange
 	this.PacUserId = pacUserId
 	this.PacPrimaryGroupId = pacPrimaryGroupId
 	this.PacGroupIds = pacGroupIds
@@ -268,6 +270,30 @@ func (o *KerberosUserKeyOutpost) SetMaxRenewLifetime(v int32) {
 	o.MaxRenewLifetime.Set(&v)
 }
 
+// GetRequiresPasswordChange returns the RequiresPasswordChange field value
+func (o *KerberosUserKeyOutpost) GetRequiresPasswordChange() bool {
+	if o == nil {
+		var ret bool
+		return ret
+	}
+
+	return o.RequiresPasswordChange
+}
+
+// GetRequiresPasswordChangeOk returns a tuple with the RequiresPasswordChange field value
+// and a boolean to check if the value has been set.
+func (o *KerberosUserKeyOutpost) GetRequiresPasswordChangeOk() (*bool, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.RequiresPasswordChange, true
+}
+
+// SetRequiresPasswordChange sets field value
+func (o *KerberosUserKeyOutpost) SetRequiresPasswordChange(v bool) {
+	o.RequiresPasswordChange = v
+}
+
 // GetPacUserId returns the PacUserId field value
 func (o *KerberosUserKeyOutpost) GetPacUserId() int32 {
 	if o == nil {
@@ -432,6 +458,7 @@ func (o KerberosUserKeyOutpost) ToMap() (map[string]interface{}, error) {
 	toSerialize["keys"] = o.Keys
 	toSerialize["max_ticket_lifetime"] = o.MaxTicketLifetime.Get()
 	toSerialize["max_renew_lifetime"] = o.MaxRenewLifetime.Get()
+	toSerialize["requires_password_change"] = o.RequiresPasswordChange
 	toSerialize["pac_user_id"] = o.PacUserId
 	toSerialize["pac_primary_group_id"] = o.PacPrimaryGroupId
 	toSerialize["pac_group_ids"] = o.PacGroupIds
@@ -459,6 +486,7 @@ func (o *KerberosUserKeyOutpost) UnmarshalJSON(data []byte) (err error) {
 		"keys",
 		"max_ticket_lifetime",
 		"max_renew_lifetime",
+		"requires_password_change",
 		"pac_user_id",
 		"pac_primary_group_id",
 		"pac_group_ids",
@@ -502,6 +530,7 @@ func (o *KerberosUserKeyOutpost) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "keys")
 		delete(additionalProperties, "max_ticket_lifetime")
 		delete(additionalProperties, "max_renew_lifetime")
+		delete(additionalProperties, "requires_password_change")
 		delete(additionalProperties, "pac_user_id")
 		delete(additionalProperties, "pac_primary_group_id")
 		delete(additionalProperties, "pac_group_ids")

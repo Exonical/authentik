@@ -372,6 +372,7 @@ class KerberosUserKeyOutpostSerializer(PassiveSerializer):
     keys = SerializerMethodField()
     max_ticket_lifetime = SerializerMethodField()
     max_renew_lifetime = SerializerMethodField()
+    requires_password_change = SerializerMethodField()
     pac_user_id = SerializerMethodField()
     pac_primary_group_id = SerializerMethodField()
     pac_group_ids = SerializerMethodField()
@@ -405,6 +406,9 @@ class KerberosUserKeyOutpostSerializer(PassiveSerializer):
 
     def get_max_renew_lifetime(self, obj: KerberosUserKeys) -> int | None:
         return self._attribute_number(obj.user.attributes, "krb5MaxRenew")
+
+    def get_requires_password_change(self, obj: KerberosUserKeys) -> bool:
+        return obj.user.attributes.get("reset_password") is True
 
     def get_pac_user_id(self, obj: KerberosUserKeys) -> int:
         value = self._attribute_number(obj.user.attributes, "uidNumber")
@@ -717,4 +721,7 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
             raise Http404
         user.set_password(body.validated_data["password"], request=request)
         user.save()
+        if user.attributes.get("reset_password") is True:
+            user.attributes["reset_password"] = False
+            user.save(update_fields=["attributes"])
         return Response(status=204)

@@ -243,6 +243,7 @@ class KerberosProviderAPITests(APITestCase):
         user.attributes = {
             "krb5MaxLife": "3600",
             "krb5MaxRenew": 7200,
+            "reset_password": True,
         }
         user.save()
         user_keys, _ = KerberosUserKeys.objects.update_or_create(
@@ -255,16 +256,27 @@ class KerberosProviderAPITests(APITestCase):
         self.assertFalse(payload["enabled"])
         self.assertEqual(payload["max_ticket_lifetime"], 3600)
         self.assertEqual(payload["max_renew_lifetime"], 7200)
+        self.assertTrue(payload["requires_password_change"])
 
         user.attributes = {
             "krb5MaxLife": "-1",
             "krb5MaxRenew": "not-a-number",
+            "reset_password": False,
         }
         user.save()
         user_keys.user.refresh_from_db()
         payload = KerberosUserKeyOutpostSerializer(user_keys).data
         self.assertIsNone(payload["max_ticket_lifetime"])
         self.assertIsNone(payload["max_renew_lifetime"])
+        self.assertFalse(payload["requires_password_change"])
+
+        for value in ("True", 1):
+            user.attributes = {"reset_password": value}
+            user.save()
+            user_keys.user.refresh_from_db()
+            self.assertFalse(
+                KerberosUserKeyOutpostSerializer(user_keys).data["requires_password_change"]
+            )
 
         user.is_active = True
         user.save()
@@ -719,7 +731,7 @@ class KerberosProviderAPITests(APITestCase):
 
     def test_set_password_changes_user_password_and_keys(self):
         """The outpost can change a user's password through the provider."""
-        user = create_test_user()
+        user = create_test_user(attributes={"reset_password": True})
         provider = KerberosProvider.objects.create(
             name=generate_id(),
             realm_name="EXAMPLE.COM",
@@ -749,6 +761,7 @@ class KerberosProviderAPITests(APITestCase):
         user.refresh_from_db()
         keys.refresh_from_db()
         self.assertTrue(user.check_password("new-password"))
+        self.assertIs(user.attributes["reset_password"], False)
         self.assertEqual(keys.kvno, 2)
         self.assertNotEqual(keys.keys, {"18": "old-key"})
 

@@ -45391,6 +45391,9 @@ components:
           type: integer
           nullable: true
           readOnly: true
+        requires_password_change:
+          type: boolean
+          readOnly: true
         pac_user_id:
           type: integer
           readOnly: true
@@ -45425,6 +45428,7 @@ components:
       - pac_user_id
       - password_expiration
       - principal
+      - requires_password_change
       - salt
       - username
     KeyTypeEnum:
