@@ -81,6 +81,7 @@ func (rs *KerberosServer) Refresh() error {
 			masterKey:              masterKey,
 			allowed:                make(map[int32]bool, len(provider.AllowedEnctypes)),
 			services:               make(map[string]kdb.PrincipalRecord),
+			trusts:                 make(map[string]kdb.PrincipalRecord),
 			delegations:            make(map[string]delegationPolicy),
 			cache:                  make(map[string]cachedUserKey),
 			accessCache:            make(map[string]cachedAccessCheck),
@@ -171,6 +172,47 @@ func (rs *KerberosServer) Refresh() error {
 				targets: targets,
 			}
 		}
+		trusts, err := ak.Paginator(
+			rs.ac.Client.OutpostsAPI.OutpostsKerberosRealmTrustsList(
+				context.Background(), provider.Pk,
+			),
+			ak.PaginatorOptions{PageSize: 100, Logger: instance.log},
+		)
+		if err != nil {
+			return err
+		}
+		for _, trust := range trusts {
+			outgoing, err := store.trustRecord(
+				"krbtgt/"+trust.GetRemoteRealm(),
+				provider.RealmName,
+				trust.GetOutgoingKvno(),
+				trust.GetOutgoingKeys(),
+			)
+			if err != nil {
+				return fmt.Errorf(
+					"decode outgoing realm trust %s: %w", trust.GetRemoteRealm(), err,
+				)
+			}
+			incoming, err := store.trustRecord(
+				"krbtgt/"+provider.RealmName,
+				trust.GetRemoteRealm(),
+				trust.GetIncomingKvno(),
+				trust.GetIncomingKeys(),
+			)
+			if err != nil {
+				return fmt.Errorf(
+					"decode incoming realm trust %s: %w", trust.GetRemoteRealm(), err,
+				)
+			}
+			store.trusts[principalKey(outgoing.Name)] = outgoing
+			store.trusts[principalKey(incoming.Name)] = incoming
+			setCapaths(
+				instance.KDC,
+				provider.RealmName,
+				trust.GetRemoteRealm(),
+				trust.GetCapaths(),
+			)
+		}
 		if old := rs.getCurrentProvider(provider.Pk); old != nil {
 			store.cache = old.Store.cache
 			store.accessCache = old.Store.accessCache
@@ -182,6 +224,16 @@ func (rs *KerberosServer) Refresh() error {
 	rs.mu.Unlock()
 	rs.log.Info("Update kerberos providers")
 	return nil
+}
+
+func setCapaths(server *kdc.Server, clientRealm, serverRealm string, intermediates []string) {
+	if server.Capaths == nil {
+		server.Capaths = make(map[string]map[string][]string)
+	}
+	if server.Capaths[clientRealm] == nil {
+		server.Capaths[clientRealm] = make(map[string][]string)
+	}
+	server.Capaths[clientRealm][serverRealm] = append([]string(nil), intermediates...)
 }
 
 func (rs *KerberosServer) kkdcpConfig(provider api.KerberosOutpostConfig) *tls.Certificate {
@@ -301,6 +353,7 @@ type providerStore struct {
 	masterKey              []byte
 	allowed                map[int32]bool
 	services               map[string]kdb.PrincipalRecord
+	trusts                 map[string]kdb.PrincipalRecord
 	delegations            map[string]delegationPolicy
 	cache                  map[string]cachedUserKey
 	cacheMu                sync.Mutex

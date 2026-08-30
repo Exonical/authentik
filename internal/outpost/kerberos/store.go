@@ -22,7 +22,13 @@ import (
 )
 
 func (s *providerStore) Lookup(name principal.Principal) (kdb.PrincipalRecord, bool, error) {
-	if s == nil || name.Realm != s.realm || len(name.Components) == 0 {
+	if s == nil || len(name.Components) == 0 {
+		return kdb.PrincipalRecord{}, false, nil
+	}
+	if record, ok := s.trusts[principalKey(name)]; ok {
+		return record, true, nil
+	}
+	if name.Realm != s.realm {
 		return kdb.PrincipalRecord{}, false, nil
 	}
 	if len(name.Components) == 2 && name.Components[0] == "krbtgt" && name.Components[1] == s.realm {
@@ -36,6 +42,22 @@ func (s *providerStore) Lookup(name principal.Principal) (kdb.PrincipalRecord, b
 		return record, ok, nil
 	}
 	return s.userRecord(name)
+}
+
+func (s *providerStore) trustRecord(
+	spn, realm string, kvno int32, values map[string]interface{},
+) (kdb.PrincipalRecord, error) {
+	name, err := principal.Parse(spn + "@" + realm)
+	if err != nil {
+		return kdb.PrincipalRecord{}, err
+	}
+	keys, err := decodeKeyValues(
+		values, s.allowed, uint32(kvno), name.Realm+strings.Join(name.Components, ""),
+	)
+	if err != nil {
+		return kdb.PrincipalRecord{}, err
+	}
+	return kdb.PrincipalRecord{Name: *name, Keys: keys, KVNO: uint32(kvno)}, nil
 }
 
 // Authorize enforces authentik policy bindings for user ticket requests.

@@ -1,9 +1,11 @@
 """Kerberos provider API tests."""
 
+import base64
 from datetime import timedelta
 from json import loads
 
 from django.urls import reverse
+from rest_framework.exceptions import ValidationError
 from rest_framework.test import APITestCase
 
 from authentik.core.models import Application, Group
@@ -16,11 +18,14 @@ from authentik.policies.models import PolicyBinding
 from authentik.providers.kerberos.api.providers import (
     KerberosOutpostConfigSerializer,
     KerberosProviderSerializer,
+    KerberosRealmTrustSerializer,
+    KerberosRealmTrustViewSet,
     KerberosServicePrincipalSerializer,
     KerberosUserKeyOutpostSerializer,
 )
 from authentik.providers.kerberos.models import (
     KerberosProvider,
+    KerberosRealmTrust,
     KerberosServicePrincipal,
     KerberosUserKeys,
 )
@@ -71,6 +76,70 @@ class KerberosProviderAPITests(APITestCase):
         self.assertEqual(outpost_data["pkinit_indicators"], ["pkinit"])
         self.assertEqual(outpost_data["spake_indicators"], ["spake", "hardware"])
         self.assertEqual(outpost_data["encrypted_challenge_indicator"], "encrypted")
+
+    def test_realm_trust_serializer_round_trip(self):
+        """Realm trust settings round-trip through the serializer."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.TEST",
+        )
+        trust = KerberosRealmTrust.objects.create(
+            provider=provider,
+            remote_realm="Remote.Test",
+            capaths=["HUB.TEST"],
+        )
+        serializer = KerberosRealmTrustSerializer(trust)
+        self.assertEqual(serializer.data["remote_realm"], "Remote.Test")
+        self.assertEqual(serializer.data["capaths"], ["HUB.TEST"])
+        self.assertEqual(serializer.data["provider"], provider.pk)
+        self.assertTrue(serializer.data["outgoing_keys"])
+        self.assertTrue(serializer.data["incoming_keys"])
+
+    def test_realm_trust_rejects_invalid_direction(self):
+        """Realm trust directional actions reject unknown directions."""
+        request = type("Request", (), {"query_params": {"direction": "sideways"}})()
+        with self.assertRaises(ValidationError):
+            KerberosRealmTrustViewSet._direction(request)
+
+    def test_realm_trust_directional_keytab_and_rotation(self):
+        """Realm trust keytabs and rotations are scoped to one direction."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.TEST",
+        )
+        trust = KerberosRealmTrust.objects.create(
+            provider=provider,
+            remote_realm="REMOTE.TEST",
+        )
+        viewset = KerberosRealmTrustViewSet()
+        viewset.get_object = lambda: trust
+        viewset.format_kwarg = None
+
+        incoming_request = type("Request", (), {"query_params": {"direction": "incoming"}})()
+        viewset.request = incoming_request
+        incoming_response = viewset.keytab(incoming_request)
+        incoming_keytab = base64.b64decode(incoming_response.data["keytab"])
+        self.assertIn(b"REMOTE.TEST", incoming_keytab)
+        self.assertIn(b"krbtgt", incoming_keytab)
+        self.assertIn(b"EXAMPLE.TEST", incoming_keytab)
+
+        outgoing_kvno = trust.outgoing_kvno
+        incoming_kvno = trust.incoming_kvno
+        outgoing_keys = trust.outgoing_keys
+        incoming_keys = trust.incoming_keys
+        outgoing_request = type("Request", (), {"query_params": {"direction": "outgoing"}})()
+        viewset.rotate(outgoing_request)
+        trust.refresh_from_db()
+        self.assertEqual(trust.outgoing_kvno, outgoing_kvno + 1)
+        self.assertEqual(trust.incoming_kvno, incoming_kvno)
+        self.assertNotEqual(trust.outgoing_keys, outgoing_keys)
+        self.assertEqual(trust.incoming_keys, incoming_keys)
+
+        viewset.rotate(incoming_request)
+        trust.refresh_from_db()
+        self.assertEqual(trust.outgoing_kvno, outgoing_kvno + 1)
+        self.assertEqual(trust.incoming_kvno, incoming_kvno + 1)
+        self.assertNotEqual(trust.incoming_keys, incoming_keys)
 
     def test_otp_settings_serializer_round_trip(self):
         """OTP settings round-trip through both provider serializers."""

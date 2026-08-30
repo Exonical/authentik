@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from django.contrib.postgres.fields import ArrayField
 from django.core.exceptions import ValidationError
+from django.core.validators import MinLengthValidator
 from django.db import models
 from django.templatetags.static import static
 from django.utils.translation import gettext_lazy as _
@@ -320,6 +321,58 @@ class KerberosServicePrincipal(SerializerModel, PolicyBindingModel):
 
     def __str__(self) -> str:
         return f"{self.spn} ({self.provider.realm_name})"
+
+
+class KerberosRealmTrust(SerializerModel):
+    """A trust relationship with a remote Kerberos realm."""
+
+    uuid = models.UUIDField(default=uuid4, editable=False, primary_key=True)
+    provider = models.ForeignKey(
+        KerberosProvider,
+        on_delete=models.CASCADE,
+        related_name="realm_trusts",
+    )
+    remote_realm = models.TextField(validators=[MinLengthValidator(1)])
+    capaths = ArrayField(
+        models.TextField(),
+        default=list,
+        blank=True,
+        help_text=_("Intermediate realms for transited-path checking."),
+    )
+    outgoing_kvno = models.PositiveIntegerField(default=1)
+    outgoing_keys = models.JSONField(default=dict)
+    incoming_kvno = models.PositiveIntegerField(default=1)
+    incoming_keys = models.JSONField(default=dict)
+
+    @property
+    def serializer(self) -> type[Serializer]:
+        from authentik.providers.kerberos.api.providers import KerberosRealmTrustSerializer
+
+        return KerberosRealmTrustSerializer
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and not self.outgoing_keys:
+            self.outgoing_keys = {
+                str(enctype): generate_key(enctype) for enctype in self.provider.allowed_enctypes
+            }
+        if self._state.adding and not self.incoming_keys:
+            self.incoming_keys = {
+                str(enctype): generate_key(enctype) for enctype in self.provider.allowed_enctypes
+            }
+        return super().save(*args, **kwargs)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("provider", "remote_realm"),
+                name="kerberos_provider_remote_realm_unique",
+            )
+        ]
+        verbose_name = _("Kerberos Realm Trust")
+        verbose_name_plural = _("Kerberos Realm Trusts")
+
+    def __str__(self) -> str:
+        return f"{self.provider.realm_name} ↔ {self.remote_realm}"
 
 
 class KerberosUserKeys(SerializerModel):

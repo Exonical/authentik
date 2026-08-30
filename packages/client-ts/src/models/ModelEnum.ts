@@ -70,6 +70,7 @@ export const ModelEnum = {
     AuthentikProvidersKerberosKerberosprovider: "authentik_providers_kerberos.kerberosprovider",
     AuthentikProvidersKerberosKerberosserviceprincipal:
         "authentik_providers_kerberos.kerberosserviceprincipal",
+    AuthentikProvidersKerberosKerberosrealmtrust: "authentik_providers_kerberos.kerberosrealmtrust",
     AuthentikProvidersKerberosKerberosuserkeys: "authentik_providers_kerberos.kerberosuserkeys",
     AuthentikProvidersSamlSamlprovider: "authentik_providers_saml.samlprovider",
     AuthentikProvidersSamlSamlpropertymapping: "authentik_providers_saml.samlpropertymapping",
