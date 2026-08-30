@@ -754,13 +754,13 @@ func TestMITInteropKKDCP(t *testing.T) {
     default_realm = %s
     dns_lookup_kdc = false
     dns_lookup_realm = false
-    http_anchors = FILE:%s
     permitted_enctypes = aes256-cts-hmac-sha1-96
 [realms]
     %s = {
+        http_anchors = FILE:%s
         kdc = https://localhost:%s/KdcProxy
     }
-`, mitRealm, caPath, mitRealm, parsed.Port())
+`, mitRealm, mitRealm, caPath, parsed.Port())
 	if err := os.WriteFile(h.config, []byte(configText), 0o600); err != nil {
 		t.Fatal(err)
 	}
