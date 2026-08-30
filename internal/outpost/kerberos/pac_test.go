@@ -45,6 +45,7 @@ func TestPACInServiceTicket(t *testing.T) {
 		identity: api.NewKerberosUserKeyOutpost(
 			mitUser, mitUser+"@"+mitRealm, 1, mitRealm+mitUser, nil,
 			2001, 2001, []int32{4001, 5678}, "Alice Example", "alice@example.test",
+			api.NullableTime{},
 		),
 		found: true, expires: time.Now().Add(time.Hour),
 	}
@@ -168,6 +169,7 @@ func TestPACIdentity(t *testing.T) {
 	response := api.NewKerberosUserKeyOutpost(
 		"alice", "alice@EXAMPLE.TEST", 1, "EXAMPLE.TESTalice", nil,
 		2007, 2007, []int32{4001, 5678}, "Alice Example", "alice@example.test",
+		api.NullableTime{},
 	)
 	identity := store.pacIdentity(response)
 	if identity == nil || identity.LogonInfo == nil {

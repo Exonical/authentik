@@ -3,6 +3,7 @@
 import base64
 import struct
 import time
+from datetime import datetime, timedelta
 
 from django.db.models import Q
 from django.http import Http404
@@ -33,6 +34,8 @@ from authentik.events.models import Event, EventAction
 from authentik.lib.utils.time import timedelta_from_string
 from authentik.policies.api.exec import PolicyTestResultSerializer
 from authentik.policies.engine import PolicyEngine
+from authentik.policies.expiry.models import PasswordExpiryPolicy
+from authentik.policies.models import PolicyBinding
 from authentik.policies.types import PolicyResult
 from authentik.providers.kerberos.models import (
     KerberosProvider,
@@ -246,6 +249,7 @@ class KerberosUserKeyOutpostSerializer(PassiveSerializer):
     pac_group_ids = SerializerMethodField()
     pac_name = CharField(source="user.name")
     pac_upn = SerializerMethodField()
+    password_expiration = SerializerMethodField()
 
     def get_principal(self, obj: KerberosUserKeys) -> str:
         return _canonical_principal(obj.provider, obj.user) or ""
@@ -279,6 +283,25 @@ class KerberosUserKeyOutpostSerializer(PassiveSerializer):
     def get_pac_upn(self, obj: KerberosUserKeys) -> str:
         upn = obj.user.attributes.get("upn")
         return upn if isinstance(upn, str) and upn else obj.user.email or ""
+
+    def get_password_expiration(self, obj: KerberosUserKeys) -> datetime | None:
+        application = obj.provider.application
+        if application is None:
+            return None
+        days = (
+            PasswordExpiryPolicy.objects.filter(
+                pk__in=PolicyBinding.objects.filter(
+                    target=application,
+                    enabled=True,
+                ).values("policy_id")
+            )
+            .order_by("days")
+            .values_list("days", flat=True)
+            .first()
+        )
+        if days is None:
+            return None
+        return obj.user.password_change_date + timedelta(days=days)
 
 
 class KerberosCheckAccessSerializer(PassiveSerializer):

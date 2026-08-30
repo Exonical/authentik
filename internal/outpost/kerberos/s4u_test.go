@@ -58,6 +58,7 @@ func newS4UTestServerWithAccessCheck(
 			"pac_group_ids":        []int32{},
 			"pac_name":             "alice",
 			"pac_upn":              "alice@" + testRealm,
+			"password_expiration":  nil,
 			"keys": map[string]string{
 				"18": base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{3}, 32)),
 			},

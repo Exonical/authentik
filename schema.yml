@@ -45040,6 +45040,11 @@ components:
         pac_upn:
           type: string
           readOnly: true
+        password_expiration:
+          type: string
+          format: date-time
+          nullable: true
+          readOnly: true
       required:
       - keys
       - kvno
@@ -45048,6 +45053,7 @@ components:
       - pac_primary_group_id
       - pac_upn
       - pac_user_id
+      - password_expiration
       - principal
       - salt
       - username
