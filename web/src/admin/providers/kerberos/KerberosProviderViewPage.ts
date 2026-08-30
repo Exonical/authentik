@@ -1,5 +1,6 @@
 import "#admin/providers/RelatedApplicationButton";
 import "#admin/providers/kerberos/KerberosProviderForm";
+import "#admin/providers/kerberos/ServicePrincipalList";
 import "#admin/rbac/ak-rbac-object-permission-page";
 import "#admin/events/ObjectChangelog";
 import "#elements/Tabs";
@@ -36,6 +37,53 @@ import PFDescriptionList from "@patternfly/patternfly/components/DescriptionList
 import PFPage from "@patternfly/patternfly/components/Page/page.css";
 import PFDisplay from "@patternfly/patternfly/utilities/Display/display.css";
 import PFSizing from "@patternfly/patternfly/utilities/Sizing/sizing.css";
+
+const descriptionLabels: Record<string, string> = {
+    "kerberos.provider-name.term": msg("Name", { id: "kerberos.provider-name.term" }),
+    "kerberos.realm-name.term": msg("Realm", { id: "kerberos.realm-name.term" }),
+    "kerberos.default-domain.term": msg("Default domain", {
+        id: "kerberos.default-domain.term",
+    }),
+    "kerberos.maximum-ticket-lifetime.term": msg("Maximum ticket lifetime", {
+        id: "kerberos.maximum-ticket-lifetime.term",
+    }),
+    "kerberos.maximum-ticket-renew-lifetime.term": msg("Maximum ticket renew lifetime", {
+        id: "kerberos.maximum-ticket-renew-lifetime.term",
+    }),
+    "kerberos.default-ticket-lifetime.term": msg("Default ticket lifetime", {
+        id: "kerberos.default-ticket-lifetime.term",
+    }),
+    "kerberos.default-ticket-renew-lifetime.term": msg("Default ticket renew lifetime", {
+        id: "kerberos.default-ticket-renew-lifetime.term",
+    }),
+    "kerberos.allowed-enctypes.term": msg("Allowed encryption types", {
+        id: "kerberos.allowed-enctypes.term",
+    }),
+    "kerberos.require-preauthentication.term": msg("Require preauthentication", {
+        id: "kerberos.require-preauthentication.term",
+    }),
+    "kerberos.udp-enabled.term": msg("UDP enabled", {
+        id: "kerberos.udp-enabled.term",
+    }),
+    "kerberos.tcp-enabled.term": msg("TCP enabled", {
+        id: "kerberos.tcp-enabled.term",
+    }),
+    "kerberos.kpasswd-enabled.term": msg("Password changes enabled", {
+        id: "kerberos.kpasswd-enabled.term",
+    }),
+    "kerberos.forwardable.term": msg("Forwardable", { id: "kerberos.forwardable.term" }),
+    "kerberos.renewable.term": msg("Renewable", { id: "kerberos.renewable.term" }),
+    "kerberos.proxiable.term": msg("Proxiable", { id: "kerberos.proxiable.term" }),
+    "kerberos.principal-username-attribute.term": msg("Principal username attribute", {
+        id: "kerberos.principal-username-attribute.term",
+    }),
+    "kerberos.pkinit.kdc-certificate.term": msg("KDC signing certificate", {
+        id: "kerberos.pkinit.kdc-certificate.term",
+    }),
+    "kerberos.pkinit.client-ca.term": msg("Client CA certificate", {
+        id: "kerberos.pkinit.client-ca.term",
+    }),
+};
 
 @customElement("ak-provider-kerberos-view")
 export class KerberosProviderViewPage extends AKElement {
@@ -268,6 +316,16 @@ export class KerberosProviderViewPage extends AKElement {
                             </div>
                         </div>
                     </div>
+                    <div class="pf-c-card pf-l-grid__item pf-m-12-col">
+                        <div class="pf-c-card__title">
+                            ${msg("Service principals", {
+                                id: "kerberos.service-principal.section.title",
+                            })}
+                        </div>
+                        <ak-kerberos-service-principal-list
+                            .provider=${this.provider}
+                        ></ak-kerberos-service-principal-list>
+                    </div>
                 </section>
                 <section
                     role="tabpanel"
@@ -300,7 +358,7 @@ export class KerberosProviderViewPage extends AKElement {
     renderDescription(label: string, value: string, id: string): SlottedTemplateResult {
         return html`<div class="pf-c-description-list__group">
             <dt class="pf-c-description-list__term">
-                <span class="pf-c-description-list__text">${msg(label, { id })}</span>
+                <span class="pf-c-description-list__text">${descriptionLabels[id] ?? label}</span>
             </dt>
             <dd class="pf-c-description-list__description">
                 <div class="pf-c-description-list__text">${value}</div>
@@ -311,7 +369,9 @@ export class KerberosProviderViewPage extends AKElement {
     renderBoolean(label: string, value: boolean | undefined, id: string): SlottedTemplateResult {
         return this.renderDescription(
             label,
-            value ? msg("Yes", { id: `${id}.yes` }) : msg("No", { id: `${id}.no` }),
+            value
+                ? msg("Yes", { id: "common.boolean.yes" })
+                : msg("No", { id: "common.boolean.no" }),
             id,
         );
     }
