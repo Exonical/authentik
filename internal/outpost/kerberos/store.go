@@ -310,6 +310,12 @@ func (s *providerStore) ResolveAlias(
 }
 
 func (s *providerStore) serviceRecord(spn string, kvno int32, values map[string]interface{}) (kdb.PrincipalRecord, error) {
+	return s.serviceRecordWithIndicators(spn, kvno, values, nil)
+}
+
+func (s *providerStore) serviceRecordWithIndicators(
+	spn string, kvno int32, values map[string]interface{}, requiredIndicators []string,
+) (kdb.PrincipalRecord, error) {
 	name, err := principal.Parse(spn + "@" + s.realm)
 	if err != nil {
 		return kdb.PrincipalRecord{}, err
@@ -318,7 +324,13 @@ func (s *providerStore) serviceRecord(spn string, kvno int32, values map[string]
 	if err != nil {
 		return kdb.PrincipalRecord{}, err
 	}
-	return kdb.PrincipalRecord{Name: *name, Keys: keys, KVNO: uint32(kvno)}, nil
+	record := kdb.PrincipalRecord{Name: *name, Keys: keys, KVNO: uint32(kvno)}
+	if len(requiredIndicators) > 0 {
+		record.Strings = map[string]string{
+			"require_auth": strings.Join(requiredIndicators, " "),
+		}
+	}
+	return record, nil
 }
 
 func decodeKeyValues(

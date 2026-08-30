@@ -70,6 +70,9 @@ class KerberosProviderSerializer(ProviderSerializer):
             "pkinit_certificate",
             "pkinit_client_ca",
             "pkinit_require_freshness",
+            "pkinit_indicators",
+            "spake_indicators",
+            "encrypted_challenge_indicator",
             "anonymous_pkinit_enabled",
             "kkdcp_enabled",
             "kkdcp_certificate",
@@ -128,6 +131,7 @@ class KerberosServicePrincipalSerializer(ModelSerializer):
             "keys",
             "ok_to_auth_as_delegate",
             "allowed_delegation_targets",
+            "required_auth_indicators",
         ]
         extra_kwargs = {"keys": {"read_only": True}, "kvno": {"read_only": True}}
 
@@ -205,6 +209,7 @@ class KerberosServicePrincipalOutpostSerializer(PassiveSerializer):
     keys = SerializerMethodField()
     ok_to_auth_as_delegate = BooleanField()
     allowed_delegation_targets = ListField(child=CharField())
+    required_auth_indicators = ListField(child=CharField())
 
     def get_keys(self, obj: KerberosServicePrincipal) -> dict:
         return obj.keys
@@ -321,6 +326,9 @@ class KerberosOutpostConfigSerializer(ModelSerializer):
             "pkinit_certificate",
             "pkinit_client_ca",
             "pkinit_require_freshness",
+            "pkinit_indicators",
+            "spake_indicators",
+            "encrypted_challenge_indicator",
             "anonymous_pkinit_enabled",
             "kkdcp_enabled",
             "kkdcp_certificate",

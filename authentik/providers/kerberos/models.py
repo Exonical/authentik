@@ -130,6 +130,23 @@ class KerberosProvider(OutpostModel, Provider):
         default=False,
         help_text=_("Require RFC 8070 freshness tokens on PKINIT requests."),
     )
+    pkinit_indicators = ArrayField(
+        models.TextField(),
+        default=list,
+        blank=True,
+        help_text=_("Authentication indicators asserted after successful PKINIT."),
+    )
+    spake_indicators = ArrayField(
+        models.TextField(),
+        default=list,
+        blank=True,
+        help_text=_("Indicators asserted after SPAKE preauthentication."),
+    )
+    encrypted_challenge_indicator = models.TextField(
+        default="",
+        blank=True,
+        help_text=_("Indicator asserted after encrypted-challenge preauthentication."),
+    )
     anonymous_pkinit_enabled = models.BooleanField(
         default=False,
         help_text=_("Allow anonymous PKINIT requests."),
@@ -262,6 +279,12 @@ class KerberosServicePrincipal(SerializerModel, PolicyBindingModel):
         help_text=_(
             "Service principals this service principal may use for constrained delegation."
         ),
+    )
+    required_auth_indicators = ArrayField(
+        models.TextField(),
+        default=list,
+        blank=True,
+        help_text=_("Authentication indicators required to obtain tickets for this service."),
     )
 
     @property

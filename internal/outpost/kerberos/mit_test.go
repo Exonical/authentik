@@ -96,7 +96,7 @@ func startMITKDCWithIdentityPolicy(
 ) *mitHarness {
 	return startMITKDCWithIdentityPolicyOptions(
 		t, forceTCP, withKpasswd, allowProxy, apiUsername, canonicalUsername,
-		accessCheck, false, false,
+		accessCheck, false, false, nil, nil,
 	)
 }
 
@@ -105,7 +105,7 @@ func startMITKDCWithIdentityPolicyOptions(
 	forceTCP, withKpasswd, allowProxy bool,
 	apiUsername, canonicalUsername string,
 	accessCheck func(username, clientSPN, spn string) bool,
-	spake, freshness bool,
+	spake, freshness bool, pkinitIndicators, requiredIndicators []string,
 ) *mitHarness {
 	t.Helper()
 	tools := []string{"kinit", "kvno", "klist"}
@@ -222,6 +222,11 @@ func startMITKDCWithIdentityPolicyOptions(
 	if err != nil {
 		t.Fatal(err)
 	}
+	if len(requiredIndicators) > 0 {
+		serviceRecord.Strings = map[string]string{
+			"require_auth": strings.Join(requiredIndicators, " "),
+		}
+	}
 	store.services[principalKey(serviceRecord.Name)] = serviceRecord
 	backendKey := make([]byte, 32)
 	for i := range backendKey {
@@ -262,6 +267,7 @@ func startMITKDCWithIdentityPolicyOptions(
 		Authorize:              store.Authorize,
 		EnableSPAKE:            spake,
 		PKINITRequireFreshness: freshness,
+		PKINITIndicators:       pkinitIndicators,
 	}
 	instance := &ProviderInstance{
 		Config: *api.NewKerberosOutpostConfig(1, "test", mitRealm, 3600, 3600, "test"),
@@ -458,7 +464,7 @@ func TestMITInteropSPAKE(t *testing.T) {
 	h := startMITKDCWithIdentityPolicyOptions(
 		t, false, false, true, mitUser, mitUser,
 		func(string, string, string) bool { return true },
-		true, false,
+		true, false, nil, nil,
 	)
 	h.run(t, mitPassword+"\n", "kinit", mitUser)
 	trace, err := os.ReadFile(h.trace)
@@ -468,6 +474,38 @@ func TestMITInteropSPAKE(t *testing.T) {
 	if !strings.Contains(strings.ToLower(string(trace)), "spake") {
 		t.Fatalf("MIT trace did not show SPAKE preauthentication:\n%s", trace)
 	}
+}
+
+func TestMITInteropAuthIndicators(t *testing.T) {
+	password := startMITKDCWithIdentityPolicyOptions(
+		t, false, false, true, mitUser, mitUser,
+		func(string, string, string) bool { return true },
+		false, false, nil, []string{"pkinit"},
+	)
+	password.run(t, mitPassword+"\n", "kinit", mitUser)
+	if output, err := password.runResult(password.cache, "", "kvno", mitService); err == nil {
+		t.Fatalf("password-authenticated service ticket unexpectedly succeeded:\n%s", output)
+	} else if !strings.Contains(strings.ToLower(output), "policy") {
+		t.Fatalf("password-authenticated service ticket did not report policy failure:\n%s", output)
+	}
+	asCache := filepath.Join(filepath.Dir(password.cache), "service-as")
+	if output, err := password.runResult(asCache, mitPassword+"\n", "kinit", "-S", mitService, mitUser); err == nil {
+		t.Fatalf("kinit -S unexpectedly succeeded without the required indicator:\n%s", output)
+	} else if !strings.Contains(strings.ToLower(output), "policy") {
+		t.Fatalf("kinit -S did not report policy failure:\n%s", output)
+	}
+
+	pkinit := runMITPKINITWithAnonymousEnabled(
+		t, false, false, false, []string{"pkinit"}, []string{"pkinit"},
+	)
+	pkinit.run(t, "", "kvno", mitService)
+
+	pkinitUnrestricted := runMITPKINIT(t, false, false)
+	pkinitUnrestricted.run(t, "", "kvno", mitService)
+
+	unrestricted := startMITKDC(t, false)
+	unrestricted.run(t, mitPassword+"\n", "kinit", mitUser)
+	unrestricted.run(t, "", "kvno", mitService)
 }
 
 func TestMITInteropKpasswd(t *testing.T) {
@@ -666,7 +704,7 @@ func TestMITInteropAnonymousPKINIT(t *testing.T) {
 	if !strings.Contains(klist, "Default principal: WELLKNOWN/ANONYMOUS@") {
 		t.Fatalf("anonymous klist did not show the well-known principal:\n%s", klist)
 	}
-	disabled := runMITPKINITWithAnonymousEnabled(t, false, true, false)
+	disabled := runMITPKINITWithAnonymousEnabled(t, false, true, false, nil, nil)
 	disabledCache := filepath.Join(filepath.Dir(disabled.cache), "anonymous-disabled")
 	if output, err := disabled.runResult(disabledCache, "", "kinit", "-n"); err == nil {
 		t.Fatalf("anonymous PKINIT unexpectedly succeeded while disabled:\n%s", output)
@@ -796,11 +834,14 @@ func TestMITInteropKKDCP(t *testing.T) {
 }
 
 func runMITPKINIT(t *testing.T, requireFreshness, anonymous bool) *mitHarness {
-	return runMITPKINITWithAnonymousEnabled(t, requireFreshness, anonymous, anonymous)
+	return runMITPKINITWithAnonymousEnabled(
+		t, requireFreshness, anonymous, anonymous, nil, nil,
+	)
 }
 
 func runMITPKINITWithAnonymousEnabled(
 	t *testing.T, requireFreshness, anonymous, anonymousEnabled bool,
+	pkinitIndicators, requiredIndicators []string,
 ) *mitHarness {
 	for _, tool := range []string{"kinit", "klist"} {
 		if _, err := exec.LookPath(tool); err != nil {
@@ -885,6 +926,22 @@ func runMITPKINITWithAnonymousEnabled(
 		t.Fatal(err)
 	}
 	store.services[principalKey(krbtgtRecord.Name)] = krbtgtRecord
+	serviceKey := make([]byte, 32)
+	for i := range serviceKey {
+		serviceKey[i] = byte(i + 1)
+	}
+	serviceRecord, err := store.serviceRecord(mitService, 1, map[string]interface{}{
+		"18": base64.StdEncoding.EncodeToString(serviceKey),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(requiredIndicators) > 0 {
+		serviceRecord.Strings = map[string]string{
+			"require_auth": strings.Join(requiredIndicators, " "),
+		}
+	}
+	store.services[principalKey(serviceRecord.Name)] = serviceRecord
 
 	server := &kdc.Server{
 		Realm:                  mitRealm,
@@ -896,6 +953,7 @@ func runMITPKINITWithAnonymousEnabled(
 		PKINITSigner:           kdcKey,
 		PKINITClientCAs:        roots,
 		PKINITRequireFreshness: requireFreshness,
+		PKINITIndicators:       pkinitIndicators,
 	}
 	if anonymous {
 		server.Authorize = store.Authorize
@@ -971,6 +1029,7 @@ func runMITPKINITWithAnonymousEnabled(
 		cache:  filepath.Join(dir, "ccache"),
 		trace:  filepath.Join(dir, "trace"),
 		store:  store,
+		server: server,
 	}
 	if anonymous {
 		return h

@@ -26,6 +26,7 @@ type KerberosServicePrincipalOutpost struct {
 	Keys                     map[string]interface{} `json:"keys"`
 	OkToAuthAsDelegate       bool                   `json:"ok_to_auth_as_delegate"`
 	AllowedDelegationTargets []string               `json:"allowed_delegation_targets"`
+	RequiredAuthIndicators   []string               `json:"required_auth_indicators"`
 	AdditionalProperties     map[string]interface{}
 }
 
@@ -35,13 +36,14 @@ type _KerberosServicePrincipalOutpost KerberosServicePrincipalOutpost
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewKerberosServicePrincipalOutpost(spn string, kvno int32, keys map[string]interface{}, okToAuthAsDelegate bool, allowedDelegationTargets []string) *KerberosServicePrincipalOutpost {
+func NewKerberosServicePrincipalOutpost(spn string, kvno int32, keys map[string]interface{}, okToAuthAsDelegate bool, allowedDelegationTargets []string, requiredAuthIndicators []string) *KerberosServicePrincipalOutpost {
 	this := KerberosServicePrincipalOutpost{}
 	this.Spn = spn
 	this.Kvno = kvno
 	this.Keys = keys
 	this.OkToAuthAsDelegate = okToAuthAsDelegate
 	this.AllowedDelegationTargets = allowedDelegationTargets
+	this.RequiredAuthIndicators = requiredAuthIndicators
 	return &this
 }
 
@@ -173,6 +175,30 @@ func (o *KerberosServicePrincipalOutpost) SetAllowedDelegationTargets(v []string
 	o.AllowedDelegationTargets = v
 }
 
+// GetRequiredAuthIndicators returns the RequiredAuthIndicators field value
+func (o *KerberosServicePrincipalOutpost) GetRequiredAuthIndicators() []string {
+	if o == nil {
+		var ret []string
+		return ret
+	}
+
+	return o.RequiredAuthIndicators
+}
+
+// GetRequiredAuthIndicatorsOk returns a tuple with the RequiredAuthIndicators field value
+// and a boolean to check if the value has been set.
+func (o *KerberosServicePrincipalOutpost) GetRequiredAuthIndicatorsOk() ([]string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.RequiredAuthIndicators, true
+}
+
+// SetRequiredAuthIndicators sets field value
+func (o *KerberosServicePrincipalOutpost) SetRequiredAuthIndicators(v []string) {
+	o.RequiredAuthIndicators = v
+}
+
 func (o KerberosServicePrincipalOutpost) MarshalJSON() ([]byte, error) {
 	toSerialize, err := o.ToMap()
 	if err != nil {
@@ -188,6 +214,7 @@ func (o KerberosServicePrincipalOutpost) ToMap() (map[string]interface{}, error)
 	toSerialize["keys"] = o.Keys
 	toSerialize["ok_to_auth_as_delegate"] = o.OkToAuthAsDelegate
 	toSerialize["allowed_delegation_targets"] = o.AllowedDelegationTargets
+	toSerialize["required_auth_indicators"] = o.RequiredAuthIndicators
 
 	for key, value := range o.AdditionalProperties {
 		toSerialize[key] = value
@@ -206,6 +233,7 @@ func (o *KerberosServicePrincipalOutpost) UnmarshalJSON(data []byte) (err error)
 		"keys",
 		"ok_to_auth_as_delegate",
 		"allowed_delegation_targets",
+		"required_auth_indicators",
 	}
 
 	allProperties := make(map[string]interface{})
@@ -240,6 +268,7 @@ func (o *KerberosServicePrincipalOutpost) UnmarshalJSON(data []byte) (err error)
 		delete(additionalProperties, "keys")
 		delete(additionalProperties, "ok_to_auth_as_delegate")
 		delete(additionalProperties, "allowed_delegation_targets")
+		delete(additionalProperties, "required_auth_indicators")
 		o.AdditionalProperties = additionalProperties
 	}
 

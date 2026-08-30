@@ -48,6 +48,12 @@ export interface PatchedKerberosServicePrincipalRequest {
      * @memberof PatchedKerberosServicePrincipalRequest
      */
     allowedDelegationTargets?: Array<string>;
+    /**
+     * Authentication indicators required to obtain tickets for this service.
+     * @type {Array<string>}
+     * @memberof PatchedKerberosServicePrincipalRequest
+     */
+    requiredAuthIndicators?: Array<string>;
 }
 
 /**
@@ -87,6 +93,8 @@ export function PatchedKerberosServicePrincipalRequestFromJSONTyped(
             json["allowed_delegation_targets"] == null
                 ? undefined
                 : json["allowed_delegation_targets"],
+        requiredAuthIndicators:
+            json["required_auth_indicators"] == null ? undefined : json["required_auth_indicators"],
     };
 }
 
@@ -110,5 +118,6 @@ export function PatchedKerberosServicePrincipalRequestToJSONTyped(
         service_account: value["serviceAccount"],
         ok_to_auth_as_delegate: value["okToAuthAsDelegate"],
         allowed_delegation_targets: value["allowedDelegationTargets"],
+        required_auth_indicators: value["requiredAuthIndicators"],
     };
 }

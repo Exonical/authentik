@@ -12310,6 +12310,31 @@
                     "title": "Pkinit require freshness",
                     "description": "Require RFC 8070 freshness tokens on PKINIT requests."
                 },
+                "pkinit_indicators": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "title": "Pkinit indicators"
+                    },
+                    "title": "Pkinit indicators",
+                    "description": "Authentication indicators asserted after successful PKINIT."
+                },
+                "spake_indicators": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "title": "Spake indicators"
+                    },
+                    "title": "Spake indicators",
+                    "description": "Indicators asserted after SPAKE preauthentication."
+                },
+                "encrypted_challenge_indicator": {
+                    "type": "string",
+                    "title": "Encrypted challenge indicator",
+                    "description": "Indicator asserted after encrypted-challenge preauthentication."
+                },
                 "anonymous_pkinit_enabled": {
                     "type": "boolean",
                     "title": "Anonymous pkinit enabled",
@@ -12395,6 +12420,16 @@
                         "minLength": 1
                     },
                     "title": "Allowed delegation targets"
+                },
+                "required_auth_indicators": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "title": "Required auth indicators"
+                    },
+                    "title": "Required auth indicators",
+                    "description": "Authentication indicators required to obtain tickets for this service."
                 }
             },
             "required": []

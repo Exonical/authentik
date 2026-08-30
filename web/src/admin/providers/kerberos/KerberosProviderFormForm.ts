@@ -3,6 +3,7 @@ import "#admin/common/ak-flow-search/ak-branded-flow-search";
 import "#admin/common/ak-crypto-certificate-search";
 import "#components/ak-switch-input";
 import "#components/ak-text-input";
+import "#elements/ak-array-input";
 import "#elements/forms/FormGroup";
 import "#elements/forms/HorizontalFormElement";
 import "#elements/utils/TimeDeltaHelp";
@@ -87,6 +88,77 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                         required
                     ></ak-branded-flow-search>
                 </ak-form-element-horizontal>
+                <ak-form-element-horizontal
+                    label=${msg("PKINIT authentication indicators", {
+                        id: "kerberos.pkinit-indicators.label",
+                    })}
+                    name="pkinitIndicators"
+                >
+                    <ak-array-input
+                        name="pkinit-indicator"
+                        .items=${provider.pkinitIndicators ?? []}
+                        .newItem=${() => ""}
+                        .row=${(indicator: string) => html`
+                            <ak-text-input
+                                name="indicator"
+                                value="${indicator}"
+                                placeholder=${msg("indicator", {
+                                    id: "kerberos.pkinit-indicators.placeholder",
+                                })}
+                                input-hint="code"
+                            ></ak-text-input>
+                        `}
+                    ></ak-array-input>
+                    <p class="pf-c-form__helper-text">
+                        ${msg(
+                            "Authentication indicators asserted after successful PKINIT.",
+                            { id: "kerberos.pkinit-indicators.help" },
+                        )}
+                    </p>
+                </ak-form-element-horizontal>
+                <ak-form-element-horizontal
+                    label=${msg("SPAKE authentication indicators", {
+                        id: "kerberos.spake-indicators.label",
+                    })}
+                    name="spakeIndicators"
+                >
+                    <ak-array-input
+                        name="spake-indicator"
+                        .items=${provider.spakeIndicators ?? []}
+                        .newItem=${() => ""}
+                        .row=${(indicator: string) => html`
+                            <ak-text-input
+                                name="indicator"
+                                value="${indicator}"
+                                placeholder=${msg("indicator", {
+                                    id: "kerberos.spake-indicators.placeholder",
+                                })}
+                                input-hint="code"
+                            ></ak-text-input>
+                        `}
+                    ></ak-array-input>
+                    <p class="pf-c-form__helper-text">
+                        ${msg(
+                            "Indicators asserted after SPAKE preauthentication.",
+                            { id: "kerberos.spake-indicators.help" },
+                        )}
+                    </p>
+                </ak-form-element-horizontal>
+                <ak-text-input
+                    label=${msg("Encrypted-challenge indicator", {
+                        id: "kerberos.encrypted-challenge-indicator.label",
+                    })}
+                    name="encryptedChallengeIndicator"
+                    value="${provider.encryptedChallengeIndicator ?? ""}"
+                    input-hint="code"
+                    placeholder=${msg("indicator", {
+                        id: "kerberos.encrypted-challenge-indicator.placeholder",
+                    })}
+                    help=${msg(
+                        "Indicator asserted after FAST encrypted-challenge preauthentication.",
+                        { id: "kerberos.encrypted-challenge-indicator.help" },
+                    )}
+                ></ak-text-input>
                 <ak-form-element-horizontal
                     label=${msg("Authorization flow", {
                         id: "kerberos.authorization-flow.label",
