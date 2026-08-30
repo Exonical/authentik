@@ -2,6 +2,7 @@
 
 import base64
 
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from authentik.core.signals import password_validated
@@ -29,6 +30,36 @@ class KerberosProviderTests(TestCase):
         self.assertFalse(provider.anonymous_pkinit_enabled)
         self.assertFalse(provider.kkdcp_enabled)
         self.assertIsNone(provider.kkdcp_certificate)
+        self.assertFalse(provider.pac_enabled)
+        self.assertEqual(provider.realm_sid, "")
+
+    def test_pac_realm_sid_is_generated_and_stable(self):
+        """PAC-enabled providers receive a stable domain SID."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name=generate_id(),
+            pac_enabled=True,
+        )
+        self.assertRegex(provider.realm_sid, r"^S-1-5-21-\d+-\d+-\d+$")
+        sid = provider.realm_sid
+        provider.name = generate_id()
+        provider.save()
+        provider.refresh_from_db()
+        self.assertEqual(provider.realm_sid, sid)
+
+    def test_pac_realm_sid_validation(self):
+        """PAC domain SIDs must use the three-authority format."""
+        provider = KerberosProvider(
+            name=generate_id(),
+            realm_name=generate_id(),
+            realm_sid="S-1-5-21-1-2-3",
+        )
+        provider.save()
+        self.assertEqual(provider.realm_sid, "S-1-5-21-1-2-3")
+        for value in ["S-1-5-21-1-2", "S-1-5-21-1-2-3-4294967296", "not-a-sid"]:
+            provider.realm_sid = value
+            with self.assertRaises(ValidationError):
+                provider.save()
 
     def test_service_principal_keys(self):
         """Service principal keys are generated per allowed enctype."""

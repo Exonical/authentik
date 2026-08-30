@@ -5,7 +5,7 @@ from json import loads
 from django.urls import reverse
 from rest_framework.test import APITestCase
 
-from authentik.core.models import Application
+from authentik.core.models import Application, Group
 from authentik.core.tests.utils import create_test_admin_user, create_test_cert, create_test_user
 from authentik.crypto.models import CertificateKeyPair
 from authentik.lib.generators import generate_id
@@ -56,6 +56,22 @@ class KerberosProviderAPITests(APITestCase):
         self.assertTrue(outpost_data["anonymous_pkinit_enabled"])
         self.assertTrue(outpost_data["kkdcp_enabled"])
         self.assertEqual(outpost_data["kkdcp_certificate"], certificate.pk)
+
+    def test_pac_settings_serializer_round_trip(self):
+        """PAC settings round-trip through both provider serializers."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.COM",
+            pac_enabled=True,
+            realm_sid="S-1-5-21-1-2-3",
+        )
+        serializer = KerberosProviderSerializer(provider)
+        self.assertTrue(serializer.data["pac_enabled"])
+        self.assertEqual(serializer.data["realm_sid"], "S-1-5-21-1-2-3")
+        Application.objects.create(name=generate_id(), slug=generate_id(), provider=provider)
+        outpost_data = KerberosOutpostConfigSerializer(provider).data
+        self.assertTrue(outpost_data["pac_enabled"])
+        self.assertEqual(outpost_data["realm_sid"], "S-1-5-21-1-2-3")
 
     def test_outpost_config(self):
         """An application-backed provider is visible to outposts."""
@@ -216,6 +232,34 @@ class KerberosProviderAPITests(APITestCase):
         self.assertEqual(alias_response.status_code, 200)
         self.assertEqual(alias_response.json()["username"], user.username)
         self.assertEqual(alias_response.json()["principal"], user.email)
+
+    def test_user_key_includes_pac_identity_mapping(self):
+        """Outpost user payloads expose LDAP-compatible PAC RIDs."""
+        provider = KerberosProvider.objects.create(name=generate_id(), realm_name="EXAMPLE.COM")
+        Application.objects.create(name=generate_id(), slug=generate_id(), provider=provider)
+        user = create_test_user(username=generate_id(), email="user@example.com")
+        user.attributes = {"uidNumber": "1234", "upn": "user@EXAMPLE.COM"}
+        user.save(update_fields=["attributes"])
+        group = Group.objects.create(name=generate_id(), attributes={"gidNumber": "5678"})
+        user.groups.add(group)
+        KerberosUserKeys.objects.update_or_create(
+            provider=provider,
+            user=user,
+            defaults={"salt": "EXAMPLE.COMuser", "keys": {"18": "key"}},
+        )
+        self.client.force_login(create_test_admin_user())
+        response = self.client.get(
+            reverse(
+                "authentik_api:kerberosprovideroutpost-user-key",
+                kwargs={"pk": provider.pk},
+            ),
+            {"username": user.username},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["pac_user_id"], 1234)
+        self.assertEqual(response.json()["pac_primary_group_id"], 1234)
+        self.assertEqual(response.json()["pac_group_ids"], [5678])
+        self.assertEqual(response.json()["pac_upn"], "user@EXAMPLE.COM")
 
     def test_user_key_uses_upn_with_username_fallback(self):
         """UPN mapping uses the attribute and falls back to username."""

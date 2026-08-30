@@ -133,10 +133,15 @@ func TestKpasswdClientChangesPasswordThroughServer(t *testing.T) {
 		case "/api/v3/outposts/kerberos/1/user_key/":
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
-				"username":  username,
-				"principal": username,
-				"kvno":      1,
-				"salt":      realm + username,
+				"username":             username,
+				"principal":            username,
+				"kvno":                 1,
+				"salt":                 realm + username,
+				"pac_user_id":          2001,
+				"pac_primary_group_id": 2001,
+				"pac_group_ids":        []int32{},
+				"pac_name":             username,
+				"pac_upn":              username + "@" + realm,
 				"keys": map[string]string{
 					"18": base64.StdEncoding.EncodeToString(userKey),
 				},

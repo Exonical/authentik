@@ -49,10 +49,15 @@ func newS4UTestServerWithAccessCheck(
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"username":  "alice",
-			"principal": "alice",
-			"kvno":      1,
-			"salt":      testRealm + "alice",
+			"username":             "alice",
+			"principal":            "alice",
+			"kvno":                 1,
+			"salt":                 testRealm + "alice",
+			"pac_user_id":          2001,
+			"pac_primary_group_id": 2001,
+			"pac_group_ids":        []int32{},
+			"pac_name":             "alice",
+			"pac_upn":              "alice@" + testRealm,
 			"keys": map[string]string{
 				"18": base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{3}, 32)),
 			},

@@ -15,6 +15,7 @@ import (
 
 	"github.com/Exonical/go-kerberos/krb5/kdb"
 	"github.com/Exonical/go-kerberos/krb5/kdc"
+	"github.com/Exonical/go-kerberos/krb5/pac"
 	"github.com/Exonical/go-kerberos/krb5/principal"
 	log "github.com/sirupsen/logrus"
 
@@ -62,6 +63,16 @@ func (rs *KerberosServer) Refresh() error {
 			return fmt.Errorf("load provider %d PKINIT configuration: %w", provider.Pk, err)
 		}
 		kkdcpCertificate := rs.kkdcpConfig(provider)
+		var realmSID *pac.SID
+		if provider.GetRealmSid() != "" {
+			parsedSID, sidErr := pac.ParseSID(provider.GetRealmSid())
+			if sidErr != nil {
+				rs.log.WithField("provider", provider.Name).
+					WithError(sidErr).Warn("Ignoring invalid PAC realm SID")
+			} else {
+				realmSID = &parsedSID
+			}
+		}
 		store := &providerStore{
 			realm:                  provider.RealmName,
 			masterKey:              masterKey,
@@ -73,6 +84,8 @@ func (rs *KerberosServer) Refresh() error {
 			server:                 rs,
 			providerID:             provider.Pk,
 			anonymousPKINITEnabled: provider.GetAnonymousPkinitEnabled(),
+			pacEnabled:             provider.GetPacEnabled(),
+			realmSID:               realmSID,
 		}
 		for _, enctype := range provider.AllowedEnctypes {
 			store.allowed[int32(enctype)] = true
@@ -101,9 +114,13 @@ func (rs *KerberosServer) Refresh() error {
 				PKINITCertificate:      pkinitCertificate,
 				PKINITSigner:           pkinitSigner,
 				PKINITClientCAs:        pkinitClientCAs,
+				EnablePAC:              provider.GetPacEnabled() && realmSID != nil,
 			},
 			KKDCPCertificate: kkdcpCertificate,
 			log:              log.WithField("logger", "authentik.outpost.kerberos").WithField("provider", provider.Name),
+		}
+		if provider.GetPacEnabled() && realmSID != nil {
+			instance.KDC.GeneratePACIdentity = store.generatePACIdentity
 		}
 		services, err := ak.Paginator(
 			rs.ac.Client.OutpostsAPI.OutpostsKerberosServicePrincipalsList(context.Background(), provider.Pk),
@@ -248,9 +265,10 @@ type ProviderInstance struct {
 }
 
 type cachedUserKey struct {
-	record  kdb.PrincipalRecord
-	found   bool
-	expires time.Time
+	record   kdb.PrincipalRecord
+	identity *api.KerberosUserKeyOutpost
+	found    bool
+	expires  time.Time
 }
 
 type cachedAccessCheck struct {
@@ -271,6 +289,8 @@ type providerStore struct {
 	server                 *KerberosServer
 	providerID             int32
 	anonymousPKINITEnabled bool
+	pacEnabled             bool
+	realmSID               *pac.SID
 }
 
 type delegationPolicy struct {

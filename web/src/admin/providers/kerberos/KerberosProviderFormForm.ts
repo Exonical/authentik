@@ -317,6 +317,30 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                     ?checked=${provider.anonymousPkinitEnabled ?? false}
                 ></ak-switch-input>
                 <ak-switch-input
+                    name="pacEnabled"
+                    label=${msg("Include MS-PAC in tickets", {
+                        id: "kerberos.pac.enabled.label",
+                    })}
+                    ?checked=${provider.pacEnabled ?? false}
+                ></ak-switch-input>
+                <ak-form-element-horizontal
+                    label=${msg("Realm SID", { id: "kerberos.pac.realm-sid.label" })}
+                    name="realmSid"
+                    .errorMessages=${errors.realmSid}
+                >
+                    <ak-text-input
+                        name="realmSid"
+                        value=${ifDefined(provider.realmSid)}
+                        placeholder="S-1-5-21-1-2-3"
+                        input-hint="code"
+                    ></ak-text-input>
+                    <p class="pf-c-form__helper-text">
+                        ${msg("Domain SID used to construct PAC identities; generated when blank and PAC is enabled.", {
+                            id: "kerberos.pac.realm-sid.description",
+                        })}
+                    </p>
+                </ak-form-element-horizontal>
+                <ak-switch-input
                     name="forwardable"
                     label=${msg("Forwardable", { id: "kerberos.forwardable.label" })}
                     ?checked=${provider.forwardable ?? true}

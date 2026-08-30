@@ -12,9 +12,13 @@ import (
 
 	"github.com/Exonical/go-kerberos/krb5/crypto"
 	"github.com/Exonical/go-kerberos/krb5/kdb"
+	"github.com/Exonical/go-kerberos/krb5/kdc"
+	"github.com/Exonical/go-kerberos/krb5/pac"
 	"github.com/Exonical/go-kerberos/krb5/principal"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/hkdf"
+
+	api "goauthentik.io/packages/client-go"
 )
 
 func (s *providerStore) Lookup(name principal.Principal) (kdb.PrincipalRecord, bool, error) {
@@ -219,7 +223,9 @@ func (s *providerStore) userRecord(name principal.Principal) (kdb.PrincipalRecor
 		Keys: keys,
 		KVNO: uint32(response.Kvno),
 	}
-	cached := cachedUserKey{record: record, found: true, expires: now.Add(userKeyCacheTTL)}
+	cached := cachedUserKey{
+		record: record, identity: response, found: true, expires: now.Add(userKeyCacheTTL),
+	}
 	s.cacheMu.Lock()
 	s.cache[username] = cached
 	if canonicalUsername != username {
@@ -227,6 +233,60 @@ func (s *providerStore) userRecord(name principal.Principal) (kdb.PrincipalRecor
 	}
 	s.cacheMu.Unlock()
 	return record, canonicalUsername == username && len(keys) > 0, nil
+}
+
+func (s *providerStore) generatePACIdentity(
+	client, _ principal.Principal,
+) (*kdc.PACIdentity, error) {
+	if s == nil || !s.pacEnabled || s.realmSID == nil || len(client.Components) != 1 {
+		return nil, nil
+	}
+	_, found, err := s.userRecord(client)
+	if err != nil || !found {
+		return nil, nil
+	}
+	s.cacheMu.Lock()
+	cached, ok := s.cache[client.Components[0]]
+	s.cacheMu.Unlock()
+	if !ok || cached.identity == nil {
+		return nil, nil
+	}
+	return s.pacIdentity(cached.identity), nil
+}
+
+func (s *providerStore) pacIdentity(response *api.KerberosUserKeyOutpost) *kdc.PACIdentity {
+	if s == nil || s.realmSID == nil || response == nil {
+		return nil
+	}
+	userID := uint32(response.GetPacUserId())
+	domainSID := *s.realmSID
+	userSID := domainSID
+	userSID.SubAuthorities = append(
+		append([]uint32(nil), domainSID.SubAuthorities...), userID,
+	)
+	groupIDs := make([]pac.GroupMembership, 0, len(response.GetPacGroupIds()))
+	for _, groupID := range response.GetPacGroupIds() {
+		groupIDs = append(groupIDs, pac.GroupMembership{RelativeID: uint32(groupID), Attributes: 7})
+	}
+	realmLabel := strings.Split(s.realm, ".")[0]
+	return &kdc.PACIdentity{
+		LogonInfo: &pac.LogonInfo{
+			EffectiveName:      response.GetUsername(),
+			FullName:           response.GetPacName(),
+			UserID:             userID,
+			PrimaryGroupID:     uint32(response.GetPacPrimaryGroupId()),
+			GroupIDs:           groupIDs,
+			LogonDomainName:    strings.ToUpper(realmLabel),
+			LogonDomainID:      &domainSID,
+			LogonServer:        "authentik",
+			UserAccountControl: 0x200,
+		},
+		UPN:           response.GetPacUpn(),
+		DNSDomainName: strings.ToLower(s.realm),
+		SAMName:       response.GetUsername(),
+		SID:           userSID,
+		Flags:         pac.UPNDNSInfoHasSAMNameAndSID,
+	}
 }
 
 func (s *providerStore) ResolveAlias(

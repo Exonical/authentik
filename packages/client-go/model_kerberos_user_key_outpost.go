@@ -26,6 +26,11 @@ type KerberosUserKeyOutpost struct {
 	Kvno                 int32                  `json:"kvno"`
 	Salt                 string                 `json:"salt"`
 	Keys                 map[string]interface{} `json:"keys"`
+	PacUserId            int32                  `json:"pac_user_id"`
+	PacPrimaryGroupId    int32                  `json:"pac_primary_group_id"`
+	PacGroupIds          []int32                `json:"pac_group_ids"`
+	PacName              string                 `json:"pac_name"`
+	PacUpn               string                 `json:"pac_upn"`
 	AdditionalProperties map[string]interface{}
 }
 
@@ -35,13 +40,18 @@ type _KerberosUserKeyOutpost KerberosUserKeyOutpost
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewKerberosUserKeyOutpost(username string, principal string, kvno int32, salt string, keys map[string]interface{}) *KerberosUserKeyOutpost {
+func NewKerberosUserKeyOutpost(username string, principal string, kvno int32, salt string, keys map[string]interface{}, pacUserId int32, pacPrimaryGroupId int32, pacGroupIds []int32, pacName string, pacUpn string) *KerberosUserKeyOutpost {
 	this := KerberosUserKeyOutpost{}
 	this.Username = username
 	this.Principal = principal
 	this.Kvno = kvno
 	this.Salt = salt
 	this.Keys = keys
+	this.PacUserId = pacUserId
+	this.PacPrimaryGroupId = pacPrimaryGroupId
+	this.PacGroupIds = pacGroupIds
+	this.PacName = pacName
+	this.PacUpn = pacUpn
 	return &this
 }
 
@@ -173,6 +183,126 @@ func (o *KerberosUserKeyOutpost) SetKeys(v map[string]interface{}) {
 	o.Keys = v
 }
 
+// GetPacUserId returns the PacUserId field value
+func (o *KerberosUserKeyOutpost) GetPacUserId() int32 {
+	if o == nil {
+		var ret int32
+		return ret
+	}
+
+	return o.PacUserId
+}
+
+// GetPacUserIdOk returns a tuple with the PacUserId field value
+// and a boolean to check if the value has been set.
+func (o *KerberosUserKeyOutpost) GetPacUserIdOk() (*int32, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.PacUserId, true
+}
+
+// SetPacUserId sets field value
+func (o *KerberosUserKeyOutpost) SetPacUserId(v int32) {
+	o.PacUserId = v
+}
+
+// GetPacPrimaryGroupId returns the PacPrimaryGroupId field value
+func (o *KerberosUserKeyOutpost) GetPacPrimaryGroupId() int32 {
+	if o == nil {
+		var ret int32
+		return ret
+	}
+
+	return o.PacPrimaryGroupId
+}
+
+// GetPacPrimaryGroupIdOk returns a tuple with the PacPrimaryGroupId field value
+// and a boolean to check if the value has been set.
+func (o *KerberosUserKeyOutpost) GetPacPrimaryGroupIdOk() (*int32, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.PacPrimaryGroupId, true
+}
+
+// SetPacPrimaryGroupId sets field value
+func (o *KerberosUserKeyOutpost) SetPacPrimaryGroupId(v int32) {
+	o.PacPrimaryGroupId = v
+}
+
+// GetPacGroupIds returns the PacGroupIds field value
+func (o *KerberosUserKeyOutpost) GetPacGroupIds() []int32 {
+	if o == nil {
+		var ret []int32
+		return ret
+	}
+
+	return o.PacGroupIds
+}
+
+// GetPacGroupIdsOk returns a tuple with the PacGroupIds field value
+// and a boolean to check if the value has been set.
+func (o *KerberosUserKeyOutpost) GetPacGroupIdsOk() ([]int32, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.PacGroupIds, true
+}
+
+// SetPacGroupIds sets field value
+func (o *KerberosUserKeyOutpost) SetPacGroupIds(v []int32) {
+	o.PacGroupIds = v
+}
+
+// GetPacName returns the PacName field value
+func (o *KerberosUserKeyOutpost) GetPacName() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.PacName
+}
+
+// GetPacNameOk returns a tuple with the PacName field value
+// and a boolean to check if the value has been set.
+func (o *KerberosUserKeyOutpost) GetPacNameOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.PacName, true
+}
+
+// SetPacName sets field value
+func (o *KerberosUserKeyOutpost) SetPacName(v string) {
+	o.PacName = v
+}
+
+// GetPacUpn returns the PacUpn field value
+func (o *KerberosUserKeyOutpost) GetPacUpn() string {
+	if o == nil {
+		var ret string
+		return ret
+	}
+
+	return o.PacUpn
+}
+
+// GetPacUpnOk returns a tuple with the PacUpn field value
+// and a boolean to check if the value has been set.
+func (o *KerberosUserKeyOutpost) GetPacUpnOk() (*string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return &o.PacUpn, true
+}
+
+// SetPacUpn sets field value
+func (o *KerberosUserKeyOutpost) SetPacUpn(v string) {
+	o.PacUpn = v
+}
+
 func (o KerberosUserKeyOutpost) MarshalJSON() ([]byte, error) {
 	toSerialize, err := o.ToMap()
 	if err != nil {
@@ -188,6 +318,11 @@ func (o KerberosUserKeyOutpost) ToMap() (map[string]interface{}, error) {
 	toSerialize["kvno"] = o.Kvno
 	toSerialize["salt"] = o.Salt
 	toSerialize["keys"] = o.Keys
+	toSerialize["pac_user_id"] = o.PacUserId
+	toSerialize["pac_primary_group_id"] = o.PacPrimaryGroupId
+	toSerialize["pac_group_ids"] = o.PacGroupIds
+	toSerialize["pac_name"] = o.PacName
+	toSerialize["pac_upn"] = o.PacUpn
 
 	for key, value := range o.AdditionalProperties {
 		toSerialize[key] = value
@@ -206,6 +341,11 @@ func (o *KerberosUserKeyOutpost) UnmarshalJSON(data []byte) (err error) {
 		"kvno",
 		"salt",
 		"keys",
+		"pac_user_id",
+		"pac_primary_group_id",
+		"pac_group_ids",
+		"pac_name",
+		"pac_upn",
 	}
 
 	allProperties := make(map[string]interface{})
@@ -240,6 +380,11 @@ func (o *KerberosUserKeyOutpost) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "kvno")
 		delete(additionalProperties, "salt")
 		delete(additionalProperties, "keys")
+		delete(additionalProperties, "pac_user_id")
+		delete(additionalProperties, "pac_primary_group_id")
+		delete(additionalProperties, "pac_group_ids")
+		delete(additionalProperties, "pac_name")
+		delete(additionalProperties, "pac_upn")
 		o.AdditionalProperties = additionalProperties
 	}
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
@@ -23,10 +24,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Exonical/go-kerberos/krb5/client"
 	"github.com/Exonical/go-kerberos/krb5/crypto"
 	"github.com/Exonical/go-kerberos/krb5/kdb"
 	"github.com/Exonical/go-kerberos/krb5/kdc"
 	"github.com/Exonical/go-kerberos/krb5/keytab"
+	"github.com/Exonical/go-kerberos/krb5/kkdcp"
 	"github.com/Exonical/go-kerberos/krb5/principal"
 
 	"goauthentik.io/internal/outpost/ak"
@@ -50,6 +53,8 @@ type mitHarness struct {
 	keytabPath      string
 	trace           string
 	passwordChanged chan string
+	store           *providerStore
+	server          *kdc.Server
 }
 
 func startMITKDC(t *testing.T, forceTCP bool) *mitHarness {
@@ -88,6 +93,19 @@ func startMITKDCWithIdentityPolicy(
 	forceTCP, withKpasswd, allowProxy bool,
 	apiUsername, canonicalUsername string,
 	accessCheck func(username, clientSPN, spn string) bool,
+) *mitHarness {
+	return startMITKDCWithIdentityPolicyOptions(
+		t, forceTCP, withKpasswd, allowProxy, apiUsername, canonicalUsername,
+		accessCheck, false, false,
+	)
+}
+
+func startMITKDCWithIdentityPolicyOptions(
+	t *testing.T,
+	forceTCP, withKpasswd, allowProxy bool,
+	apiUsername, canonicalUsername string,
+	accessCheck func(username, clientSPN, spn string) bool,
+	spake, freshness bool,
 ) *mitHarness {
 	t.Helper()
 	tools := []string{"kinit", "kvno", "klist"}
@@ -163,10 +181,15 @@ func startMITKDCWithIdentityPolicy(
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"username":  canonicalUsername,
-			"principal": canonicalUsername,
-			"kvno":      1,
-			"salt":      mitRealm + canonicalUsername,
+			"username":             canonicalUsername,
+			"principal":            canonicalUsername,
+			"kvno":                 1,
+			"salt":                 mitRealm + canonicalUsername,
+			"pac_user_id":          2001,
+			"pac_primary_group_id": 2001,
+			"pac_group_ids":        []int32{},
+			"pac_name":             canonicalUsername,
+			"pac_upn":              canonicalUsername + "@" + mitRealm,
 			"keys": map[string]string{
 				"18": base64.StdEncoding.EncodeToString(userKey),
 			},
@@ -237,6 +260,8 @@ func startMITKDCWithIdentityPolicy(
 		},
 		CheckAllowedToDelegate: store.checkAllowedToDelegate,
 		Authorize:              store.Authorize,
+		EnableSPAKE:            spake,
+		PKINITRequireFreshness: freshness,
 	}
 	instance := &ProviderInstance{
 		Config: *api.NewKerberosOutpostConfig(1, "test", mitRealm, 3600, 3600, "test"),
@@ -260,7 +285,10 @@ func startMITKDCWithIdentityPolicy(
 	tcpPort := tcpListener.Addr().(*net.TCPAddr).Port
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
-	go func() { done <- server.ListenAndServe(ctx, udpConn, tcpListener) }()
+	go func() {
+		err := server.ListenAndServe(ctx, udpConn, tcpListener)
+		done <- err
+	}()
 	var kpasswdUDP net.PacketConn
 	var kpasswdTCP net.Listener
 	if withKpasswd {
@@ -346,7 +374,10 @@ func startMITKDCWithIdentityPolicy(
 		config:          configPath,
 		cache:           filepath.Join(dir, "ccache"),
 		keytabPath:      keytabPath,
+		trace:           filepath.Join(dir, "trace"),
 		passwordChanged: passwordChanged,
+		store:           store,
+		server:          server,
 	}
 }
 
@@ -421,6 +452,22 @@ func TestMITInteropUDP(t *testing.T) {
 
 func TestMITInteropTCP(t *testing.T) {
 	runMITFlow(t, true)
+}
+
+func TestMITInteropSPAKE(t *testing.T) {
+	h := startMITKDCWithIdentityPolicyOptions(
+		t, false, false, true, mitUser, mitUser,
+		func(string, string, string) bool { return true },
+		true, false,
+	)
+	h.run(t, mitPassword+"\n", "kinit", mitUser)
+	trace, err := os.ReadFile(h.trace)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(strings.ToLower(string(trace)), "spake") {
+		t.Fatalf("MIT trace did not show SPAKE preauthentication:\n%s", trace)
+	}
 }
 
 func TestMITInteropKpasswd(t *testing.T) {
@@ -605,6 +652,156 @@ func TestMITInteropPrincipalAliasCanonicalization(t *testing.T) {
 }
 
 func TestMITInteropPKINIT(t *testing.T) {
+	runMITPKINIT(t, false, false)
+}
+
+func TestMITInteropPKINITFreshness(t *testing.T) {
+	runMITPKINIT(t, true, false)
+}
+
+func TestMITInteropAnonymousPKINIT(t *testing.T) {
+	h := runMITPKINIT(t, false, true)
+	h.run(t, "", "kinit", "-n")
+	klist := h.run(t, "", "klist")
+	if !strings.Contains(klist, "Default principal: WELLKNOWN/ANONYMOUS@") {
+		t.Fatalf("anonymous klist did not show the well-known principal:\n%s", klist)
+	}
+	disabled := runMITPKINITWithAnonymousEnabled(t, false, true, false)
+	disabledCache := filepath.Join(filepath.Dir(disabled.cache), "anonymous-disabled")
+	if output, err := disabled.runResult(disabledCache, "", "kinit", "-n"); err == nil {
+		t.Fatalf("anonymous PKINIT unexpectedly succeeded while disabled:\n%s", output)
+	} else if !strings.Contains(strings.ToLower(output), "policy") &&
+		!strings.Contains(strings.ToLower(output), "generic") {
+		t.Fatalf("anonymous PKINIT failure did not report a policy error:\n%s", output)
+	}
+}
+
+func TestMITInteropKKDCP(t *testing.T) {
+	for _, tool := range []string{"kinit", "klist"} {
+		if _, err := exec.LookPath(tool); err != nil {
+			t.Skipf("%s not installed, skipping MIT KKDCP interop test", tool)
+		}
+	}
+	h := startMITKDCWithIdentityPolicy(t, false, false, true, mitUser, mitUser,
+		func(string, string, string) bool { return true })
+	caKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	caTemplate := &x509.Certificate{
+		SerialNumber:          big.NewInt(1),
+		Subject:               pkix.Name{CommonName: "KKDCP test CA"},
+		NotBefore:             time.Now().Add(-time.Hour),
+		NotAfter:              time.Now().Add(time.Hour),
+		IsCA:                  true,
+		BasicConstraintsValid: true,
+		KeyUsage:              x509.KeyUsageCertSign,
+	}
+	caDER, err := x509.CreateCertificate(rand.Reader, caTemplate, caTemplate, &caKey.PublicKey, caKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	leafTemplate := &x509.Certificate{
+		SerialNumber: big.NewInt(2),
+		Subject:      pkix.Name{CommonName: "localhost"},
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(time.Hour),
+		DNSNames:     []string{"localhost"},
+		IPAddresses:  []net.IP{net.ParseIP("127.0.0.1")},
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+	}
+	leafKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	leafDER, err := x509.CreateCertificate(rand.Reader, leafTemplate, caTemplate, &leafKey.PublicKey, caKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	certificate, err := tls.X509KeyPair(
+		pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: leafDER}),
+		pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(leafKey)}),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	roots := x509.NewCertPool()
+	caCertificate, err := x509.ParseCertificate(caDER)
+	if err != nil {
+		t.Fatal(err)
+	}
+	roots.AddCert(caCertificate)
+	handler := &kkdcp.Handler{
+		Backend: func(_ context.Context, message []byte) ([]byte, error) {
+			return h.server.HandleMessage(message), nil
+		},
+		RequireTargetURL: "/KdcProxy",
+	}
+	proxy := httptest.NewUnstartedServer(handler)
+	proxy.TLS = &tls.Config{MinVersion: tls.VersionTLS12, Certificates: []tls.Certificate{certificate}}
+	proxy.StartTLS()
+	t.Cleanup(proxy.Close)
+	caPath := filepath.Join(filepath.Dir(h.config), "kkdcp-ca.pem")
+	if err := os.WriteFile(caPath, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caDER}), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	parsed, err := url.Parse(proxy.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	configText := fmt.Sprintf(`[libdefaults]
+    default_realm = %s
+    dns_lookup_kdc = false
+    dns_lookup_realm = false
+    http_anchors = FILE:%s
+    permitted_enctypes = aes256-cts-hmac-sha1-96
+[realms]
+    %s = {
+        kdc = https://localhost:%s/KdcProxy
+    }
+`, mitRealm, caPath, mitRealm, parsed.Port())
+	if err := os.WriteFile(h.config, []byte(configText), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := h.runResult(h.cache, mitPassword+"\n", "kinit", mitUser); err != nil {
+		trace, traceErr := os.ReadFile(h.trace)
+		if traceErr != nil || !strings.Contains(string(trace), "k5tls") {
+			t.Fatalf("MIT KKDCP kinit failed without an identifiable proxy transport limitation: %v\n%s", err, trace)
+		}
+		parsedPrincipal, err := principal.Parse(mitUser + "@" + mitRealm)
+		if err != nil {
+			t.Fatal(err)
+		}
+		kkdcpClient := &kkdcp.Client{RootCAs: roots, Timeout: 5 * time.Second}
+		goClient := &client.Client{
+			Exchange: func(ctx context.Context, realm string, payload []byte) ([]byte, error) {
+				return kkdcpClient.Exchange(ctx, "https://localhost:"+parsed.Port()+"/KdcProxy", realm, payload)
+			},
+		}
+		credentials, err := goClient.ASExchange(context.Background(), *parsedPrincipal, mitPassword)
+		if err != nil {
+			t.Fatalf("go-kerberos KKDCP fallback failed: %v", err)
+		}
+		if credentials == nil || len(credentials.Ticket) == 0 {
+			t.Fatal("go-kerberos KKDCP fallback returned no ticket")
+		}
+		t.Log("MIT k5tls unavailable; verified KKDCP with go-kerberos client")
+		return
+	}
+	klist := h.run(t, "", "klist")
+	if !strings.Contains(klist, "krbtgt/"+mitRealm+"@"+mitRealm) {
+		t.Fatalf("KKDCP klist did not show a TGT:\n%s", klist)
+	}
+}
+
+func runMITPKINIT(t *testing.T, requireFreshness, anonymous bool) *mitHarness {
+	return runMITPKINITWithAnonymousEnabled(t, requireFreshness, anonymous, anonymous)
+}
+
+func runMITPKINITWithAnonymousEnabled(
+	t *testing.T, requireFreshness, anonymous, anonymousEnabled bool,
+) *mitHarness {
 	for _, tool := range []string{"kinit", "klist"} {
 		if _, err := exec.LookPath(tool); err != nil {
 			t.Skipf("%s not installed, skipping MIT PKINIT interop test", tool)
@@ -658,6 +855,9 @@ func TestMITInteropPKINIT(t *testing.T) {
 			"keys": map[string]string{
 				"18": base64.StdEncoding.EncodeToString(userKey),
 			},
+			"pac_user_id": 2001, "pac_primary_group_id": 2001,
+			"pac_group_ids": []int32{}, "pac_name": mitUser,
+			"pac_upn": mitUser + "@" + mitRealm,
 		})
 	}))
 	t.Cleanup(apiServer.Close)
@@ -670,12 +870,13 @@ func TestMITInteropPKINIT(t *testing.T) {
 	cfg.Scheme = parsed.Scheme
 	cfg.Servers = api.ServerConfigurations{{URL: "/api/v3"}}
 	store := &providerStore{
-		realm:      mitRealm,
-		allowed:    map[int32]bool{18: true},
-		services:   make(map[string]kdb.PrincipalRecord),
-		cache:      make(map[string]cachedUserKey),
-		server:     &KerberosServer{ac: &ak.APIController{Client: api.NewAPIClient(cfg)}},
-		providerID: 1,
+		realm:                  mitRealm,
+		allowed:                map[int32]bool{18: true},
+		services:               make(map[string]kdb.PrincipalRecord),
+		cache:                  make(map[string]cachedUserKey),
+		server:                 &KerberosServer{ac: &ak.APIController{Client: api.NewAPIClient(cfg)}},
+		providerID:             1,
+		anonymousPKINITEnabled: anonymousEnabled,
 	}
 	krbtgtRecord, err := store.serviceRecord("krbtgt/"+mitRealm, 1, map[string]interface{}{
 		"18": base64.StdEncoding.EncodeToString(krbtgtKey),
@@ -686,14 +887,18 @@ func TestMITInteropPKINIT(t *testing.T) {
 	store.services[principalKey(krbtgtRecord.Name)] = krbtgtRecord
 
 	server := &kdc.Server{
-		Realm:             mitRealm,
-		DB:                store,
-		ClockSkew:         5 * time.Minute,
-		MaxTicketLife:     10 * time.Hour,
-		MaxRenewableLife:  24 * time.Hour,
-		PKINITCertificate: kdcCertificate,
-		PKINITSigner:      kdcKey,
-		PKINITClientCAs:   roots,
+		Realm:                  mitRealm,
+		DB:                     store,
+		ClockSkew:              5 * time.Minute,
+		MaxTicketLife:          10 * time.Hour,
+		MaxRenewableLife:       24 * time.Hour,
+		PKINITCertificate:      kdcCertificate,
+		PKINITSigner:           kdcKey,
+		PKINITClientCAs:        roots,
+		PKINITRequireFreshness: requireFreshness,
+	}
+	if anonymous {
+		server.Authorize = store.Authorize
 	}
 	udpConn, err := net.ListenPacket("udp", "127.0.0.1:0")
 	if err != nil {
@@ -765,6 +970,10 @@ func TestMITInteropPKINIT(t *testing.T) {
 		config: configPath,
 		cache:  filepath.Join(dir, "ccache"),
 		trace:  filepath.Join(dir, "trace"),
+		store:  store,
+	}
+	if anonymous {
+		return h
 	}
 	out := h.run(t, "", "kinit", "-X", "X509_user_identity=FILE:"+clientCertPath+","+clientKeyPath, mitUser)
 	t.Logf("kinit PKINIT output:\n%s", out)
@@ -773,6 +982,7 @@ func TestMITInteropPKINIT(t *testing.T) {
 	if !strings.Contains(klist, "krbtgt/"+mitRealm+"@"+mitRealm) {
 		t.Fatalf("klist does not show PKINIT TGT:\n%s", klist)
 	}
+	return h
 }
 
 func makeMITPKINITCertificates(

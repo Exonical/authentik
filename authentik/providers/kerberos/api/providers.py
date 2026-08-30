@@ -73,6 +73,8 @@ class KerberosProviderSerializer(ProviderSerializer):
             "anonymous_pkinit_enabled",
             "kkdcp_enabled",
             "kkdcp_certificate",
+            "pac_enabled",
+            "realm_sid",
             "master_key",
             "outpost_set",
         ]
@@ -229,12 +231,44 @@ class KerberosUserKeyOutpostSerializer(PassiveSerializer):
     kvno = IntegerField()
     salt = CharField()
     keys = SerializerMethodField()
+    pac_user_id = SerializerMethodField()
+    pac_primary_group_id = SerializerMethodField()
+    pac_group_ids = SerializerMethodField()
+    pac_name = CharField(source="user.name")
+    pac_upn = SerializerMethodField()
 
     def get_principal(self, obj: KerberosUserKeys) -> str:
         return _canonical_principal(obj.provider, obj.user) or ""
 
     def get_keys(self, obj: KerberosUserKeys) -> dict:
         return obj.keys
+
+    @staticmethod
+    def _attribute_number(attributes: dict, name: str) -> int | None:
+        value = attributes.get(name)
+        if isinstance(value, str) and value.isdigit():
+            parsed = int(value)
+            if 0 <= parsed <= 0xFFFFFFFF:
+                return parsed
+        return None
+
+    def get_pac_user_id(self, obj: KerberosUserKeys) -> int:
+        value = self._attribute_number(obj.user.attributes, "uidNumber")
+        return 2000 + obj.user.pk if value is None else value
+
+    def get_pac_primary_group_id(self, obj: KerberosUserKeys) -> int:
+        return self.get_pac_user_id(obj)
+
+    def get_pac_group_ids(self, obj: KerberosUserKeys) -> list[int]:
+        group_ids = []
+        for group in obj.user.groups.all():
+            value = self._attribute_number(group.attributes, "gidNumber")
+            group_ids.append(4000 + group.num_pk if value is None else value)
+        return group_ids
+
+    def get_pac_upn(self, obj: KerberosUserKeys) -> str:
+        upn = obj.user.attributes.get("upn")
+        return upn if isinstance(upn, str) and upn else obj.user.email or ""
 
 
 class KerberosCheckAccessSerializer(PassiveSerializer):
@@ -290,6 +324,8 @@ class KerberosOutpostConfigSerializer(ModelSerializer):
             "anonymous_pkinit_enabled",
             "kkdcp_enabled",
             "kkdcp_certificate",
+            "pac_enabled",
+            "realm_sid",
             "master_key",
             "application_slug",
         ]

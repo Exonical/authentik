@@ -48,6 +48,36 @@ export interface KerberosUserKeyOutpost {
      * @memberof KerberosUserKeyOutpost
      */
     readonly keys: { [key: string]: any };
+    /**
+     *
+     * @type {number}
+     * @memberof KerberosUserKeyOutpost
+     */
+    readonly pacUserId: number;
+    /**
+     *
+     * @type {number}
+     * @memberof KerberosUserKeyOutpost
+     */
+    readonly pacPrimaryGroupId: number;
+    /**
+     *
+     * @type {Array<number>}
+     * @memberof KerberosUserKeyOutpost
+     */
+    readonly pacGroupIds: Array<number>;
+    /**
+     *
+     * @type {string}
+     * @memberof KerberosUserKeyOutpost
+     */
+    pacName: string;
+    /**
+     *
+     * @type {string}
+     * @memberof KerberosUserKeyOutpost
+     */
+    readonly pacUpn: string;
 }
 
 /**
@@ -59,6 +89,41 @@ export function instanceOfKerberosUserKeyOutpost(value: object): value is Kerber
     if (!("kvno" in value) || value["kvno"] === undefined) return false;
     if (!("salt" in value) || value["salt"] === undefined) return false;
     if (!("keys" in value) || value["keys"] === undefined) return false;
+    if (
+        (!("pacUserId" in (value as Record<string, any>)) &&
+            !("pac_user_id" in (value as Record<string, any>))) ||
+        ((value as Record<string, any>)["pacUserId"] === undefined &&
+            (value as Record<string, any>)["pac_user_id"] === undefined)
+    )
+        return false;
+    if (
+        (!("pacPrimaryGroupId" in (value as Record<string, any>)) &&
+            !("pac_primary_group_id" in (value as Record<string, any>))) ||
+        ((value as Record<string, any>)["pacPrimaryGroupId"] === undefined &&
+            (value as Record<string, any>)["pac_primary_group_id"] === undefined)
+    )
+        return false;
+    if (
+        (!("pacGroupIds" in (value as Record<string, any>)) &&
+            !("pac_group_ids" in (value as Record<string, any>))) ||
+        ((value as Record<string, any>)["pacGroupIds"] === undefined &&
+            (value as Record<string, any>)["pac_group_ids"] === undefined)
+    )
+        return false;
+    if (
+        (!("pacName" in (value as Record<string, any>)) &&
+            !("pac_name" in (value as Record<string, any>))) ||
+        ((value as Record<string, any>)["pacName"] === undefined &&
+            (value as Record<string, any>)["pac_name"] === undefined)
+    )
+        return false;
+    if (
+        (!("pacUpn" in (value as Record<string, any>)) &&
+            !("pac_upn" in (value as Record<string, any>))) ||
+        ((value as Record<string, any>)["pacUpn"] === undefined &&
+            (value as Record<string, any>)["pac_upn"] === undefined)
+    )
+        return false;
     return true;
 }
 
@@ -79,6 +144,11 @@ export function KerberosUserKeyOutpostFromJSONTyped(
         kvno: json["kvno"],
         salt: json["salt"],
         keys: json["keys"],
+        pacUserId: json["pac_user_id"],
+        pacPrimaryGroupId: json["pac_primary_group_id"],
+        pacGroupIds: json["pac_group_ids"],
+        pacName: json["pac_name"],
+        pacUpn: json["pac_upn"],
     };
 }
 
@@ -87,7 +157,10 @@ export function KerberosUserKeyOutpostToJSON(json: any): KerberosUserKeyOutpost 
 }
 
 export function KerberosUserKeyOutpostToJSONTyped(
-    value?: Omit<KerberosUserKeyOutpost, "principal" | "keys"> | null,
+    value?: Omit<
+        KerberosUserKeyOutpost,
+        "principal" | "keys" | "pacUserId" | "pacPrimaryGroupId" | "pacGroupIds" | "pacUpn"
+    > | null,
     ignoreDiscriminator: boolean = false,
 ): any {
     if (value == null) {
@@ -98,5 +171,6 @@ export function KerberosUserKeyOutpostToJSONTyped(
         username: value["username"],
         kvno: value["kvno"],
         salt: value["salt"],
+        pac_name: value["pacName"],
     };
 }

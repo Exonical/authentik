@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import base64
+import re
 import secrets
 from collections.abc import Iterable
 from uuid import uuid4
 
 from django.contrib.postgres.fields import ArrayField
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.templatetags.static import static
 from django.utils.translation import gettext_lazy as _
@@ -49,6 +51,16 @@ def generate_key(enctype: int) -> str:
 def default_enctypes() -> list[int]:
     """Return the default allowed enctypes."""
     return [18, 20]
+
+
+REALM_SID_PATTERN = re.compile(r"^S-1-5-21-(\d+)-(\d+)-(\d+)$")
+
+
+def validate_realm_sid(value: str):
+    """Validate the domain SID format used by MS-PAC identities."""
+    match = REALM_SID_PATTERN.fullmatch(value)
+    if match is None or any(int(part) > 0xFFFFFFFF for part in match.groups()):
+        raise ValidationError(_("Realm SID must match S-1-5-21-<a>-<b>-<c>."))
 
 
 class KerberosProvider(OutpostModel, Provider):
@@ -134,6 +146,25 @@ class KerberosProvider(OutpostModel, Provider):
         related_name="+",
         help_text=_("Certificate/key pair the KDC Proxy listener uses for TLS."),
     )
+    pac_enabled = models.BooleanField(
+        default=False,
+        help_text=_("Include an MS-PAC in issued tickets."),
+    )
+    realm_sid = models.TextField(
+        blank=True,
+        default="",
+        validators=[validate_realm_sid],
+        help_text=_("Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3."),
+    )
+
+    def save(self, *args, **kwargs):
+        if self.realm_sid:
+            validate_realm_sid(self.realm_sid)
+        elif self.pac_enabled:
+            self.realm_sid = "S-1-5-21-" + "-".join(
+                str(secrets.randbits(32)) for _ in range(3)
+            )
+        return super().save(*args, **kwargs)
 
     @property
     def component(self) -> str:

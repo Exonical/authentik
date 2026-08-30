@@ -304,6 +304,16 @@ export class KerberosProviderViewPage extends AKElement {
                                                 "kerberos.anonymous-pkinit.enabled.term",
                                             )}
                                             ${this.renderBoolean(
+                                                "MS-PAC enabled",
+                                                this.provider.pacEnabled,
+                                                "kerberos.pac.enabled.term",
+                                            )}
+                                            ${this.renderDescription(
+                                                "Realm SID",
+                                                this.provider.realmSid || "-",
+                                                "kerberos.pac.realm-sid.term",
+                                            )}
+                                            ${this.renderBoolean(
                                                 "Forwardable",
                                                 this.provider.forwardable,
                                                 "kerberos.forwardable.term",
