@@ -26,6 +26,12 @@ export interface KerberosUserKeyOutpost {
     username: string;
     /**
      *
+     * @type {boolean}
+     * @memberof KerberosUserKeyOutpost
+     */
+    enabled: boolean;
+    /**
+     *
      * @type {string}
      * @memberof KerberosUserKeyOutpost
      */
@@ -48,6 +54,18 @@ export interface KerberosUserKeyOutpost {
      * @memberof KerberosUserKeyOutpost
      */
     readonly keys: { [key: string]: any };
+    /**
+     *
+     * @type {number}
+     * @memberof KerberosUserKeyOutpost
+     */
+    readonly maxTicketLifetime: number | null;
+    /**
+     *
+     * @type {number}
+     * @memberof KerberosUserKeyOutpost
+     */
+    readonly maxRenewLifetime: number | null;
     /**
      *
      * @type {number}
@@ -91,10 +109,25 @@ export interface KerberosUserKeyOutpost {
  */
 export function instanceOfKerberosUserKeyOutpost(value: object): value is KerberosUserKeyOutpost {
     if (!("username" in value) || value["username"] === undefined) return false;
+    if (!("enabled" in value) || value["enabled"] === undefined) return false;
     if (!("principal" in value) || value["principal"] === undefined) return false;
     if (!("kvno" in value) || value["kvno"] === undefined) return false;
     if (!("salt" in value) || value["salt"] === undefined) return false;
     if (!("keys" in value) || value["keys"] === undefined) return false;
+    if (
+        (!("maxTicketLifetime" in (value as Record<string, any>)) &&
+            !("max_ticket_lifetime" in (value as Record<string, any>))) ||
+        ((value as Record<string, any>)["maxTicketLifetime"] === undefined &&
+            (value as Record<string, any>)["max_ticket_lifetime"] === undefined)
+    )
+        return false;
+    if (
+        (!("maxRenewLifetime" in (value as Record<string, any>)) &&
+            !("max_renew_lifetime" in (value as Record<string, any>))) ||
+        ((value as Record<string, any>)["maxRenewLifetime"] === undefined &&
+            (value as Record<string, any>)["max_renew_lifetime"] === undefined)
+    )
+        return false;
     if (
         (!("pacUserId" in (value as Record<string, any>)) &&
             !("pac_user_id" in (value as Record<string, any>))) ||
@@ -153,10 +186,13 @@ export function KerberosUserKeyOutpostFromJSONTyped(
     }
     return {
         username: json["username"],
+        enabled: json["enabled"],
         principal: json["principal"],
         kvno: json["kvno"],
         salt: json["salt"],
         keys: json["keys"],
+        maxTicketLifetime: json["max_ticket_lifetime"],
+        maxRenewLifetime: json["max_renew_lifetime"],
         pacUserId: json["pac_user_id"],
         pacPrimaryGroupId: json["pac_primary_group_id"],
         pacGroupIds: json["pac_group_ids"],
@@ -176,6 +212,8 @@ export function KerberosUserKeyOutpostToJSONTyped(
         KerberosUserKeyOutpost,
         | "principal"
         | "keys"
+        | "maxTicketLifetime"
+        | "maxRenewLifetime"
         | "pacUserId"
         | "pacPrimaryGroupId"
         | "pacGroupIds"
@@ -190,6 +228,7 @@ export function KerberosUserKeyOutpostToJSONTyped(
 
     return {
         username: value["username"],
+        enabled: value["enabled"],
         kvno: value["kvno"],
         salt: value["salt"],
         pac_name: value["pacName"],

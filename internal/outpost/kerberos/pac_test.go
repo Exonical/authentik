@@ -43,7 +43,8 @@ func TestPACInServiceTicket(t *testing.T) {
 	h.store.cache[mitUser] = cachedUserKey{
 		record: userRecord,
 		identity: api.NewKerberosUserKeyOutpost(
-			mitUser, mitUser+"@"+mitRealm, 1, mitRealm+mitUser, nil,
+			mitUser, true, mitUser+"@"+mitRealm, 1, mitRealm+mitUser, nil,
+			api.NullableInt32{}, api.NullableInt32{},
 			2001, 2001, []int32{4001, 5678}, "Alice Example", "alice@example.test",
 			api.NullableTime{},
 		),
@@ -167,7 +168,8 @@ func TestPACIdentity(t *testing.T) {
 	}
 	store := &providerStore{realm: "EXAMPLE.TEST", realmSID: &realmSID}
 	response := api.NewKerberosUserKeyOutpost(
-		"alice", "alice@EXAMPLE.TEST", 1, "EXAMPLE.TESTalice", nil,
+		"alice", true, "alice@EXAMPLE.TEST", 1, "EXAMPLE.TESTalice", nil,
+		api.NullableInt32{}, api.NullableInt32{},
 		2007, 2007, []int32{4001, 5678}, "Alice Example", "alice@example.test",
 		api.NullableTime{},
 	)

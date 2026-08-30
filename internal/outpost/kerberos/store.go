@@ -214,7 +214,11 @@ func (s *providerStore) syntheticRecord(
 			Salt:    name.Realm + strings.Join(name.Components, ""),
 		}
 	}
-	return kdb.PrincipalRecord{Name: name, Keys: keys, KVNO: 1}, len(keys) > 0, nil
+	flags := uint32(0)
+	if keyPrefix == "kadmin-changepw" {
+		flags = kdb.PWChangeService
+	}
+	return kdb.PrincipalRecord{Name: name, Keys: keys, KVNO: 1, Flags: flags}, len(keys) > 0, nil
 }
 
 func (s *providerStore) invalidateUserKey(username string) {
@@ -272,6 +276,11 @@ func (s *providerStore) userRecord(name principal.Principal) (kdb.PrincipalRecor
 		Keys:               keys,
 		KVNO:               uint32(response.Kvno),
 		PasswordExpiration: response.GetPasswordExpiration(),
+		MaxLife:            time.Duration(response.GetMaxTicketLifetime()) * time.Second,
+		MaxRenew:           time.Duration(response.GetMaxRenewLifetime()) * time.Second,
+	}
+	if !response.GetEnabled() {
+		record.Flags |= kdb.DisallowAllTickets
 	}
 	cached := cachedUserKey{
 		record: record, identity: response, found: true, expires: now.Add(userKeyCacheTTL),

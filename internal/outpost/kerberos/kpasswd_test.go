@@ -134,9 +134,12 @@ func TestKpasswdClientChangesPasswordThroughServer(t *testing.T) {
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"username":             username,
+				"enabled":              true,
 				"principal":            username,
 				"kvno":                 1,
 				"salt":                 realm + username,
+				"max_ticket_lifetime":  nil,
+				"max_renew_lifetime":   nil,
 				"pac_user_id":          2001,
 				"pac_primary_group_id": 2001,
 				"pac_group_ids":        []int32{},

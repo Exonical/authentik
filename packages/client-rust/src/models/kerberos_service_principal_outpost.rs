@@ -24,17 +24,20 @@ pub struct KerberosServicePrincipalOutpost {
     pub ok_to_auth_as_delegate: bool,
     #[serde(rename = "allowed_delegation_targets")]
     pub allowed_delegation_targets: Vec<String>,
+    #[serde(rename = "required_auth_indicators")]
+    pub required_auth_indicators: Vec<String>,
 }
 
 impl KerberosServicePrincipalOutpost {
     /// Service principal data consumed by the KDC outpost.
-    pub fn new(spn: String, kvno: i32, keys: std::collections::HashMap<String, serde_json::Value>, ok_to_auth_as_delegate: bool, allowed_delegation_targets: Vec<String>) -> KerberosServicePrincipalOutpost {
+    pub fn new(spn: String, kvno: i32, keys: std::collections::HashMap<String, serde_json::Value>, ok_to_auth_as_delegate: bool, allowed_delegation_targets: Vec<String>, required_auth_indicators: Vec<String>) -> KerberosServicePrincipalOutpost {
         KerberosServicePrincipalOutpost {
             spn,
             kvno,
             keys,
             ok_to_auth_as_delegate,
             allowed_delegation_targets,
+            required_auth_indicators,
         }
     }
 }

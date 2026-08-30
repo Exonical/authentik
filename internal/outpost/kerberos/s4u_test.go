@@ -50,9 +50,12 @@ func newS4UTestServerWithAccessCheck(
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"username":             "alice",
+			"enabled":              true,
 			"principal":            "alice",
 			"kvno":                 1,
 			"salt":                 testRealm + "alice",
+			"max_ticket_lifetime":  nil,
+			"max_renew_lifetime":   nil,
 			"pac_user_id":          2001,
 			"pac_primary_group_id": 2001,
 			"pac_group_ids":        []int32{},

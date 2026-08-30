@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -99,10 +100,13 @@ func TestStoreUserRecordPasswordExpiration(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{
 			"username": "alice",
+			"enabled": true,
 			"principal": "alice",
 			"kvno": 1,
 			"salt": "EXAMPLE.TESTalice",
 			"keys": {"18": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="},
+			"max_ticket_lifetime": null,
+			"max_renew_lifetime": null,
 			"pac_user_id": 0,
 			"pac_primary_group_id": 0,
 			"pac_group_ids": [],
@@ -122,6 +126,83 @@ func TestStoreUserRecordPasswordExpiration(t *testing.T) {
 	}
 	if !record.PasswordExpiration.Equal(expiration) {
 		t.Fatalf("password expiration = %v, want %v", record.PasswordExpiration, expiration)
+	}
+}
+
+func TestStoreUserRecordAccountStateAndLifetimes(t *testing.T) {
+	expiration := time.Date(2030, time.January, 2, 3, 4, 5, 0, time.UTC)
+	enabled := false
+	store := testStore(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(fmt.Sprintf(`{
+			"username": "alice",
+			"enabled": %t,
+			"principal": "alice",
+			"kvno": 1,
+			"salt": "EXAMPLE.TESTalice",
+			"keys": {"18": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="},
+			"max_ticket_lifetime": 3600,
+			"max_renew_lifetime": 7200,
+			"pac_user_id": 0,
+			"pac_primary_group_id": 0,
+			"pac_group_ids": [],
+			"pac_name": "Alice",
+			"pac_upn": "alice@example.test",
+			"password_expiration": "2030-01-02T03:04:05Z"
+		}`, enabled)))
+	}))
+	record, found, err := store.userRecord(principal.Principal{
+		Realm: testRealm, Components: []string{"alice"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found {
+		t.Fatal("user record was not found")
+	}
+	if record.Flags&kdb.DisallowAllTickets == 0 {
+		t.Fatalf("user flags = %#x, missing DisallowAllTickets", record.Flags)
+	}
+	if record.MaxLife != time.Hour {
+		t.Fatalf("max ticket lifetime = %v, want 1h", record.MaxLife)
+	}
+	if record.MaxRenew != 2*time.Hour {
+		t.Fatalf("max renew lifetime = %v, want 2h", record.MaxRenew)
+	}
+	if !record.PasswordExpiration.Equal(expiration) {
+		t.Fatalf("password expiration = %v, want %v", record.PasswordExpiration, expiration)
+	}
+
+	enabled = true
+	store.cache = make(map[string]cachedUserKey)
+	record, found, err = store.userRecord(principal.Principal{
+		Realm: testRealm, Components: []string{"alice"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found {
+		t.Fatal("enabled user record was not found")
+	}
+	if record.Flags&kdb.DisallowAllTickets != 0 {
+		t.Fatalf("enabled user flags = %#x, unexpectedly includes DisallowAllTickets", record.Flags)
+	}
+}
+
+func TestStoreChangePasswordRecordAllowsExpiredUsers(t *testing.T) {
+	store := testStore(t, nil)
+	record, found, err := store.changepwRecord(principal.Principal{
+		Realm: testRealm, NameType: principal.NTSrvInstance,
+		Components: []string{"kadmin", "changepw"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found {
+		t.Fatal("changepw record was not found")
+	}
+	if record.Flags&kdb.PWChangeService == 0 {
+		t.Fatalf("changepw flags = %#x, missing PWChangeService", record.Flags)
 	}
 }
 
@@ -513,9 +594,12 @@ func TestCrossRealmProviderStores(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"username":             "alice",
+			"enabled":              true,
 			"principal":            "alice",
 			"kvno":                 1,
 			"salt":                 testRealm + "alice",
+			"max_ticket_lifetime":  nil,
+			"max_renew_lifetime":   nil,
 			"password_expiration":  nil,
 			"pac_user_id":          0,
 			"pac_primary_group_id": 0,
@@ -654,9 +738,12 @@ func TestStoreUserLookupCacheAndUnknown(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"username":             "alice",
+			"enabled":              true,
 			"principal":            "alice",
 			"kvno":                 2,
 			"salt":                 testRealm + "alice",
+			"max_ticket_lifetime":  nil,
+			"max_renew_lifetime":   nil,
 			"pac_user_id":          2001,
 			"pac_primary_group_id": 2001,
 			"pac_group_ids":        []int32{},
@@ -730,9 +817,12 @@ func TestStoreUserAliasLookupAndCanonicalCache(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"username":             "alice",
+			"enabled":              true,
 			"principal":            "alice",
 			"kvno":                 1,
 			"salt":                 testRealm + "alice",
+			"max_ticket_lifetime":  nil,
+			"max_renew_lifetime":   nil,
 			"pac_user_id":          2001,
 			"pac_primary_group_id": 2001,
 			"pac_group_ids":        []int32{},

@@ -24,6 +24,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -75,6 +76,9 @@ type mitHarness struct {
 	passwordChanged chan string
 	store           *providerStore
 	server          *kdc.Server
+	userEnabled     *bool
+	userMaxLife     *int32
+	stateMu         *sync.RWMutex
 }
 
 func startMITKDC(t *testing.T, forceTCP bool) *mitHarness {
@@ -157,6 +161,9 @@ func startMITKDCWithIdentityPolicyOptions(
 	for i := range serviceKey {
 		serviceKey[i] = byte(i + 1)
 	}
+	userEnabled := true
+	userMaxLife := int32(0)
+	stateMu := &sync.RWMutex{}
 
 	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if withKpasswd && r.URL.Path == "/api/v3/outposts/kerberos/1/set_password/" {
@@ -206,12 +213,19 @@ func startMITKDCWithIdentityPolicyOptions(
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
+		stateMu.RLock()
+		enabled := userEnabled
+		maxLife := userMaxLife
+		stateMu.RUnlock()
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"username":             canonicalUsername,
+			"enabled":              enabled,
 			"principal":            canonicalUsername,
 			"kvno":                 1,
 			"salt":                 mitRealm + canonicalUsername,
+			"max_ticket_lifetime":  maxLife,
+			"max_renew_lifetime":   0,
 			"pac_user_id":          2001,
 			"pac_primary_group_id": 2001,
 			"pac_group_ids":        []int32{},
@@ -412,6 +426,9 @@ func startMITKDCWithIdentityPolicyOptions(
 		passwordChanged: passwordChanged,
 		store:           store,
 		server:          server,
+		userEnabled:     &userEnabled,
+		userMaxLife:     &userMaxLife,
+		stateMu:         stateMu,
 	}
 }
 
@@ -514,6 +531,53 @@ func TestMITInteropUDP(t *testing.T) {
 
 func TestMITInteropTCP(t *testing.T) {
 	runMITFlow(t, true)
+}
+
+func TestMITInteropAccountStateAndLifetime(t *testing.T) {
+	h := startMITKDC(t, false)
+	h.stateMu.Lock()
+	*h.userEnabled = false
+	h.stateMu.Unlock()
+	if output, err := h.runResult(h.cache, mitPassword+"\n", "kinit", mitUser); err == nil {
+		t.Fatalf("kinit unexpectedly succeeded for disabled user:\n%s", output)
+	} else if !strings.Contains(strings.ToLower(output), "revoked") {
+		t.Fatalf("disabled-user kinit did not report revoked credentials:\n%s", output)
+	}
+
+	h.stateMu.Lock()
+	*h.userEnabled = true
+	*h.userMaxLife = 90
+	h.stateMu.Unlock()
+	h.store.cacheMu.Lock()
+	h.store.cache = make(map[string]cachedUserKey)
+	h.store.cacheMu.Unlock()
+	h.run(t, mitPassword+"\n", "kinit", mitUser)
+	klist := h.run(t, "", "klist")
+	t.Logf("klist with per-user lifetime:\n%s", klist)
+	var expiration time.Time
+	for _, line := range strings.Split(klist, "\n") {
+		if !strings.Contains(line, "krbtgt/"+mitRealm+"@"+mitRealm) {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) < 4 {
+			continue
+		}
+		for _, layout := range []string{"01/02/06 15:04:05", "01/02/2006 15:04:05"} {
+			parsed, err := time.ParseInLocation(layout, fields[2]+" "+fields[3], time.Local)
+			if err == nil {
+				expiration = parsed
+				break
+			}
+		}
+	}
+	if expiration.IsZero() {
+		t.Fatalf("could not parse user ticket expiration from klist:\n%s", klist)
+	}
+	now := time.Now()
+	if expiration.Before(now.Add(30*time.Second)) || expiration.After(now.Add(3*time.Minute)) {
+		t.Fatalf("user ticket expiration = %v, want approximately 90 seconds from now", expiration)
+	}
 }
 
 func TestMITInteropSPAKE(t *testing.T) {
@@ -1036,10 +1100,13 @@ func runMITPKINITWithAnonymousEnabled(
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"username":  mitUser,
-			"principal": mitUser,
-			"kvno":      1,
-			"salt":      mitRealm + mitUser,
+			"username":            mitUser,
+			"enabled":             true,
+			"principal":           mitUser,
+			"kvno":                1,
+			"salt":                mitRealm + mitUser,
+			"max_ticket_lifetime": nil,
+			"max_renew_lifetime":  nil,
 			"keys": map[string]string{
 				"18": base64.StdEncoding.EncodeToString(userKey),
 			},

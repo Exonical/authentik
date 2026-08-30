@@ -45370,6 +45370,8 @@ components:
       properties:
         username:
           type: string
+        enabled:
+          type: boolean
         principal:
           type: string
           readOnly: true
@@ -45380,6 +45382,14 @@ components:
         keys:
           type: object
           additionalProperties: {}
+          readOnly: true
+        max_ticket_lifetime:
+          type: integer
+          nullable: true
+          readOnly: true
+        max_renew_lifetime:
+          type: integer
+          nullable: true
           readOnly: true
         pac_user_id:
           type: integer
@@ -45403,8 +45413,11 @@ components:
           nullable: true
           readOnly: true
       required:
+      - enabled
       - keys
       - kvno
+      - max_renew_lifetime
+      - max_ticket_lifetime
       - pac_group_ids
       - pac_name
       - pac_primary_group_id

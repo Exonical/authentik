@@ -365,10 +365,13 @@ class KerberosUserKeyOutpostSerializer(PassiveSerializer):
     """User key data consumed by the KDC outpost."""
 
     username = CharField(source="user.username")
+    enabled = BooleanField(source="user.is_active")
     principal = SerializerMethodField()
     kvno = IntegerField()
     salt = CharField()
     keys = SerializerMethodField()
+    max_ticket_lifetime = SerializerMethodField()
+    max_renew_lifetime = SerializerMethodField()
     pac_user_id = SerializerMethodField()
     pac_primary_group_id = SerializerMethodField()
     pac_group_ids = SerializerMethodField()
@@ -385,11 +388,23 @@ class KerberosUserKeyOutpostSerializer(PassiveSerializer):
     @staticmethod
     def _attribute_number(attributes: dict, name: str) -> int | None:
         value = attributes.get(name)
-        if isinstance(value, str) and value.isdigit():
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, int):
+            parsed = value
+        elif isinstance(value, str) and value.isdigit():
             parsed = int(value)
-            if 0 <= parsed <= 0xFFFFFFFF:
-                return parsed
+        else:
+            return None
+        if parsed >= 0:
+            return parsed
         return None
+
+    def get_max_ticket_lifetime(self, obj: KerberosUserKeys) -> int | None:
+        return self._attribute_number(obj.user.attributes, "krb5MaxLife")
+
+    def get_max_renew_lifetime(self, obj: KerberosUserKeys) -> int | None:
+        return self._attribute_number(obj.user.attributes, "krb5MaxRenew")
 
     def get_pac_user_id(self, obj: KerberosUserKeys) -> int:
         value = self._attribute_number(obj.user.attributes, "uidNumber")
@@ -410,7 +425,7 @@ class KerberosUserKeyOutpostSerializer(PassiveSerializer):
         return upn if isinstance(upn, str) and upn else obj.user.email or ""
 
     def get_password_expiration(self, obj: KerberosUserKeys) -> datetime | None:
-        application = obj.provider.application
+        application = getattr(obj.provider, "application", None)
         if application is None:
             return None
         days = (
@@ -617,7 +632,7 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
             user = client.service_account
         else:
             user = self._resolve_user(provider, username)
-            if user is None:
+            if user is None or not user.is_active:
                 raise Http404
 
         app_engine = PolicyEngine(provider.application, user, request)
@@ -697,6 +712,8 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
             case _:
                 user = User.objects.filter(username=username).first()
         if user is None:
+            raise Http404
+        if not user.is_active:
             raise Http404
         user.set_password(body.validated_data["password"], request=request)
         user.save()
