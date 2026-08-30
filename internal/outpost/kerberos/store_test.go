@@ -86,6 +86,34 @@ func TestStoreDelegationPolicyMapping(t *testing.T) {
 	}
 }
 
+func TestAnonymousPrincipalAuthorization(t *testing.T) {
+	anonymous := principal.Principal{
+		Realm:      "WELLKNOWN:ANONYMOUS",
+		NameType:   principal.NTWellKnown,
+		Components: []string{"WELLKNOWN", "ANONYMOUS"},
+	}
+	if !isAnonymousPrincipal(anonymous) {
+		t.Fatal("anonymous principal was not detected")
+	}
+	if isAnonymousPrincipal(principal.Principal{
+		NameType:   principal.NTWellKnown,
+		Components: []string{"WELLKNOWN", "OTHER"},
+	}) {
+		t.Fatal("non-anonymous well-known principal was detected")
+	}
+	for _, enabled := range []bool{false, true} {
+		store := testStore(t, nil)
+		store.anonymousPKINITEnabled = enabled
+		err := store.Authorize(anonymous, principal.Principal{Realm: testRealm}, true)
+		if enabled && err != nil {
+			t.Fatalf("enabled anonymous authorization failed: %v", err)
+		}
+		if !enabled && (err == nil || !strings.Contains(err.Error(), "anonymous PKINIT is disabled")) {
+			t.Fatalf("disabled anonymous authorization error = %v", err)
+		}
+	}
+}
+
 func TestStoreAuthorizeAllowAndCache(t *testing.T) {
 	requests := 0
 	store := testStore(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

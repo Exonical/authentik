@@ -273,6 +273,13 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                     })}
                     ?checked=${provider.kpasswdEnabled ?? true}
                 ></ak-switch-input>
+                <ak-switch-input
+                    name="kkdcpEnabled"
+                    label=${msg("KDC Proxy enabled", {
+                        id: "kerberos.kkdcp.enabled.label",
+                    })}
+                    ?checked=${provider.kkdcpEnabled ?? false}
+                ></ak-switch-input>
             </div>
         </ak-form-group>
 
@@ -287,6 +294,27 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                         id: "kerberos.require-preauthentication.label",
                     })}
                     ?checked=${provider.requirePreauthentication ?? true}
+                ></ak-switch-input>
+                <ak-switch-input
+                    name="spakeEnabled"
+                    label=${msg("SPAKE preauthentication enabled", {
+                        id: "kerberos.spake.enabled.label",
+                    })}
+                    ?checked=${provider.spakeEnabled ?? false}
+                ></ak-switch-input>
+                <ak-switch-input
+                    name="pkinitRequireFreshness"
+                    label=${msg("Require PKINIT freshness", {
+                        id: "kerberos.pkinit.freshness.label",
+                    })}
+                    ?checked=${provider.pkinitRequireFreshness ?? false}
+                ></ak-switch-input>
+                <ak-switch-input
+                    name="anonymousPkinitEnabled"
+                    label=${msg("Anonymous PKINIT enabled", {
+                        id: "kerberos.anonymous-pkinit.enabled.label",
+                    })}
+                    ?checked=${provider.anonymousPkinitEnabled ?? false}
                 ></ak-switch-input>
                 <ak-switch-input
                     name="forwardable"
@@ -392,6 +420,29 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                     <p class="pf-c-form__helper-text">
                         ${msg("CA certificate used to validate PKINIT client certificates.", {
                             id: "kerberos.pkinit.client-ca.description",
+                        })}
+                    </p>
+                </ak-form-element-horizontal>
+                <ak-form-element-horizontal
+                    label=${msg("KDC Proxy TLS certificate", {
+                        id: "kerberos.kkdcp.certificate.label",
+                    })}
+                    name="kkdcpCertificate"
+                    .errorMessages=${errors.kkdcpCertificate}
+                >
+                    <ak-crypto-certificate-search
+                        label=${msg("KDC Proxy TLS certificate", {
+                            id: "kerberos.kkdcp.certificate.search-label",
+                        })}
+                        placeholder=${msg("Select a certificate with a private key...", {
+                            id: "kerberos.kkdcp.certificate.placeholder",
+                        })}
+                        certificate=${ifPresent(provider.kkdcpCertificate)}
+                        name="kkdcpCertificate"
+                    ></ak-crypto-certificate-search>
+                    <p class="pf-c-form__helper-text">
+                        ${msg("Certificate/key pair used by the KDC Proxy HTTPS listener.", {
+                            id: "kerberos.kkdcp.certificate.description",
                         })}
                     </p>
                 </ak-form-element-horizontal>

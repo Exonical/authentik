@@ -2,18 +2,23 @@ package kerberos
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"io"
 	"net"
+	"net/http"
 	"sync"
+	"time"
 
 	"github.com/Exonical/go-kerberos/krb5/asn1"
+	"github.com/Exonical/go-kerberos/krb5/kkdcp"
 	"github.com/Exonical/go-kerberos/krb5/protocol"
 	"github.com/Exonical/go-kerberos/krb5/transport"
 	log "github.com/sirupsen/logrus"
 
 	"goauthentik.io/internal/config"
 	"goauthentik.io/internal/outpost/ak"
+	"goauthentik.io/internal/utils"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -28,6 +33,8 @@ type KerberosServer struct {
 	tcp        []net.Listener
 	kpasswdUDP []net.PacketConn
 	kpasswdTCP []net.Listener
+	kkdcp      []net.Listener
+	kkdcpHTTP  []*http.Server
 }
 
 func NewServer(ac *ak.APIController) ak.Outpost {
@@ -41,7 +48,7 @@ func NewServer(ac *ak.APIController) ak.Outpost {
 
 func (rs *KerberosServer) Start() error {
 	var group errgroup.Group
-	hasUDP, hasTCP, hasKpasswdUDP, hasKpasswdTCP := false, false, false, false
+	hasUDP, hasTCP, hasKpasswdUDP, hasKpasswdTCP, hasKKDCP := false, false, false, false, false
 	rs.mu.Lock()
 	for _, provider := range rs.providers {
 		hasUDP = hasUDP || provider.Config.GetUdpEnabled()
@@ -50,9 +57,10 @@ func (rs *KerberosServer) Start() error {
 			(provider.Config.GetKpasswdEnabled() && provider.Config.GetUdpEnabled())
 		hasKpasswdTCP = hasKpasswdTCP ||
 			(provider.Config.GetKpasswdEnabled() && provider.Config.GetTcpEnabled())
+		hasKKDCP = hasKKDCP || provider.Config.GetKkdcpEnabled()
 	}
 	rs.mu.Unlock()
-	if !hasUDP && !hasTCP && !hasKpasswdUDP && !hasKpasswdTCP {
+	if !hasUDP && !hasTCP && !hasKpasswdUDP && !hasKpasswdTCP && !hasKKDCP {
 		return errors.New("all kerberos providers have both UDP and TCP disabled")
 	}
 	for _, address := range config.Get().Listen.Kerberos {
@@ -101,6 +109,41 @@ func (rs *KerberosServer) Start() error {
 			}
 		}
 	}
+	if hasKKDCP {
+		for _, address := range config.Get().Listen.KKDCP {
+			listener, err := net.Listen("tcp", address)
+			if err != nil {
+				return err
+			}
+			tlsConfig := utils.GetTLSConfig()
+			rs.mu.Lock()
+			for _, provider := range rs.providers {
+				if provider.KKDCPCertificate != nil {
+					tlsConfig.Certificates = append(tlsConfig.Certificates, *provider.KKDCPCertificate)
+				}
+			}
+			rs.mu.Unlock()
+			if len(tlsConfig.Certificates) == 0 {
+				_ = listener.Close()
+				continue
+			}
+			tlsListener := tls.NewListener(listener, tlsConfig)
+			server := &http.Server{
+				Handler: rs.kkdcpHandler(),
+			}
+			rs.mu.Lock()
+			rs.kkdcp = append(rs.kkdcp, tlsListener)
+			rs.kkdcpHTTP = append(rs.kkdcpHTTP, server)
+			rs.mu.Unlock()
+			group.Go(func() error {
+				err := server.Serve(tlsListener)
+				if errors.Is(err, http.ErrServerClosed) {
+					return nil
+				}
+				return err
+			})
+		}
+	}
 	metricsRouter := ak.MetricsRouter()
 	for _, address := range config.Get().Listen.Metrics {
 		address := address
@@ -122,21 +165,39 @@ func (rs *KerberosServer) Start() error {
 
 func (rs *KerberosServer) Stop() error {
 	rs.mu.Lock()
-	defer rs.mu.Unlock()
+	udp := append([]net.PacketConn(nil), rs.udp...)
+	tcp := append([]net.Listener(nil), rs.tcp...)
+	kpasswdUDP := append([]net.PacketConn(nil), rs.kpasswdUDP...)
+	kpasswdTCP := append([]net.Listener(nil), rs.kpasswdTCP...)
+	kkdcp := append([]net.Listener(nil), rs.kkdcp...)
+	kkdcpHTTP := append([]*http.Server(nil), rs.kkdcpHTTP...)
+	rs.mu.Unlock()
 	var errs errgroup.Group
-	for _, listener := range rs.udp {
+	for _, listener := range udp {
 		listener := listener
 		errs.Go(listener.Close)
 	}
-	for _, listener := range rs.tcp {
+	for _, listener := range tcp {
 		listener := listener
 		errs.Go(listener.Close)
 	}
-	for _, listener := range rs.kpasswdUDP {
+	for _, listener := range kpasswdUDP {
 		listener := listener
 		errs.Go(listener.Close)
 	}
-	for _, listener := range rs.kpasswdTCP {
+	for _, listener := range kpasswdTCP {
+		listener := listener
+		errs.Go(listener.Close)
+	}
+	for _, server := range kkdcpHTTP {
+		server := server
+		errs.Go(func() error {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			return server.Shutdown(ctx)
+		})
+	}
+	for _, listener := range kkdcp {
 		listener := listener
 		errs.Go(listener.Close)
 	}
@@ -193,6 +254,38 @@ func (rs *KerberosServer) handle(data []byte) ([]byte, error) {
 }
 
 func (rs *KerberosServer) handleTransport(data []byte, udp bool) ([]byte, error) {
+	provider, err := rs.providerForRequest(data)
+	if err != nil {
+		return nil, err
+	}
+	if udp && !provider.Config.GetUdpEnabled() {
+		return nil, errors.New("UDP is disabled for kerberos provider")
+	}
+	if !udp && !provider.Config.GetTcpEnabled() {
+		return nil, errors.New("TCP is disabled for kerberos provider")
+	}
+	return provider.KDC.HandleMessage(data), nil
+}
+
+func (rs *KerberosServer) handleKKDCP(_ context.Context, data []byte) ([]byte, error) {
+	provider, err := rs.providerForRequest(data)
+	if err != nil {
+		return nil, err
+	}
+	if provider.KKDCPCertificate == nil {
+		return nil, errors.New("KKDCP is disabled for kerberos provider")
+	}
+	return provider.KDC.HandleMessage(data), nil
+}
+
+func (rs *KerberosServer) kkdcpHandler() http.Handler {
+	return &kkdcp.Handler{
+		Backend:          rs.handleKKDCP,
+		RequireTargetURL: "/KdcProxy",
+	}
+}
+
+func (rs *KerberosServer) providerForRequest(data []byte) (*ProviderInstance, error) {
 	rs.mu.Lock()
 	realm, realmErr := requestRealm(data)
 	var provider *ProviderInstance
@@ -211,13 +304,7 @@ func (rs *KerberosServer) handleTransport(data []byte, udp bool) ([]byte, error)
 	if provider == nil {
 		return nil, errors.New("no kerberos provider for realm")
 	}
-	if udp && !provider.Config.GetUdpEnabled() {
-		return nil, errors.New("UDP is disabled for kerberos provider")
-	}
-	if !udp && !provider.Config.GetTcpEnabled() {
-		return nil, errors.New("TCP is disabled for kerberos provider")
-	}
-	return provider.KDC.HandleMessage(data), nil
+	return provider, nil
 }
 
 func requestRealm(data []byte) (string, error) {

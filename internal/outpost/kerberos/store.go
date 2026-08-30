@@ -38,7 +38,16 @@ func (s *providerStore) Lookup(name principal.Principal) (kdb.PrincipalRecord, b
 func (s *providerStore) Authorize(
 	client, service principal.Principal, asExchange bool,
 ) error {
-	if s == nil || client.Realm != s.realm || len(client.Components) == 0 {
+	if s == nil {
+		return nil
+	}
+	if isAnonymousPrincipal(client) {
+		if !s.anonymousPKINITEnabled {
+			return fmt.Errorf("anonymous PKINIT is disabled")
+		}
+		return nil
+	}
+	if client.Realm != s.realm || len(client.Components) == 0 {
 		return nil
 	}
 	subject := client.Components[0]
@@ -112,6 +121,13 @@ func (s *providerStore) Authorize(
 		return fmt.Errorf("authentik policy denied access")
 	}
 	return nil
+}
+
+func isAnonymousPrincipal(p principal.Principal) bool {
+	return p.NameType == principal.NTWellKnown &&
+		len(p.Components) == 2 &&
+		p.Components[0] == "WELLKNOWN" &&
+		p.Components[1] == "ANONYMOUS"
 }
 
 // krbtgtRecord synthesizes the krbtgt/<realm> principal. Its KVNO is

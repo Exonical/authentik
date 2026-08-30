@@ -44113,6 +44113,9 @@ components:
             maximum: 2147483647
         require_preauthentication:
           type: boolean
+        spake_enabled:
+          type: boolean
+          description: Advertise PA-SPAKE preauthentication (RFC 9588).
         udp_enabled:
           type: boolean
         tcp_enabled:
@@ -44139,6 +44142,20 @@ components:
           format: uuid
           nullable: true
           description: CA certificate used to validate PKINIT client certificates.
+        pkinit_require_freshness:
+          type: boolean
+          description: Require RFC 8070 freshness tokens on PKINIT requests.
+        anonymous_pkinit_enabled:
+          type: boolean
+          description: Allow anonymous PKINIT requests.
+        kkdcp_enabled:
+          type: boolean
+          description: Enable KDC Proxy over HTTPS (MS-KKDCP).
+        kkdcp_certificate:
+          type: string
+          format: uuid
+          nullable: true
+          description: Certificate/key pair the KDC Proxy listener uses for TLS.
         master_key:
           type: string
         application_slug:
@@ -44240,6 +44257,9 @@ components:
             maximum: 2147483647
         require_preauthentication:
           type: boolean
+        spake_enabled:
+          type: boolean
+          description: Advertise PA-SPAKE preauthentication (RFC 9588).
         udp_enabled:
           type: boolean
         tcp_enabled:
@@ -44266,6 +44286,20 @@ components:
           format: uuid
           nullable: true
           description: CA certificate used to validate PKINIT client certificates.
+        pkinit_require_freshness:
+          type: boolean
+          description: Require RFC 8070 freshness tokens on PKINIT requests.
+        anonymous_pkinit_enabled:
+          type: boolean
+          description: Allow anonymous PKINIT requests.
+        kkdcp_enabled:
+          type: boolean
+          description: Enable KDC Proxy over HTTPS (MS-KKDCP).
+        kkdcp_certificate:
+          type: string
+          format: uuid
+          nullable: true
+          description: Certificate/key pair the KDC Proxy listener uses for TLS.
         master_key:
           type: string
           readOnly: true
@@ -44344,6 +44378,9 @@ components:
             maximum: 2147483647
         require_preauthentication:
           type: boolean
+        spake_enabled:
+          type: boolean
+          description: Advertise PA-SPAKE preauthentication (RFC 9588).
         udp_enabled:
           type: boolean
         tcp_enabled:
@@ -44370,6 +44407,20 @@ components:
           format: uuid
           nullable: true
           description: CA certificate used to validate PKINIT client certificates.
+        pkinit_require_freshness:
+          type: boolean
+          description: Require RFC 8070 freshness tokens on PKINIT requests.
+        anonymous_pkinit_enabled:
+          type: boolean
+          description: Allow anonymous PKINIT requests.
+        kkdcp_enabled:
+          type: boolean
+          description: Enable KDC Proxy over HTTPS (MS-KKDCP).
+        kkdcp_certificate:
+          type: string
+          format: uuid
+          nullable: true
+          description: Certificate/key pair the KDC Proxy listener uses for TLS.
       required:
       - name
       - realm_name
@@ -52752,6 +52803,9 @@ components:
             maximum: 2147483647
         require_preauthentication:
           type: boolean
+        spake_enabled:
+          type: boolean
+          description: Advertise PA-SPAKE preauthentication (RFC 9588).
         udp_enabled:
           type: boolean
         tcp_enabled:
@@ -52778,6 +52832,20 @@ components:
           format: uuid
           nullable: true
           description: CA certificate used to validate PKINIT client certificates.
+        pkinit_require_freshness:
+          type: boolean
+          description: Require RFC 8070 freshness tokens on PKINIT requests.
+        anonymous_pkinit_enabled:
+          type: boolean
+          description: Allow anonymous PKINIT requests.
+        kkdcp_enabled:
+          type: boolean
+          description: Enable KDC Proxy over HTTPS (MS-KKDCP).
+        kkdcp_certificate:
+          type: string
+          format: uuid
+          nullable: true
+          description: Certificate/key pair the KDC Proxy listener uses for TLS.
     PatchedKerberosServicePrincipalRequest:
       type: object
       description: Kerberos service principal serializer.

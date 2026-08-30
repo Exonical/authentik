@@ -78,6 +78,10 @@ class KerberosProvider(OutpostModel, Provider):
         validators=[timedelta_string_validator],
     )
     require_preauthentication = models.BooleanField(default=True)
+    spake_enabled = models.BooleanField(
+        default=False,
+        help_text=_("Advertise PA-SPAKE preauthentication (RFC 9588)."),
+    )
     udp_enabled = models.BooleanField(default=True)
     tcp_enabled = models.BooleanField(default=True)
     kpasswd_enabled = models.BooleanField(
@@ -109,6 +113,26 @@ class KerberosProvider(OutpostModel, Provider):
         blank=True,
         related_name="+",
         help_text=_("CA certificate used to validate PKINIT client certificates."),
+    )
+    pkinit_require_freshness = models.BooleanField(
+        default=False,
+        help_text=_("Require RFC 8070 freshness tokens on PKINIT requests."),
+    )
+    anonymous_pkinit_enabled = models.BooleanField(
+        default=False,
+        help_text=_("Allow anonymous PKINIT requests."),
+    )
+    kkdcp_enabled = models.BooleanField(
+        default=False,
+        help_text=_("Enable KDC Proxy over HTTPS (MS-KKDCP)."),
+    )
+    kkdcp_certificate = models.ForeignKey(
+        CertificateKeyPair,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        help_text=_("Certificate/key pair the KDC Proxy listener uses for TLS."),
     )
 
     @property
@@ -157,6 +181,17 @@ class KerberosProvider(OutpostModel, Provider):
                         "authentik_crypto.view_certificatekeypair_certificate",
                         self.pkinit_client_ca,
                     ),
+                ]
+            )
+        if self.kkdcp_certificate:
+            required.extend(
+                [
+                    ("authentik_crypto.view_certificatekeypair", self.kkdcp_certificate),
+                    (
+                        "authentik_crypto.view_certificatekeypair_certificate",
+                        self.kkdcp_certificate,
+                    ),
+                    ("authentik_crypto.view_certificatekeypair_key", self.kkdcp_certificate),
                 ]
             )
         return required

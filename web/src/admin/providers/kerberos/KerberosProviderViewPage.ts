@@ -71,6 +71,18 @@ const descriptionLabels: Record<string, string> = {
     "kerberos.kpasswd-enabled.term": msg("Password changes enabled", {
         id: "kerberos.kpasswd-enabled.term",
     }),
+    "kerberos.kkdcp.enabled.term": msg("KDC Proxy enabled", {
+        id: "kerberos.kkdcp.enabled.term",
+    }),
+    "kerberos.spake.enabled.term": msg("SPAKE preauthentication enabled", {
+        id: "kerberos.spake.enabled.term",
+    }),
+    "kerberos.pkinit.freshness.term": msg("Require PKINIT freshness", {
+        id: "kerberos.pkinit.freshness.term",
+    }),
+    "kerberos.anonymous-pkinit.enabled.term": msg("Anonymous PKINIT enabled", {
+        id: "kerberos.anonymous-pkinit.enabled.term",
+    }),
     "kerberos.forwardable.term": msg("Forwardable", { id: "kerberos.forwardable.term" }),
     "kerberos.renewable.term": msg("Renewable", { id: "kerberos.renewable.term" }),
     "kerberos.proxiable.term": msg("Proxiable", { id: "kerberos.proxiable.term" }),
@@ -82,6 +94,9 @@ const descriptionLabels: Record<string, string> = {
     }),
     "kerberos.pkinit.client-ca.term": msg("Client CA certificate", {
         id: "kerberos.pkinit.client-ca.term",
+    }),
+    "kerberos.kkdcp.certificate.term": msg("KDC Proxy TLS certificate", {
+        id: "kerberos.kkdcp.certificate.term",
     }),
 };
 
@@ -98,6 +113,9 @@ export class KerberosProviderViewPage extends AKElement {
 
     @state()
     pkinitClientCa: CertificateKeyPair | null = null;
+
+    @state()
+    kkdcpCertificate: CertificateKeyPair | null = null;
 
     static styles: CSSResult[] = [
         PFButton,
@@ -141,6 +159,14 @@ export class KerberosProviderViewPage extends AKElement {
                     this.pkinitClientCa = null;
                 } else {
                     this.fetchPkinitClientCa(provider.pkinitClientCa);
+                }
+                if (!provider.kkdcpCertificate) {
+                    this.kkdcpCertificate = null;
+                } else {
+                    this.fetchCertificate(provider.kkdcpCertificate).then((certificate) => {
+                        this.kkdcpCertificate = certificate;
+                        this.requestUpdate("kkdcpCertificate");
+                    });
                 }
             });
     }
@@ -258,6 +284,26 @@ export class KerberosProviderViewPage extends AKElement {
                                                 "kerberos.kpasswd-enabled.term",
                                             )}
                                             ${this.renderBoolean(
+                                                "KDC Proxy enabled",
+                                                this.provider.kkdcpEnabled,
+                                                "kerberos.kkdcp.enabled.term",
+                                            )}
+                                            ${this.renderBoolean(
+                                                "SPAKE preauthentication enabled",
+                                                this.provider.spakeEnabled,
+                                                "kerberos.spake.enabled.term",
+                                            )}
+                                            ${this.renderBoolean(
+                                                "Require PKINIT freshness",
+                                                this.provider.pkinitRequireFreshness,
+                                                "kerberos.pkinit.freshness.term",
+                                            )}
+                                            ${this.renderBoolean(
+                                                "Anonymous PKINIT enabled",
+                                                this.provider.anonymousPkinitEnabled,
+                                                "kerberos.anonymous-pkinit.enabled.term",
+                                            )}
+                                            ${this.renderBoolean(
                                                 "Forwardable",
                                                 this.provider.forwardable,
                                                 "kerberos.forwardable.term",
@@ -288,6 +334,11 @@ export class KerberosProviderViewPage extends AKElement {
                                                 "Client CA certificate",
                                                 this.pkinitClientCa?.name ?? "-",
                                                 "kerberos.pkinit.client-ca.term",
+                                            )}
+                                            ${this.renderDescription(
+                                                "KDC Proxy TLS certificate",
+                                                this.kkdcpCertificate?.name ?? "-",
+                                                "kerberos.kkdcp.certificate.term",
                                             )}
                                         </dl>
                                     </div>

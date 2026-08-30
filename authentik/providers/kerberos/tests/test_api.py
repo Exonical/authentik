@@ -11,7 +11,11 @@ from authentik.crypto.models import CertificateKeyPair
 from authentik.lib.generators import generate_id
 from authentik.policies.dummy.models import DummyPolicy
 from authentik.policies.models import PolicyBinding
-from authentik.providers.kerberos.api.providers import KerberosServicePrincipalSerializer
+from authentik.providers.kerberos.api.providers import (
+    KerberosOutpostConfigSerializer,
+    KerberosProviderSerializer,
+    KerberosServicePrincipalSerializer,
+)
 from authentik.providers.kerberos.models import (
     KerberosProvider,
     KerberosServicePrincipal,
@@ -21,6 +25,37 @@ from authentik.providers.kerberos.models import (
 
 class KerberosProviderAPITests(APITestCase):
     """Test Kerberos outpost configuration API."""
+
+    def test_advanced_protocol_settings_serializer_round_trip(self):
+        """Advanced protocol settings round-trip through both serializers."""
+        certificate = create_test_cert()
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.COM",
+            spake_enabled=True,
+            pkinit_require_freshness=True,
+            anonymous_pkinit_enabled=True,
+            kkdcp_enabled=True,
+            kkdcp_certificate=certificate,
+        )
+        serializer = KerberosProviderSerializer(provider)
+        self.assertTrue(serializer.data["spake_enabled"])
+        self.assertTrue(serializer.data["pkinit_require_freshness"])
+        self.assertTrue(serializer.data["anonymous_pkinit_enabled"])
+        self.assertTrue(serializer.data["kkdcp_enabled"])
+        self.assertEqual(serializer.data["kkdcp_certificate"], certificate.pk)
+
+        Application.objects.create(
+            name=generate_id(),
+            slug=generate_id(),
+            provider=provider,
+        )
+        outpost_data = KerberosOutpostConfigSerializer(provider).data
+        self.assertTrue(outpost_data["spake_enabled"])
+        self.assertTrue(outpost_data["pkinit_require_freshness"])
+        self.assertTrue(outpost_data["anonymous_pkinit_enabled"])
+        self.assertTrue(outpost_data["kkdcp_enabled"])
+        self.assertEqual(outpost_data["kkdcp_certificate"], certificate.pk)
 
     def test_outpost_config(self):
         """An application-backed provider is visible to outposts."""

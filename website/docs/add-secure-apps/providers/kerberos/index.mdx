@@ -63,6 +63,9 @@ Enter durations using the authentik time delta format, such as `hours=10` or `da
 
 **UDP enabled** and **TCP enabled** control which transports the outpost accepts for this provider. The outpost deployment exposes port `3088` for both transports, but the provider settings can disable either protocol.
 
+**SPAKE preauthentication enabled** advertises PA-SPAKE preauthentication (RFC 9588). When
+disabled, clients use the existing encrypted-timestamp preauthentication flow.
+
 ### Password changes (kpasswd)
 
 The Kerberos outpost supports RFC 3244 password changes through the MIT `kpasswd` protocol. Enable **Password changes enabled** to allow password changes for this provider. The outpost listens on port `3464` by default for this protocol. Publish this port for both UDP and TCP, or map it to the standard Kerberos password-change port `464`:
@@ -226,6 +229,38 @@ kinit -X X509_user_identity=FILE:/etc/krb5/alice.pem,/etc/krb5/alice.key alice
 
 The principal component in the final argument must match the provider's **Principal username attribute** setting and the principal SAN in the certificate. Use `klist` to verify that the client received a TGT for the provider's realm.
 
+To require RFC 8070 freshness tokens in PKINIT requests, enable **Require PKINIT freshness**.
+This can improve resistance to replay of intercepted PKINIT requests, but clients must support
+freshness tokens.
+
+**Anonymous PKINIT enabled** allows the RFC 8062 anonymous principal
+`WELLKNOWN/ANONYMOUS`. Anonymous authentication does not identify an authentik user and therefore
+does not run user access checks. Keep this disabled unless anonymous tickets are explicitly
+required by your deployment.
+
+## KDC Proxy (KKDCP)
+
+The Kerberos outpost can expose the KDC over HTTPS using Microsoft KDC Proxy (MS-KKDCP).
+Enable **KDC Proxy enabled** and select a **KDC Proxy TLS certificate** with a private key.
+The listener uses internal port `3443`; publish or map it externally to HTTPS port `443`.
+Requests are accepted only at `/KdcProxy`.
+
+The certificate must be trusted by clients and include a private key suitable for a TLS server.
+If KDC Proxy is enabled without a certificate, the outpost logs a warning and does not start this
+listener; other Kerberos transports continue operating.
+
+For MIT Kerberos clients, configure the CA that issued the proxy certificate and the HTTPS KDC URL:
+
+```ini
+[libdefaults]
+    http_anchors = FILE:/etc/krb5/EXAMPLE.TEST-proxy-ca.pem
+
+[realms]
+    EXAMPLE.TEST = {
+        kdc = https://kerberos-outpost.example.com/KdcProxy
+    }
+```
+
 ## Deploy the Kerberos outpost
 
 The Kerberos provider requires a Kerberos outpost. The provider must be associated with an application so that the outpost can retrieve its configuration.
@@ -247,6 +282,7 @@ services:
         ports:
             - 3088:3088/tcp
             - 3088:3088/udp
+            - 443:3443/tcp
         environment:
             AUTHENTIK_HOST: https://authentik.company
             AUTHENTIK_INSECURE: "false"
