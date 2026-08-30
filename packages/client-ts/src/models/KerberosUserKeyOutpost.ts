@@ -78,6 +78,12 @@ export interface KerberosUserKeyOutpost {
      * @memberof KerberosUserKeyOutpost
      */
     readonly pacUpn: string;
+    /**
+     *
+     * @type {Date}
+     * @memberof KerberosUserKeyOutpost
+     */
+    readonly passwordExpiration: Date | null;
 }
 
 /**
@@ -124,6 +130,13 @@ export function instanceOfKerberosUserKeyOutpost(value: object): value is Kerber
             (value as Record<string, any>)["pac_upn"] === undefined)
     )
         return false;
+    if (
+        (!("passwordExpiration" in (value as Record<string, any>)) &&
+            !("password_expiration" in (value as Record<string, any>))) ||
+        ((value as Record<string, any>)["passwordExpiration"] === undefined &&
+            (value as Record<string, any>)["password_expiration"] === undefined)
+    )
+        return false;
     return true;
 }
 
@@ -149,6 +162,8 @@ export function KerberosUserKeyOutpostFromJSONTyped(
         pacGroupIds: json["pac_group_ids"],
         pacName: json["pac_name"],
         pacUpn: json["pac_upn"],
+        passwordExpiration:
+            json["password_expiration"] == null ? null : new Date(json["password_expiration"]),
     };
 }
 
@@ -159,7 +174,13 @@ export function KerberosUserKeyOutpostToJSON(json: any): KerberosUserKeyOutpost 
 export function KerberosUserKeyOutpostToJSONTyped(
     value?: Omit<
         KerberosUserKeyOutpost,
-        "principal" | "keys" | "pacUserId" | "pacPrimaryGroupId" | "pacGroupIds" | "pacUpn"
+        | "principal"
+        | "keys"
+        | "pacUserId"
+        | "pacPrimaryGroupId"
+        | "pacGroupIds"
+        | "pacUpn"
+        | "passwordExpiration"
     > | null,
     ignoreDiscriminator: boolean = false,
 ): any {

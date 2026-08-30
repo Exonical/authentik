@@ -216,6 +216,7 @@ func startMITKDCWithIdentityPolicyOptions(
 			"pac_group_ids":        []int32{},
 			"pac_name":             canonicalUsername,
 			"pac_upn":              canonicalUsername + "@" + mitRealm,
+			"password_expiration":  nil,
 			"keys": map[string]string{
 				"18": base64.StdEncoding.EncodeToString(userKey),
 			},
@@ -1043,7 +1044,8 @@ func runMITPKINITWithAnonymousEnabled(
 			},
 			"pac_user_id": 2001, "pac_primary_group_id": 2001,
 			"pac_group_ids": []int32{}, "pac_name": mitUser,
-			"pac_upn": mitUser + "@" + mitRealm,
+			"pac_upn":             mitUser + "@" + mitRealm,
+			"password_expiration": nil,
 		})
 	}))
 	t.Cleanup(apiServer.Close)

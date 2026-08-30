@@ -86,6 +86,38 @@ func TestStoreDelegationPolicyMapping(t *testing.T) {
 	}
 }
 
+func TestStoreUserRecordPasswordExpiration(t *testing.T) {
+	expiration := time.Date(2030, time.January, 2, 3, 4, 5, 0, time.UTC)
+	store := testStore(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"username": "alice",
+			"principal": "alice",
+			"kvno": 1,
+			"salt": "EXAMPLE.TESTalice",
+			"keys": {"18": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="},
+			"pac_user_id": 0,
+			"pac_primary_group_id": 0,
+			"pac_group_ids": [],
+			"pac_name": "Alice",
+			"pac_upn": "alice@example.test",
+			"password_expiration": "2030-01-02T03:04:05Z"
+		}`))
+	}))
+	record, found, err := store.userRecord(principal.Principal{
+		Realm: testRealm, Components: []string{"alice"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found {
+		t.Fatal("user record was not found")
+	}
+	if !record.PasswordExpiration.Equal(expiration) {
+		t.Fatalf("password expiration = %v, want %v", record.PasswordExpiration, expiration)
+	}
+}
+
 func TestAnonymousPrincipalAuthorization(t *testing.T) {
 	anonymous := principal.Principal{
 		Realm:      "WELLKNOWN:ANONYMOUS",
@@ -416,6 +448,7 @@ func TestStoreUserLookupCacheAndUnknown(t *testing.T) {
 			"pac_group_ids":        []int32{},
 			"pac_name":             "alice",
 			"pac_upn":              "alice@" + testRealm,
+			"password_expiration":  nil,
 			"keys": map[string]string{
 				"18": base64.StdEncoding.EncodeToString(make([]byte, 32)),
 			},
@@ -491,6 +524,7 @@ func TestStoreUserAliasLookupAndCanonicalCache(t *testing.T) {
 			"pac_group_ids":        []int32{},
 			"pac_name":             "alice",
 			"pac_upn":              "alice@" + testRealm,
+			"password_expiration":  nil,
 			"keys": map[string]string{
 				"18": base64.StdEncoding.EncodeToString(make([]byte, 32)),
 			},

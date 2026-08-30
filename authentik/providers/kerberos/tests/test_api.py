@@ -1,5 +1,6 @@
 """Kerberos provider API tests."""
 
+from datetime import timedelta
 from json import loads
 
 from django.urls import reverse
@@ -10,11 +11,13 @@ from authentik.core.tests.utils import create_test_admin_user, create_test_cert,
 from authentik.crypto.models import CertificateKeyPair
 from authentik.lib.generators import generate_id
 from authentik.policies.dummy.models import DummyPolicy
+from authentik.policies.expiry.models import PasswordExpiryPolicy
 from authentik.policies.models import PolicyBinding
 from authentik.providers.kerberos.api.providers import (
     KerberosOutpostConfigSerializer,
     KerberosProviderSerializer,
     KerberosServicePrincipalSerializer,
+    KerberosUserKeyOutpostSerializer,
 )
 from authentik.providers.kerberos.models import (
     KerberosProvider,
@@ -131,6 +134,34 @@ class KerberosProviderAPITests(APITestCase):
         outpost_data = KerberosOutpostConfigSerializer(provider).data
         self.assertTrue(outpost_data["pac_enabled"])
         self.assertEqual(outpost_data["realm_sid"], "S-1-5-21-1-2-3")
+
+    def test_user_key_password_expiration_uses_shortest_bound_policy(self):
+        """User key payload maps the shortest application password expiry policy."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.COM",
+        )
+        application = Application.objects.create(
+            name=generate_id(),
+            slug=generate_id(),
+            provider=provider,
+        )
+        user = create_test_user()
+        user_keys, _ = KerberosUserKeys.objects.update_or_create(
+            user=user,
+            provider=provider,
+            defaults={"salt": "salt", "keys": {"18": "a2V5"}},
+        )
+        self.assertIsNone(KerberosUserKeyOutpostSerializer(user_keys).data["password_expiration"])
+        longer = PasswordExpiryPolicy.objects.create(name=generate_id(), days=90)
+        shorter = PasswordExpiryPolicy.objects.create(name=generate_id(), days=30)
+        PolicyBinding.objects.create(target=application, policy=longer, order=0)
+        PolicyBinding.objects.create(target=application, policy=shorter, order=1)
+        payload = KerberosUserKeyOutpostSerializer(user_keys).data
+        self.assertEqual(
+            payload["password_expiration"],
+            user.password_change_date + timedelta(days=30),
+        )
 
     def test_outpost_config(self):
         """An application-backed provider is visible to outposts."""

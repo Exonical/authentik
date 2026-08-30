@@ -142,6 +142,7 @@ func TestKpasswdClientChangesPasswordThroughServer(t *testing.T) {
 				"pac_group_ids":        []int32{},
 				"pac_name":             username,
 				"pac_upn":              username + "@" + realm,
+				"password_expiration":  nil,
 				"keys": map[string]string{
 					"18": base64.StdEncoding.EncodeToString(userKey),
 				},

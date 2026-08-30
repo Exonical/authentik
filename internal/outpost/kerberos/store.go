@@ -247,8 +247,9 @@ func (s *providerStore) userRecord(name principal.Principal) (kdb.PrincipalRecor
 		Name: principal.Principal{
 			Realm: name.Realm, NameType: principal.NTPrincipal, Components: []string{canonicalUsername},
 		},
-		Keys: keys,
-		KVNO: uint32(response.Kvno),
+		Keys:               keys,
+		KVNO:               uint32(response.Kvno),
+		PasswordExpiration: response.GetPasswordExpiration(),
 	}
 	cached := cachedUserKey{
 		record: record, identity: response, found: true, expires: now.Add(userKeyCacheTTL),
