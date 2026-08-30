@@ -304,6 +304,26 @@ For MIT Kerberos clients, configure the CA that issued the proxy certificate and
     }
 ```
 
+## Realm trusts
+
+Realm trusts allow the provider's local realm to issue and accept tickets for a
+configured remote realm. For a trust between `EXAMPLE.TEST` and `REMOTE.TEST`,
+authentik publishes these directional trust principals:
+
+- `krbtgt/REMOTE.TEST@EXAMPLE.TEST` uses the outgoing key set.
+- `krbtgt/EXAMPLE.TEST@REMOTE.TEST` uses the incoming key set.
+
+Each direction has its own KVNO and keys. Use the corresponding keytab export
+when configuring the peer realm, and rotate outgoing and incoming keys
+independently. authentik generates the keys when the trust is created; there is
+no key-import API.
+
+The optional **Intermediate realms** (`capaths`) list configures the intermediate
+realms allowed for transited-path checking. Values are stored in the order
+required by the Kerberos trust path, from the client realm to the service realm.
+For example, a path from `EXAMPLE.TEST` to `REMOTE.TEST` through
+`HUB.TEST` uses `HUB.TEST` as its intermediate realm.
+
 ## Deploy the Kerberos outpost
 
 The Kerberos provider requires a Kerberos outpost. The provider must be associated with an application so that the outpost can retrieve its configuration.

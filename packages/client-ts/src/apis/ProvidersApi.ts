@@ -14,6 +14,7 @@
 
 import { type ClientTypeEnum } from "../models/ClientTypeEnum";
 import { type DigestAlgorithmEnum } from "../models/DigestAlgorithmEnum";
+import { type DirectionEnum } from "../models/DirectionEnum";
 import { type ForceBindingEnum } from "../models/ForceBindingEnum";
 import {
     type GoogleWorkspaceProvider,
@@ -45,6 +46,11 @@ import {
     type KerberosProviderRequest,
     KerberosProviderRequestToJSON,
 } from "../models/KerberosProviderRequest";
+import { type KerberosRealmTrust, KerberosRealmTrustFromJSON } from "../models/KerberosRealmTrust";
+import {
+    type KerberosRealmTrustRequest,
+    KerberosRealmTrustRequestToJSON,
+} from "../models/KerberosRealmTrustRequest";
 import {
     type KerberosServicePrincipal,
     KerberosServicePrincipalFromJSON,
@@ -112,6 +118,10 @@ import {
     type PaginatedKerberosProviderList,
     PaginatedKerberosProviderListFromJSON,
 } from "../models/PaginatedKerberosProviderList";
+import {
+    type PaginatedKerberosRealmTrustList,
+    PaginatedKerberosRealmTrustListFromJSON,
+} from "../models/PaginatedKerberosRealmTrustList";
 import {
     type PaginatedKerberosServicePrincipalList,
     PaginatedKerberosServicePrincipalListFromJSON,
@@ -188,6 +198,10 @@ import {
     type PatchedKerberosProviderRequest,
     PatchedKerberosProviderRequestToJSON,
 } from "../models/PatchedKerberosProviderRequest";
+import {
+    type PatchedKerberosRealmTrustRequest,
+    PatchedKerberosRealmTrustRequestToJSON,
+} from "../models/PatchedKerberosRealmTrustRequest";
 import {
     type PatchedKerberosServicePrincipalRequest,
     PatchedKerberosServicePrincipalRequestToJSON,
@@ -431,6 +445,47 @@ export interface ProvidersKerberosListRequest {
 export interface ProvidersKerberosPartialUpdateRequest {
     id: number;
     patchedKerberosProviderRequest?: PatchedKerberosProviderRequest;
+}
+
+export interface ProvidersKerberosRealmTrustsCreateRequest {
+    kerberosRealmTrustRequest: KerberosRealmTrustRequest;
+}
+
+export interface ProvidersKerberosRealmTrustsDestroyRequest {
+    uuid: string;
+}
+
+export interface ProvidersKerberosRealmTrustsKeytabRetrieveRequest {
+    uuid: string;
+    direction?: DirectionEnum;
+}
+
+export interface ProvidersKerberosRealmTrustsListRequest {
+    ordering?: string;
+    page?: number;
+    pageSize?: number;
+    provider?: number;
+    remoteRealmIexact?: string;
+    search?: string;
+}
+
+export interface ProvidersKerberosRealmTrustsPartialUpdateRequest {
+    uuid: string;
+    patchedKerberosRealmTrustRequest?: PatchedKerberosRealmTrustRequest;
+}
+
+export interface ProvidersKerberosRealmTrustsRetrieveRequest {
+    uuid: string;
+}
+
+export interface ProvidersKerberosRealmTrustsRotateCreateRequest {
+    uuid: string;
+    direction?: DirectionEnum;
+}
+
+export interface ProvidersKerberosRealmTrustsUpdateRequest {
+    uuid: string;
+    kerberosRealmTrustRequest: KerberosRealmTrustRequest;
 }
 
 export interface ProvidersKerberosRetrieveRequest {
@@ -3060,6 +3115,577 @@ export class ProvidersApi extends runtime.BaseAPI {
         initOverrides?: RequestInit | runtime.InitOverrideFunction,
     ): Promise<KerberosProvider> {
         const response = await this.providersKerberosPartialUpdateRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for providersKerberosRealmTrustsCreate without sending the request
+     */
+    async providersKerberosRealmTrustsCreateRequestOpts(
+        requestParameters: ProvidersKerberosRealmTrustsCreateRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["kerberosRealmTrustRequest"] == null) {
+            throw new runtime.RequiredError(
+                "kerberosRealmTrustRequest",
+                'Required parameter "kerberosRealmTrustRequest" was null or undefined when calling providersKerberosRealmTrustsCreate().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters["Content-Type"] = "application/json";
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/kerberos_realm_trusts/`;
+
+        return {
+            path: urlPath,
+            method: "POST",
+            headers: headerParameters,
+            query: queryParameters,
+            body: KerberosRealmTrustRequestToJSON(requestParameters["kerberosRealmTrustRequest"]),
+        };
+    }
+
+    /**
+     * Kerberos realm trust viewset.
+     */
+    async providersKerberosRealmTrustsCreateRaw(
+        requestParameters: ProvidersKerberosRealmTrustsCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<KerberosRealmTrust>> {
+        const requestOptions =
+            await this.providersKerberosRealmTrustsCreateRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            KerberosRealmTrustFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Kerberos realm trust viewset.
+     */
+    async providersKerberosRealmTrustsCreate(
+        requestParameters: ProvidersKerberosRealmTrustsCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<KerberosRealmTrust> {
+        const response = await this.providersKerberosRealmTrustsCreateRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for providersKerberosRealmTrustsDestroy without sending the request
+     */
+    async providersKerberosRealmTrustsDestroyRequestOpts(
+        requestParameters: ProvidersKerberosRealmTrustsDestroyRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["uuid"] == null) {
+            throw new runtime.RequiredError(
+                "uuid",
+                'Required parameter "uuid" was null or undefined when calling providersKerberosRealmTrustsDestroy().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/kerberos_realm_trusts/{uuid}/`;
+        urlPath = urlPath.replace("{uuid}", encodeURIComponent(String(requestParameters["uuid"])));
+
+        return {
+            path: urlPath,
+            method: "DELETE",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Kerberos realm trust viewset.
+     */
+    async providersKerberosRealmTrustsDestroyRaw(
+        requestParameters: ProvidersKerberosRealmTrustsDestroyRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<void>> {
+        const requestOptions =
+            await this.providersKerberosRealmTrustsDestroyRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Kerberos realm trust viewset.
+     */
+    async providersKerberosRealmTrustsDestroy(
+        requestParameters: ProvidersKerberosRealmTrustsDestroyRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<void> {
+        await this.providersKerberosRealmTrustsDestroyRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Creates request options for providersKerberosRealmTrustsKeytabRetrieve without sending the request
+     */
+    async providersKerberosRealmTrustsKeytabRetrieveRequestOpts(
+        requestParameters: ProvidersKerberosRealmTrustsKeytabRetrieveRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["uuid"] == null) {
+            throw new runtime.RequiredError(
+                "uuid",
+                'Required parameter "uuid" was null or undefined when calling providersKerberosRealmTrustsKeytabRetrieve().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters["direction"] != null) {
+            queryParameters["direction"] = requestParameters["direction"];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/kerberos_realm_trusts/{uuid}/keytab/`;
+        urlPath = urlPath.replace("{uuid}", encodeURIComponent(String(requestParameters["uuid"])));
+
+        return {
+            path: urlPath,
+            method: "GET",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Export one directional trust keytab.
+     */
+    async providersKerberosRealmTrustsKeytabRetrieveRaw(
+        requestParameters: ProvidersKerberosRealmTrustsKeytabRetrieveRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<KerberosRealmTrust>> {
+        const requestOptions =
+            await this.providersKerberosRealmTrustsKeytabRetrieveRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            KerberosRealmTrustFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Export one directional trust keytab.
+     */
+    async providersKerberosRealmTrustsKeytabRetrieve(
+        requestParameters: ProvidersKerberosRealmTrustsKeytabRetrieveRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<KerberosRealmTrust> {
+        const response = await this.providersKerberosRealmTrustsKeytabRetrieveRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for providersKerberosRealmTrustsList without sending the request
+     */
+    async providersKerberosRealmTrustsListRequestOpts(
+        requestParameters: ProvidersKerberosRealmTrustsListRequest,
+    ): Promise<runtime.RequestOpts> {
+        const queryParameters: any = {};
+
+        if (requestParameters["ordering"] != null) {
+            queryParameters["ordering"] = requestParameters["ordering"];
+        }
+
+        if (requestParameters["page"] != null) {
+            queryParameters["page"] = requestParameters["page"];
+        }
+
+        if (requestParameters["pageSize"] != null) {
+            queryParameters["page_size"] = requestParameters["pageSize"];
+        }
+
+        if (requestParameters["provider"] != null) {
+            queryParameters["provider"] = requestParameters["provider"];
+        }
+
+        if (requestParameters["remoteRealmIexact"] != null) {
+            queryParameters["remote_realm__iexact"] = requestParameters["remoteRealmIexact"];
+        }
+
+        if (requestParameters["search"] != null) {
+            queryParameters["search"] = requestParameters["search"];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/kerberos_realm_trusts/`;
+
+        return {
+            path: urlPath,
+            method: "GET",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Kerberos realm trust viewset.
+     */
+    async providersKerberosRealmTrustsListRaw(
+        requestParameters: ProvidersKerberosRealmTrustsListRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<PaginatedKerberosRealmTrustList>> {
+        const requestOptions =
+            await this.providersKerberosRealmTrustsListRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            PaginatedKerberosRealmTrustListFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Kerberos realm trust viewset.
+     */
+    async providersKerberosRealmTrustsList(
+        requestParameters: ProvidersKerberosRealmTrustsListRequest = {},
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<PaginatedKerberosRealmTrustList> {
+        const response = await this.providersKerberosRealmTrustsListRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for providersKerberosRealmTrustsPartialUpdate without sending the request
+     */
+    async providersKerberosRealmTrustsPartialUpdateRequestOpts(
+        requestParameters: ProvidersKerberosRealmTrustsPartialUpdateRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["uuid"] == null) {
+            throw new runtime.RequiredError(
+                "uuid",
+                'Required parameter "uuid" was null or undefined when calling providersKerberosRealmTrustsPartialUpdate().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters["Content-Type"] = "application/json";
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/kerberos_realm_trusts/{uuid}/`;
+        urlPath = urlPath.replace("{uuid}", encodeURIComponent(String(requestParameters["uuid"])));
+
+        return {
+            path: urlPath,
+            method: "PATCH",
+            headers: headerParameters,
+            query: queryParameters,
+            body: PatchedKerberosRealmTrustRequestToJSON(
+                requestParameters["patchedKerberosRealmTrustRequest"],
+            ),
+        };
+    }
+
+    /**
+     * Kerberos realm trust viewset.
+     */
+    async providersKerberosRealmTrustsPartialUpdateRaw(
+        requestParameters: ProvidersKerberosRealmTrustsPartialUpdateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<KerberosRealmTrust>> {
+        const requestOptions =
+            await this.providersKerberosRealmTrustsPartialUpdateRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            KerberosRealmTrustFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Kerberos realm trust viewset.
+     */
+    async providersKerberosRealmTrustsPartialUpdate(
+        requestParameters: ProvidersKerberosRealmTrustsPartialUpdateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<KerberosRealmTrust> {
+        const response = await this.providersKerberosRealmTrustsPartialUpdateRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for providersKerberosRealmTrustsRetrieve without sending the request
+     */
+    async providersKerberosRealmTrustsRetrieveRequestOpts(
+        requestParameters: ProvidersKerberosRealmTrustsRetrieveRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["uuid"] == null) {
+            throw new runtime.RequiredError(
+                "uuid",
+                'Required parameter "uuid" was null or undefined when calling providersKerberosRealmTrustsRetrieve().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/kerberos_realm_trusts/{uuid}/`;
+        urlPath = urlPath.replace("{uuid}", encodeURIComponent(String(requestParameters["uuid"])));
+
+        return {
+            path: urlPath,
+            method: "GET",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Kerberos realm trust viewset.
+     */
+    async providersKerberosRealmTrustsRetrieveRaw(
+        requestParameters: ProvidersKerberosRealmTrustsRetrieveRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<KerberosRealmTrust>> {
+        const requestOptions =
+            await this.providersKerberosRealmTrustsRetrieveRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            KerberosRealmTrustFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Kerberos realm trust viewset.
+     */
+    async providersKerberosRealmTrustsRetrieve(
+        requestParameters: ProvidersKerberosRealmTrustsRetrieveRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<KerberosRealmTrust> {
+        const response = await this.providersKerberosRealmTrustsRetrieveRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for providersKerberosRealmTrustsRotateCreate without sending the request
+     */
+    async providersKerberosRealmTrustsRotateCreateRequestOpts(
+        requestParameters: ProvidersKerberosRealmTrustsRotateCreateRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["uuid"] == null) {
+            throw new runtime.RequiredError(
+                "uuid",
+                'Required parameter "uuid" was null or undefined when calling providersKerberosRealmTrustsRotateCreate().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters["direction"] != null) {
+            queryParameters["direction"] = requestParameters["direction"];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/kerberos_realm_trusts/{uuid}/rotate/`;
+        urlPath = urlPath.replace("{uuid}", encodeURIComponent(String(requestParameters["uuid"])));
+
+        return {
+            path: urlPath,
+            method: "POST",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Rotate one directional trust key set.
+     */
+    async providersKerberosRealmTrustsRotateCreateRaw(
+        requestParameters: ProvidersKerberosRealmTrustsRotateCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<KerberosRealmTrust>> {
+        const requestOptions =
+            await this.providersKerberosRealmTrustsRotateCreateRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            KerberosRealmTrustFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Rotate one directional trust key set.
+     */
+    async providersKerberosRealmTrustsRotateCreate(
+        requestParameters: ProvidersKerberosRealmTrustsRotateCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<KerberosRealmTrust> {
+        const response = await this.providersKerberosRealmTrustsRotateCreateRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for providersKerberosRealmTrustsUpdate without sending the request
+     */
+    async providersKerberosRealmTrustsUpdateRequestOpts(
+        requestParameters: ProvidersKerberosRealmTrustsUpdateRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["uuid"] == null) {
+            throw new runtime.RequiredError(
+                "uuid",
+                'Required parameter "uuid" was null or undefined when calling providersKerberosRealmTrustsUpdate().',
+            );
+        }
+
+        if (requestParameters["kerberosRealmTrustRequest"] == null) {
+            throw new runtime.RequiredError(
+                "kerberosRealmTrustRequest",
+                'Required parameter "kerberosRealmTrustRequest" was null or undefined when calling providersKerberosRealmTrustsUpdate().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters["Content-Type"] = "application/json";
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/providers/kerberos_realm_trusts/{uuid}/`;
+        urlPath = urlPath.replace("{uuid}", encodeURIComponent(String(requestParameters["uuid"])));
+
+        return {
+            path: urlPath,
+            method: "PUT",
+            headers: headerParameters,
+            query: queryParameters,
+            body: KerberosRealmTrustRequestToJSON(requestParameters["kerberosRealmTrustRequest"]),
+        };
+    }
+
+    /**
+     * Kerberos realm trust viewset.
+     */
+    async providersKerberosRealmTrustsUpdateRaw(
+        requestParameters: ProvidersKerberosRealmTrustsUpdateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<KerberosRealmTrust>> {
+        const requestOptions =
+            await this.providersKerberosRealmTrustsUpdateRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            KerberosRealmTrustFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Kerberos realm trust viewset.
+     */
+    async providersKerberosRealmTrustsUpdate(
+        requestParameters: ProvidersKerberosRealmTrustsUpdateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<KerberosRealmTrust> {
+        const response = await this.providersKerberosRealmTrustsUpdateRaw(
             requestParameters,
             initOverrides,
         );

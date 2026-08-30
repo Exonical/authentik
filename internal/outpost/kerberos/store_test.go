@@ -1,9 +1,11 @@
 package kerberos
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -11,8 +13,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Exonical/go-kerberos/krb5/asn1"
+	"github.com/Exonical/go-kerberos/krb5/client"
+	"github.com/Exonical/go-kerberos/krb5/crypto"
 	"github.com/Exonical/go-kerberos/krb5/kdb"
+	"github.com/Exonical/go-kerberos/krb5/kdc"
 	"github.com/Exonical/go-kerberos/krb5/principal"
+	"github.com/Exonical/go-kerberos/krb5/protocol"
 
 	"goauthentik.io/internal/outpost/ak"
 	api "goauthentik.io/packages/client-go"
@@ -426,6 +433,213 @@ func TestServiceRecordAuthIndicators(t *testing.T) {
 	}
 	if len(withoutIndicators.Strings) != 0 {
 		t.Fatalf("auth indicators unexpectedly set: %#v", withoutIndicators.Strings)
+	}
+}
+
+func TestTrustRecordLookupAndDirection(t *testing.T) {
+	store := testStore(t, nil)
+	key := make([]byte, 32)
+	values := map[string]interface{}{
+		"18": base64.StdEncoding.EncodeToString(key),
+	}
+	outgoing, err := store.trustRecord("krbtgt/REMOTE.TEST", testRealm, 3, values)
+	if err != nil {
+		t.Fatal(err)
+	}
+	incoming, err := store.trustRecord("krbtgt/"+testRealm, "REMOTE.TEST", 4, values)
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.trusts = map[string]kdb.PrincipalRecord{
+		principalKey(outgoing.Name): outgoing,
+		principalKey(incoming.Name): incoming,
+	}
+
+	for _, test := range []struct {
+		name principal.Principal
+		kvno uint32
+	}{
+		{outgoing.Name, 3},
+		{incoming.Name, 4},
+	} {
+		record, found, err := store.Lookup(test.name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !found || record.KVNO != test.kvno || record.Keys[18].KVNO != test.kvno {
+			t.Fatalf("Lookup(%v) = %#v, %t; want KVNO %d", test.name, record, found, test.kvno)
+		}
+	}
+	if _, found, err := store.Lookup(principal.Principal{
+		Realm: "REMOTE.TEST", Components: []string{"alice"},
+	}); err != nil {
+		t.Fatal(err)
+	} else if found {
+		t.Fatal("remote user lookup succeeded")
+	}
+}
+
+func TestTrustCapathsOrientation(t *testing.T) {
+	server := &kdc.Server{}
+	setCapaths(server, testRealm, "REMOTE.TEST", []string{"INTERMEDIATE.TEST"})
+	if got := server.Capaths[testRealm]["REMOTE.TEST"]; len(got) != 1 ||
+		got[0] != "INTERMEDIATE.TEST" {
+		t.Fatalf("Capaths = %#v, want client-to-server path", server.Capaths)
+	}
+	if _, ok := server.Capaths["REMOTE.TEST"]; ok {
+		t.Fatalf("Capaths unexpectedly reversed: %#v", server.Capaths)
+	}
+}
+
+func TestCrossRealmProviderStores(t *testing.T) {
+	const remoteRealm = "REMOTE.TEST"
+	trustKey := make([]byte, 32)
+	serviceKey := make([]byte, 32)
+	etype, err := crypto.NewRegistry().Get(18)
+	if err != nil {
+		t.Fatal(err)
+	}
+	userKey, err := etype.StringToKey(
+		[]byte("alice-password"), []byte(testRealm+"alice"), nil,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("username") != "alice" {
+			http.Error(w, "unknown user", http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"username":             "alice",
+			"principal":            "alice",
+			"kvno":                 1,
+			"salt":                 testRealm + "alice",
+			"password_expiration":  nil,
+			"pac_user_id":          0,
+			"pac_primary_group_id": 0,
+			"pac_group_ids":        []int32{},
+			"pac_name":             "alice",
+			"pac_upn":              "alice@" + testRealm,
+			"keys": map[string]string{
+				"18": base64.StdEncoding.EncodeToString(userKey),
+			},
+		})
+	}))
+	t.Cleanup(apiServer.Close)
+	parsed, err := url.Parse(apiServer.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := api.NewConfiguration()
+	cfg.Host = parsed.Host
+	cfg.Scheme = parsed.Scheme
+	cfg.Servers = api.ServerConfigurations{{URL: "/api/v3"}}
+	controller := &ak.APIController{Client: api.NewAPIClient(cfg)}
+
+	storeA := &providerStore{
+		realm:       testRealm,
+		allowed:     map[int32]bool{18: true},
+		services:    make(map[string]kdb.PrincipalRecord),
+		trusts:      make(map[string]kdb.PrincipalRecord),
+		delegations: make(map[string]delegationPolicy),
+		cache:       make(map[string]cachedUserKey),
+		server:      &KerberosServer{ac: controller},
+	}
+	storeB := &providerStore{
+		realm:       remoteRealm,
+		allowed:     map[int32]bool{18: true},
+		services:    make(map[string]kdb.PrincipalRecord),
+		trusts:      make(map[string]kdb.PrincipalRecord),
+		delegations: make(map[string]delegationPolicy),
+		cache:       make(map[string]cachedUserKey),
+		server:      &KerberosServer{ac: controller},
+	}
+	values := map[string]interface{}{
+		"18": base64.StdEncoding.EncodeToString(trustKey),
+	}
+	outgoing, err := storeA.trustRecord("krbtgt/"+remoteRealm, testRealm, 1, values)
+	if err != nil {
+		t.Fatal(err)
+	}
+	incoming, err := storeB.trustRecord("krbtgt/"+remoteRealm, testRealm, 1, values)
+	if err != nil {
+		t.Fatal(err)
+	}
+	storeA.trusts[principalKey(outgoing.Name)] = outgoing
+	storeB.trusts[principalKey(incoming.Name)] = incoming
+	service, err := storeB.serviceRecord(
+		"host/backend",
+		1,
+		map[string]interface{}{"18": base64.StdEncoding.EncodeToString(serviceKey)},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	storeB.services[principalKey(service.Name)] = service
+
+	serverA := &kdc.Server{
+		Realm:     testRealm,
+		DB:        storeA,
+		Authorize: func(principal.Principal, principal.Principal, bool) error { return nil },
+	}
+	serverB := &kdc.Server{
+		Realm:     remoteRealm,
+		DB:        storeB,
+		Authorize: func(principal.Principal, principal.Principal, bool) error { return nil },
+	}
+	kclient := &client.Client{
+		Exchange: func(_ context.Context, realm string, payload []byte) ([]byte, error) {
+			switch realm {
+			case testRealm:
+				return serverA.HandleMessage(payload), nil
+			case remoteRealm:
+				return serverB.HandleMessage(payload), nil
+			default:
+				return nil, errors.New("unexpected realm")
+			}
+		},
+	}
+	user, err := principal.Parse("alice@" + testRealm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tgt, err := kclient.ASExchange(context.Background(), *user, "alice-password")
+	if err != nil {
+		t.Fatalf("AS exchange: %v", err)
+	}
+	target, err := principal.Parse("host/backend@" + remoteRealm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	credentials, err := kclient.TGSExchange(context.Background(), tgt, *target)
+	if err != nil {
+		t.Fatalf("cross-realm TGS exchange: %v", err)
+	}
+	if credentials.Server.String() != target.String() {
+		t.Fatalf("service credentials = %#v, want %v", credentials, target)
+	}
+	var ticket protocol.Ticket
+	if err := asn1.Unmarshal(credentials.Ticket, &ticket); err != nil {
+		t.Fatalf("decode service ticket: %v", err)
+	}
+	key := service.Keys[credentials.Key.KeyType]
+	etype, err = crypto.NewRegistry().Get(key.Enctype)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plaintext, err := etype.Decrypt(key.Key, 2, ticket.EncPart.Cipher)
+	if err != nil {
+		t.Fatalf("decrypt service ticket: %v", err)
+	}
+	var part protocol.EncTicketPart
+	if err := asn1.Unmarshal(plaintext, &part); err != nil {
+		t.Fatalf("decode service ticket part: %v", err)
+	}
+	if part.CRealm != testRealm || len(part.CName.NameString) != 1 ||
+		part.CName.NameString[0] != "alice" {
+		t.Fatalf("foreign client = %s/%#v", part.CRealm, part.CName)
 	}
 }
 

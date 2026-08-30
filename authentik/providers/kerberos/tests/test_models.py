@@ -11,6 +11,7 @@ from authentik.lib.generators import generate_id
 from authentik.providers.kerberos.crypto import string2key
 from authentik.providers.kerberos.models import (
     KerberosProvider,
+    KerberosRealmTrust,
     KerberosServicePrincipal,
     KerberosUserKeys,
 )
@@ -96,6 +97,30 @@ class KerberosProviderTests(TestCase):
         self.assertEqual(provider.spake_indicators, ["spake", "hardware"])
         self.assertEqual(provider.encrypted_challenge_indicator, "encrypted")
         self.assertEqual(principal.required_auth_indicators, ["pkinit", "hardware"])
+
+    def test_realm_trust_generates_independent_directional_keys(self):
+        """Realm trust keys and KVNOs are independent for each direction."""
+        provider = KerberosProvider.objects.create(name=generate_id(), realm_name="EXAMPLE.TEST")
+        trust = KerberosRealmTrust.objects.create(
+            provider=provider,
+            remote_realm="remote.test",
+            outgoing_kvno=3,
+            incoming_kvno=4,
+        )
+        self.assertEqual(trust.remote_realm, "remote.test")
+        self.assertEqual(trust.capaths, [])
+        self.assertEqual(set(trust.outgoing_keys), {"18", "20"})
+        self.assertEqual(set(trust.incoming_keys), {"18", "20"})
+        self.assertNotEqual(trust.outgoing_keys, trust.incoming_keys)
+        self.assertEqual(trust.outgoing_kvno, 3)
+        self.assertEqual(trust.incoming_kvno, 4)
+
+    def test_realm_trust_requires_remote_realm(self):
+        """Realm trust remote realms cannot be empty."""
+        provider = KerberosProvider.objects.create(name=generate_id(), realm_name="EXAMPLE.TEST")
+        trust = KerberosRealmTrust(provider=provider, remote_realm="")
+        with self.assertRaises(ValidationError):
+            trust.full_clean()
 
     def test_service_principal_key_lengths_follow_enctypes(self):
         """AES-128 service keys contain 128 bits."""

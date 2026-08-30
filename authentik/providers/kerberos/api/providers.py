@@ -39,6 +39,7 @@ from authentik.policies.models import PolicyBinding
 from authentik.policies.types import PolicyResult
 from authentik.providers.kerberos.models import (
     KerberosProvider,
+    KerberosRealmTrust,
     KerberosServicePrincipal,
     KerberosUserKeys,
     generate_key,
@@ -168,17 +169,20 @@ def _keytab_entry(spn: str, realm: str, kvno: int, enctype: int, key: bytes) -> 
 
 def build_keytab(principal: KerberosServicePrincipal) -> bytes:
     """Build a MIT keytab version 2 containing a service principal's keys."""
-    entries = []
-    for enctype, key in principal.keys.items():
-        entries.append(
-            _keytab_entry(
-                principal.spn,
-                principal.provider.realm_name,
-                principal.kvno,
-                int(enctype),
-                base64.b64decode(key),
-            )
-        )
+    return build_keytab_entries(
+        principal.spn,
+        principal.provider.realm_name,
+        principal.kvno,
+        principal.keys,
+    )
+
+
+def build_keytab_entries(spn: str, realm: str, kvno: int, keys: dict) -> bytes:
+    """Build a MIT keytab containing keys for a principal."""
+    entries = [
+        _keytab_entry(spn, realm, kvno, int(enctype), base64.b64decode(key))
+        for enctype, key in keys.items()
+    ]
     return b"\x05\x02" + b"".join(entries)
 
 
@@ -209,6 +213,110 @@ class KerberosServicePrincipalViewSet(ModelViewSet):
         return Response(self.get_serializer(principal).data)
 
 
+class KerberosRealmTrustSerializer(ModelSerializer):
+    """Kerberos realm trust serializer."""
+
+    class Meta:
+        model = KerberosRealmTrust
+        fields = [
+            "uuid",
+            "provider",
+            "remote_realm",
+            "capaths",
+            "outgoing_kvno",
+            "outgoing_keys",
+            "incoming_kvno",
+            "incoming_keys",
+        ]
+        extra_kwargs = {
+            "outgoing_keys": {"read_only": True},
+            "outgoing_kvno": {"read_only": True},
+            "incoming_keys": {"read_only": True},
+            "incoming_kvno": {"read_only": True},
+        }
+
+
+class KerberosRealmTrustViewSet(ModelViewSet):
+    """Kerberos realm trust viewset."""
+
+    queryset = KerberosRealmTrust.objects.all()
+    serializer_class = KerberosRealmTrustSerializer
+    ordering = ["remote_realm"]
+    search_fields = ["remote_realm"]
+    filterset_fields = {"provider": ["exact"], "remote_realm": ["iexact"]}
+
+    @staticmethod
+    def _direction(request: Request) -> str:
+        direction = request.query_params.get("direction", "outgoing")
+        if direction not in ("outgoing", "incoming"):
+            raise ValidationError({"direction": _("Direction must be outgoing or incoming.")})
+        return direction
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "direction",
+                OpenApiTypes.STR,
+                location="query",
+                description="Trust key direction.",
+                enum=["outgoing", "incoming"],
+            )
+        ],
+    )
+    @action(detail=True, methods=["GET"])
+    def keytab(self, request: Request, pk=None) -> Response:
+        """Export one directional trust keytab."""
+        trust = self.get_object()
+        direction = self._direction(request)
+        if direction == "outgoing":
+            spn, realm, kvno, keys = (
+                f"krbtgt/{trust.remote_realm}",
+                trust.provider.realm_name,
+                trust.outgoing_kvno,
+                trust.outgoing_keys,
+            )
+        else:
+            spn, realm, kvno, keys = (
+                f"krbtgt/{trust.provider.realm_name}",
+                trust.remote_realm,
+                trust.incoming_kvno,
+                trust.incoming_keys,
+            )
+        return Response(
+            {"keytab": base64.b64encode(build_keytab_entries(spn, realm, kvno, keys)).decode()}
+        )
+
+    @extend_schema(
+        request=None,
+        parameters=[
+            OpenApiParameter(
+                "direction",
+                OpenApiTypes.STR,
+                location="query",
+                description="Trust key direction.",
+                enum=["outgoing", "incoming"],
+            )
+        ],
+    )
+    @action(detail=True, methods=["POST"])
+    def rotate(self, request: Request, pk=None) -> Response:
+        """Rotate one directional trust key set."""
+        trust = self.get_object()
+        direction = self._direction(request)
+        keys = {
+            str(enctype): generate_key(enctype) for enctype in trust.provider.allowed_enctypes
+        }
+        if direction == "outgoing":
+            trust.outgoing_kvno += 1
+            trust.outgoing_keys = keys
+            trust.save(update_fields=["outgoing_kvno", "outgoing_keys"])
+        else:
+            trust.incoming_kvno += 1
+            trust.incoming_keys = keys
+            trust.save(update_fields=["incoming_kvno", "incoming_keys"])
+        return Response(self.get_serializer(trust).data)
+
+
 class KerberosServicePrincipalOutpostSerializer(PassiveSerializer):
     """Service principal data consumed by the KDC outpost."""
 
@@ -234,6 +342,23 @@ def _canonical_principal(provider: KerberosProvider, user: User) -> str | None:
     if not isinstance(value, str) or not value.strip():
         return None
     return value
+
+
+class KerberosRealmTrustOutpostSerializer(PassiveSerializer):
+    """Realm trust data consumed by the KDC outpost."""
+
+    remote_realm = CharField()
+    capaths = ListField(child=CharField())
+    outgoing_kvno = IntegerField()
+    outgoing_keys = SerializerMethodField()
+    incoming_kvno = IntegerField()
+    incoming_keys = SerializerMethodField()
+
+    def get_outgoing_keys(self, obj: KerberosRealmTrust) -> dict:
+        return obj.outgoing_keys
+
+    def get_incoming_keys(self, obj: KerberosRealmTrust) -> dict:
+        return obj.incoming_keys
 
 
 class KerberosUserKeyOutpostSerializer(PassiveSerializer):
@@ -416,6 +541,19 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
         page = self.paginate_queryset(principals)
         return self.get_paginated_response(
             KerberosServicePrincipalOutpostSerializer(page, many=True).data
+        )
+
+    @extend_schema(
+        responses={200: KerberosRealmTrustOutpostSerializer(many=True)},
+    )
+    @action(detail=True, methods=["GET"])
+    def realm_trusts(self, request: Request, pk=None) -> Response:
+        """List the configured realm trusts."""
+        provider = self.get_object()
+        trusts = provider.realm_trusts.all().order_by("remote_realm")
+        page = self.paginate_queryset(trusts)
+        return self.get_paginated_response(
+            KerberosRealmTrustOutpostSerializer(page, many=True).data
         )
 
     @extend_schema(

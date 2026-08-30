@@ -732,6 +732,180 @@ func (a *OutpostsAPIService) OutpostsKerberosOtpCheckExecute(r ApiOutpostsKerber
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
+type ApiOutpostsKerberosRealmTrustsListRequest struct {
+	ctx        context.Context
+	ApiService *OutpostsAPIService
+	id         int32
+	name       *string
+	ordering   *string
+	page       *int32
+	pageSize   *int32
+	search     *string
+}
+
+func (r ApiOutpostsKerberosRealmTrustsListRequest) Name(name string) ApiOutpostsKerberosRealmTrustsListRequest {
+	r.name = &name
+	return r
+}
+
+// Which field to use when ordering the results.
+func (r ApiOutpostsKerberosRealmTrustsListRequest) Ordering(ordering string) ApiOutpostsKerberosRealmTrustsListRequest {
+	r.ordering = &ordering
+	return r
+}
+
+// A page number within the paginated result set.
+func (r ApiOutpostsKerberosRealmTrustsListRequest) Page(page int32) ApiOutpostsKerberosRealmTrustsListRequest {
+	r.page = &page
+	return r
+}
+
+// Number of results to return per page.
+func (r ApiOutpostsKerberosRealmTrustsListRequest) PageSize(pageSize int32) ApiOutpostsKerberosRealmTrustsListRequest {
+	r.pageSize = &pageSize
+	return r
+}
+
+// A search term.
+func (r ApiOutpostsKerberosRealmTrustsListRequest) Search(search string) ApiOutpostsKerberosRealmTrustsListRequest {
+	r.search = &search
+	return r
+}
+
+func (r ApiOutpostsKerberosRealmTrustsListRequest) Execute() (*PaginatedKerberosRealmTrustOutpostList, *http.Response, error) {
+	return r.ApiService.OutpostsKerberosRealmTrustsListExecute(r)
+}
+
+/*
+OutpostsKerberosRealmTrustsList Method for OutpostsKerberosRealmTrustsList
+
+List the configured realm trusts.
+
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param id A unique integer value identifying this Kerberos Provider.
+	@return ApiOutpostsKerberosRealmTrustsListRequest
+*/
+func (a *OutpostsAPIService) OutpostsKerberosRealmTrustsList(ctx context.Context, id int32) ApiOutpostsKerberosRealmTrustsListRequest {
+	return ApiOutpostsKerberosRealmTrustsListRequest{
+		ApiService: a,
+		ctx:        ctx,
+		id:         id,
+	}
+}
+
+// Execute executes the request
+//
+//	@return PaginatedKerberosRealmTrustOutpostList
+func (a *OutpostsAPIService) OutpostsKerberosRealmTrustsListExecute(r ApiOutpostsKerberosRealmTrustsListRequest) (*PaginatedKerberosRealmTrustOutpostList, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodGet
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *PaginatedKerberosRealmTrustOutpostList
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OutpostsAPIService.OutpostsKerberosRealmTrustsList")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/outposts/kerberos/{id}/realm_trusts/"
+	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", url.PathEscape(parameterValueToString(r.id, "id")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+
+	if r.name != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "name", r.name, "form", "")
+	}
+	if r.ordering != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "ordering", r.ordering, "form", "")
+	}
+	if r.page != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "page", r.page, "form", "")
+	}
+	if r.pageSize != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "page_size", r.pageSize, "form", "")
+	}
+	if r.search != nil {
+		parameterAddToHeaderOrQuery(localVarQueryParams, "search", r.search, "form", "")
+	}
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 400 {
+			var v ValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+			return localVarReturnValue, localVarHTTPResponse, newErr
+		}
+		if localVarHTTPResponse.StatusCode == 403 {
+			var v GenericError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
 type ApiOutpostsKerberosServicePrincipalsListRequest struct {
 	ctx        context.Context
 	ApiService *OutpostsAPIService

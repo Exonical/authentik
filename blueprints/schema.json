@@ -2464,6 +2464,46 @@
                     ],
                     "properties": {
                         "model": {
+                            "const": "authentik_providers_kerberos.kerberosrealmtrust"
+                        },
+                        "id": {
+                            "type": "string"
+                        },
+                        "state": {
+                            "type": "string",
+                            "enum": [
+                                "absent",
+                                "created",
+                                "must_created",
+                                "present"
+                            ],
+                            "default": "present"
+                        },
+                        "conditions": {
+                            "type": "array",
+                            "items": {
+                                "type": "boolean"
+                            }
+                        },
+                        "permissions": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosrealmtrust_permissions"
+                        },
+                        "attrs": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosrealmtrust"
+                        },
+                        "identifiers": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosrealmtrust"
+                        }
+                    }
+                },
+                {
+                    "type": "object",
+                    "required": [
+                        "model",
+                        "identifiers"
+                    ],
+                    "properties": {
+                        "model": {
                             "const": "authentik_providers_kerberos.kerberosserviceprincipal"
                         },
                         "id": {
@@ -6151,15 +6191,19 @@
                             "authentik_providers_google_workspace.view_googleworkspaceproviderpropertymappingsgroup",
                             "authentik_providers_google_workspace.view_googleworkspaceprovideruser",
                             "authentik_providers_kerberos.add_kerberosprovider",
+                            "authentik_providers_kerberos.add_kerberosrealmtrust",
                             "authentik_providers_kerberos.add_kerberosserviceprincipal",
                             "authentik_providers_kerberos.add_kerberosuserkeys",
                             "authentik_providers_kerberos.change_kerberosprovider",
+                            "authentik_providers_kerberos.change_kerberosrealmtrust",
                             "authentik_providers_kerberos.change_kerberosserviceprincipal",
                             "authentik_providers_kerberos.change_kerberosuserkeys",
                             "authentik_providers_kerberos.delete_kerberosprovider",
+                            "authentik_providers_kerberos.delete_kerberosrealmtrust",
                             "authentik_providers_kerberos.delete_kerberosserviceprincipal",
                             "authentik_providers_kerberos.delete_kerberosuserkeys",
                             "authentik_providers_kerberos.view_kerberosprovider",
+                            "authentik_providers_kerberos.view_kerberosrealmtrust",
                             "authentik_providers_kerberos.view_kerberosserviceprincipal",
                             "authentik_providers_kerberos.view_kerberosuserkeys",
                             "authentik_providers_ldap.add_ldapprovider",
@@ -7557,15 +7601,19 @@
                             "authentik_providers_google_workspace.view_googleworkspaceproviderpropertymappingsgroup",
                             "authentik_providers_google_workspace.view_googleworkspaceprovideruser",
                             "authentik_providers_kerberos.add_kerberosprovider",
+                            "authentik_providers_kerberos.add_kerberosrealmtrust",
                             "authentik_providers_kerberos.add_kerberosserviceprincipal",
                             "authentik_providers_kerberos.add_kerberosuserkeys",
                             "authentik_providers_kerberos.change_kerberosprovider",
+                            "authentik_providers_kerberos.change_kerberosrealmtrust",
                             "authentik_providers_kerberos.change_kerberosserviceprincipal",
                             "authentik_providers_kerberos.change_kerberosuserkeys",
                             "authentik_providers_kerberos.delete_kerberosprovider",
+                            "authentik_providers_kerberos.delete_kerberosrealmtrust",
                             "authentik_providers_kerberos.delete_kerberosserviceprincipal",
                             "authentik_providers_kerberos.delete_kerberosuserkeys",
                             "authentik_providers_kerberos.view_kerberosprovider",
+                            "authentik_providers_kerberos.view_kerberosrealmtrust",
                             "authentik_providers_kerberos.view_kerberosserviceprincipal",
                             "authentik_providers_kerberos.view_kerberosuserkeys",
                             "authentik_providers_ldap.add_ldapprovider",
@@ -11352,6 +11400,7 @@
                         "authentik_providers_radius.radiusproviderpropertymapping",
                         "authentik_providers_kerberos.kerberosprovider",
                         "authentik_providers_kerberos.kerberosserviceprincipal",
+                        "authentik_providers_kerberos.kerberosrealmtrust",
                         "authentik_providers_kerberos.kerberosuserkeys",
                         "authentik_providers_saml.samlprovider",
                         "authentik_providers_saml.samlpropertymapping",
@@ -12394,6 +12443,57 @@
                             "change_kerberosprovider",
                             "delete_kerberosprovider",
                             "view_kerberosprovider"
+                        ]
+                    },
+                    "user": {
+                        "type": "integer"
+                    },
+                    "role": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "model_authentik_providers_kerberos.kerberosrealmtrust": {
+            "type": "object",
+            "properties": {
+                "provider": {
+                    "type": "integer",
+                    "title": "Provider"
+                },
+                "remote_realm": {
+                    "type": "string",
+                    "minLength": 1,
+                    "title": "Remote realm"
+                },
+                "capaths": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "title": "Capaths"
+                    },
+                    "title": "Capaths",
+                    "description": "Intermediate realms for transited-path checking."
+                }
+            },
+            "required": []
+        },
+        "model_authentik_providers_kerberos.kerberosrealmtrust_permissions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "permission"
+                ],
+                "properties": {
+                    "permission": {
+                        "type": "string",
+                        "enum": [
+                            "add_kerberosrealmtrust",
+                            "change_kerberosrealmtrust",
+                            "delete_kerberosrealmtrust",
+                            "view_kerberosrealmtrust"
                         ]
                     },
                     "user": {
@@ -14424,15 +14524,19 @@
                             "authentik_providers_google_workspace.view_googleworkspaceproviderpropertymappingsgroup",
                             "authentik_providers_google_workspace.view_googleworkspaceprovideruser",
                             "authentik_providers_kerberos.add_kerberosprovider",
+                            "authentik_providers_kerberos.add_kerberosrealmtrust",
                             "authentik_providers_kerberos.add_kerberosserviceprincipal",
                             "authentik_providers_kerberos.add_kerberosuserkeys",
                             "authentik_providers_kerberos.change_kerberosprovider",
+                            "authentik_providers_kerberos.change_kerberosrealmtrust",
                             "authentik_providers_kerberos.change_kerberosserviceprincipal",
                             "authentik_providers_kerberos.change_kerberosuserkeys",
                             "authentik_providers_kerberos.delete_kerberosprovider",
+                            "authentik_providers_kerberos.delete_kerberosrealmtrust",
                             "authentik_providers_kerberos.delete_kerberosserviceprincipal",
                             "authentik_providers_kerberos.delete_kerberosuserkeys",
                             "authentik_providers_kerberos.view_kerberosprovider",
+                            "authentik_providers_kerberos.view_kerberosrealmtrust",
                             "authentik_providers_kerberos.view_kerberosserviceprincipal",
                             "authentik_providers_kerberos.view_kerberosuserkeys",
                             "authentik_providers_ldap.add_ldapprovider",

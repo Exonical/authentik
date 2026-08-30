@@ -11097,6 +11097,37 @@ paths:
           $ref: '#/components/responses/ValidationErrorResponse'
         '403':
           $ref: '#/components/responses/GenericErrorResponse'
+  /outposts/kerberos/{id}/realm_trusts/:
+    get:
+      operationId: outposts_kerberos_realm_trusts_list
+      description: List the configured realm trusts.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      - $ref: '#/components/parameters/QueryName'
+      - $ref: '#/components/parameters/QueryPaginationOrdering'
+      - $ref: '#/components/parameters/QueryPaginationPage'
+      - $ref: '#/components/parameters/QueryPaginationPageSize'
+      - $ref: '#/components/parameters/QuerySearch'
+      tags:
+      - outposts
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedKerberosRealmTrustOutpostList'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
   /outposts/kerberos/{id}/service_principals/:
     get:
       operationId: outposts_kerberos_service_principals_list
@@ -18279,6 +18310,240 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/UsedBy'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /providers/kerberos_realm_trusts/:
+    get:
+      operationId: providers_kerberos_realm_trusts_list
+      description: Kerberos realm trust viewset.
+      parameters:
+      - $ref: '#/components/parameters/QueryPaginationOrdering'
+      - $ref: '#/components/parameters/QueryPaginationPage'
+      - $ref: '#/components/parameters/QueryPaginationPageSize'
+      - in: query
+        name: provider
+        schema:
+          type: integer
+      - in: query
+        name: remote_realm__iexact
+        schema:
+          type: string
+      - $ref: '#/components/parameters/QuerySearch'
+      tags:
+      - providers
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedKerberosRealmTrustList'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+    post:
+      operationId: providers_kerberos_realm_trusts_create
+      description: Kerberos realm trust viewset.
+      tags:
+      - providers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KerberosRealmTrustRequest'
+        required: true
+      security:
+      - authentik: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosRealmTrust'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /providers/kerberos_realm_trusts/{uuid}/:
+    get:
+      operationId: providers_kerberos_realm_trusts_retrieve
+      description: Kerberos realm trust viewset.
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Kerberos Realm Trust.
+        required: true
+      tags:
+      - providers
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosRealmTrust'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+    put:
+      operationId: providers_kerberos_realm_trusts_update
+      description: Kerberos realm trust viewset.
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Kerberos Realm Trust.
+        required: true
+      tags:
+      - providers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KerberosRealmTrustRequest'
+        required: true
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosRealmTrust'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+    patch:
+      operationId: providers_kerberos_realm_trusts_partial_update
+      description: Kerberos realm trust viewset.
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Kerberos Realm Trust.
+        required: true
+      tags:
+      - providers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedKerberosRealmTrustRequest'
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosRealmTrust'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+    delete:
+      operationId: providers_kerberos_realm_trusts_destroy
+      description: Kerberos realm trust viewset.
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Kerberos Realm Trust.
+        required: true
+      tags:
+      - providers
+      security:
+      - authentik: []
+      responses:
+        '204':
+          description: No response body
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /providers/kerberos_realm_trusts/{uuid}/keytab/:
+    get:
+      operationId: providers_kerberos_realm_trusts_keytab_retrieve
+      description: Export one directional trust keytab.
+      parameters:
+      - in: query
+        name: direction
+        schema:
+          allOf:
+          - $ref: '#/components/schemas/DirectionEnum'
+          description: Trust key direction.
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Kerberos Realm Trust.
+        required: true
+      tags:
+      - providers
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosRealmTrust'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /providers/kerberos_realm_trusts/{uuid}/rotate/:
+    post:
+      operationId: providers_kerberos_realm_trusts_rotate_create
+      description: Rotate one directional trust key set.
+      parameters:
+      - in: query
+        name: direction
+        schema:
+          allOf:
+          - $ref: '#/components/schemas/DirectionEnum'
+          description: Trust key direction.
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Kerberos Realm Trust.
+        required: true
+      tags:
+      - providers
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosRealmTrust'
           description: ''
         '400':
           $ref: '#/components/responses/ValidationErrorResponse'
@@ -40364,6 +40629,11 @@ components:
       - '6'
       - '8'
       type: string
+    DirectionEnum:
+      type: string
+      enum:
+      - incoming
+      - outgoing
     Disk:
       type: object
       properties:
@@ -44555,6 +44825,93 @@ components:
       required:
       - name
       - realm_name
+    KerberosRealmTrust:
+      type: object
+      description: Kerberos realm trust serializer.
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          readOnly: true
+        provider:
+          type: integer
+        remote_realm:
+          type: string
+          minLength: 1
+        capaths:
+          type: array
+          items:
+            type: string
+          description: Intermediate realms for transited-path checking.
+        outgoing_kvno:
+          type: integer
+          readOnly: true
+        outgoing_keys:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        incoming_kvno:
+          type: integer
+          readOnly: true
+        incoming_keys:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+      required:
+      - incoming_keys
+      - incoming_kvno
+      - outgoing_keys
+      - outgoing_kvno
+      - provider
+      - remote_realm
+      - uuid
+    KerberosRealmTrustOutpost:
+      type: object
+      description: Realm trust data consumed by the KDC outpost.
+      properties:
+        remote_realm:
+          type: string
+        capaths:
+          type: array
+          items:
+            type: string
+        outgoing_kvno:
+          type: integer
+        outgoing_keys:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        incoming_kvno:
+          type: integer
+        incoming_keys:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+      required:
+      - capaths
+      - incoming_keys
+      - incoming_kvno
+      - outgoing_keys
+      - outgoing_kvno
+      - remote_realm
+    KerberosRealmTrustRequest:
+      type: object
+      description: Kerberos realm trust serializer.
+      properties:
+        provider:
+          type: integer
+        remote_realm:
+          type: string
+          minLength: 1
+        capaths:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: Intermediate realms for transited-path checking.
+      required:
+      - provider
+      - remote_realm
     KerberosServicePrincipal:
       type: object
       description: Kerberos service principal serializer.
@@ -46726,6 +47083,7 @@ components:
       - authentik_providers_radius.radiusproviderpropertymapping
       - authentik_providers_kerberos.kerberosprovider
       - authentik_providers_kerberos.kerberosserviceprincipal
+      - authentik_providers_kerberos.kerberosrealmtrust
       - authentik_providers_kerberos.kerberosuserkeys
       - authentik_providers_saml.samlprovider
       - authentik_providers_saml.samlpropertymapping
@@ -49459,6 +49817,36 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/KerberosProvider'
+        autocomplete:
+          $ref: '#/components/schemas/Autocomplete'
+      required:
+      - autocomplete
+      - pagination
+      - results
+    PaginatedKerberosRealmTrustList:
+      type: object
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/KerberosRealmTrust'
+        autocomplete:
+          $ref: '#/components/schemas/Autocomplete'
+      required:
+      - autocomplete
+      - pagination
+      - results
+    PaginatedKerberosRealmTrustOutpostList:
+      type: object
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/KerberosRealmTrustOutpost'
         autocomplete:
           $ref: '#/components/schemas/Autocomplete'
       required:
@@ -53053,6 +53441,21 @@ components:
         realm_sid:
           type: string
           description: Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.
+    PatchedKerberosRealmTrustRequest:
+      type: object
+      description: Kerberos realm trust serializer.
+      properties:
+        provider:
+          type: integer
+        remote_realm:
+          type: string
+          minLength: 1
+        capaths:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: Intermediate realms for transited-path checking.
     PatchedKerberosServicePrincipalRequest:
       type: object
       description: Kerberos service principal serializer.

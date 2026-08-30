@@ -58,6 +58,10 @@ import {
     PaginatedKerberosOutpostConfigListFromJSON,
 } from "../models/PaginatedKerberosOutpostConfigList";
 import {
+    type PaginatedKerberosRealmTrustOutpostList,
+    PaginatedKerberosRealmTrustOutpostListFromJSON,
+} from "../models/PaginatedKerberosRealmTrustOutpostList";
+import {
     type PaginatedKerberosServicePrincipalOutpostList,
     PaginatedKerberosServicePrincipalOutpostListFromJSON,
 } from "../models/PaginatedKerberosServicePrincipalOutpostList";
@@ -181,6 +185,15 @@ export interface OutpostsKerberosOtpCheckRequest {
     id: number;
     username: string;
     value: string;
+}
+
+export interface OutpostsKerberosRealmTrustsListRequest {
+    id: number;
+    name?: string;
+    ordering?: string;
+    page?: number;
+    pageSize?: number;
+    search?: string;
 }
 
 export interface OutpostsKerberosServicePrincipalsListRequest {
@@ -1223,6 +1236,93 @@ export class OutpostsApi extends runtime.BaseAPI {
         initOverrides?: RequestInit | runtime.InitOverrideFunction,
     ): Promise<KerberosOTPCheck> {
         const response = await this.outpostsKerberosOtpCheckRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for outpostsKerberosRealmTrustsList without sending the request
+     */
+    async outpostsKerberosRealmTrustsListRequestOpts(
+        requestParameters: OutpostsKerberosRealmTrustsListRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["id"] == null) {
+            throw new runtime.RequiredError(
+                "id",
+                'Required parameter "id" was null or undefined when calling outpostsKerberosRealmTrustsList().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters["name"] != null) {
+            queryParameters["name"] = requestParameters["name"];
+        }
+
+        if (requestParameters["ordering"] != null) {
+            queryParameters["ordering"] = requestParameters["ordering"];
+        }
+
+        if (requestParameters["page"] != null) {
+            queryParameters["page"] = requestParameters["page"];
+        }
+
+        if (requestParameters["pageSize"] != null) {
+            queryParameters["page_size"] = requestParameters["pageSize"];
+        }
+
+        if (requestParameters["search"] != null) {
+            queryParameters["search"] = requestParameters["search"];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/outposts/kerberos/{id}/realm_trusts/`;
+        urlPath = urlPath.replace("{id}", encodeURIComponent(String(requestParameters["id"])));
+
+        return {
+            path: urlPath,
+            method: "GET",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * List the configured realm trusts.
+     */
+    async outpostsKerberosRealmTrustsListRaw(
+        requestParameters: OutpostsKerberosRealmTrustsListRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<PaginatedKerberosRealmTrustOutpostList>> {
+        const requestOptions =
+            await this.outpostsKerberosRealmTrustsListRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            PaginatedKerberosRealmTrustOutpostListFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * List the configured realm trusts.
+     */
+    async outpostsKerberosRealmTrustsList(
+        requestParameters: OutpostsKerberosRealmTrustsListRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<PaginatedKerberosRealmTrustOutpostList> {
+        const response = await this.outpostsKerberosRealmTrustsListRaw(
+            requestParameters,
+            initOverrides,
+        );
         return await response.value();
     }
 

@@ -1,5 +1,6 @@
 import "#admin/providers/RelatedApplicationButton";
 import "#admin/providers/kerberos/KerberosProviderForm";
+import "#admin/providers/kerberos/RealmTrustList";
 import "#admin/providers/kerberos/ServicePrincipalList";
 import "#admin/rbac/ak-rbac-object-permission-page";
 import "#admin/events/ObjectChangelog";
@@ -426,6 +427,16 @@ export class KerberosProviderViewPage extends AKElement {
                         <ak-kerberos-service-principal-list
                             .provider=${this.provider}
                         ></ak-kerberos-service-principal-list>
+                    </div>
+                    <div class="pf-c-card pf-l-grid__item pf-m-12-col">
+                        <div class="pf-c-card__title">
+                            ${msg("Realm trusts", {
+                                id: "kerberos.realm-trust.section.title",
+                            })}
+                        </div>
+                        <ak-kerberos-realm-trust-list
+                            .provider=${this.provider}
+                        ></ak-kerberos-realm-trust-list>
                     </div>
                 </section>
                 <section
