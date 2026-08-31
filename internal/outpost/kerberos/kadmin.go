@@ -20,6 +20,31 @@ import (
 
 var errKadminUnsupported = errors.New("kadmin operation is unsupported by authentik")
 
+type kadminPasswordQuality struct{}
+
+func (kadminPasswordQuality) Name() string {
+	return "authentik"
+}
+
+func (kadminPasswordQuality) Check(
+	password, policyName string, name principal.Principal,
+) error {
+	if len(name.Components) > 1 {
+		return nil
+	}
+	if err := (kadm5.EmptyPasswordQuality{}).Check(password, policyName, name); err != nil {
+		return err
+	}
+	if policyName == "" {
+		policyName = "authentik"
+	}
+	return (kadm5.PrincipalPasswordQuality{}).Check(password, policyName, name)
+}
+
+func kadminPasswordQualityModules() []kadm5.PasswordQualityModule {
+	return []kadm5.PasswordQualityModule{kadminPasswordQuality{}}
+}
+
 type kadminBackend struct {
 	instance *ProviderInstance
 }

@@ -1048,7 +1048,7 @@ func TestMITInteropKadmin(t *testing.T) {
 		t.Fatal(err)
 	}
 	adminServer := kadm5.NewServer(&kadminBackend{instance: h.instance}, adminKeytab)
-	adminServer.PasswordQualityModules = []kadm5.PasswordQualityModule{}
+	adminServer.PasswordQualityModules = kadminPasswordQualityModules()
 	adminServer.ACL = acl.Func()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -1114,7 +1114,7 @@ func TestMITInteropKadmin(t *testing.T) {
 		t.Fatal(err)
 	}
 	deniedServer := kadm5.NewServer(&kadminBackend{instance: h.instance}, adminKeytab)
-	deniedServer.PasswordQualityModules = []kadm5.PasswordQualityModule{}
+	deniedServer.PasswordQualityModules = kadminPasswordQualityModules()
 	deniedServer.ACL = deniedACL.Func()
 	deniedListener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {

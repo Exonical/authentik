@@ -39,6 +39,28 @@ func TestKadminBackendPrincipalMapping(t *testing.T) {
 	}
 }
 
+func TestKadminPasswordQuality(t *testing.T) {
+	module := kadminPasswordQuality{}
+	user, err := principal.Parse("alice@" + testRealm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service, err := principal.Parse("host/web@" + testRealm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, password := range []string{"", "alice"} {
+		if err := module.Check(password, "", *user); err == nil {
+			t.Fatalf("user password %q was accepted", password)
+		}
+	}
+	for _, password := range []string{"", "host"} {
+		if err := module.Check(password, "", *service); err != nil {
+			t.Fatalf("service password %q was rejected: %v", password, err)
+		}
+	}
+}
+
 func TestKadminBackendRandomizeReturnsFreshKeys(t *testing.T) {
 	first := base64.StdEncoding.EncodeToString(make([]byte, 32))
 	second := base64.StdEncoding.EncodeToString([]byte("01234567890123456789012345678901"))

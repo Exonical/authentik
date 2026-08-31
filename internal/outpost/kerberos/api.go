@@ -229,7 +229,7 @@ func (rs *KerberosServer) Refresh() error {
 				return fmt.Errorf("build provider %d kadmin keytab: %w", provider.Pk, keytabErr)
 			}
 			kadminServer = kadm5.NewServer(&kadminBackend{instance: instance}, serviceKeytab)
-			kadminServer.PasswordQualityModules = []kadm5.PasswordQualityModule{}
+			kadminServer.PasswordQualityModules = kadminPasswordQualityModules()
 			if len(provider.GetKadminAcl()) > 0 {
 				acl, aclErr := parseKadminACL(provider.GetKadminAcl(), provider.RealmName)
 				if aclErr != nil {
