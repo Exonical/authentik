@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Exonical/go-kerberos/krb5/asn1"
+	"github.com/Exonical/go-kerberos/krb5/kadm5"
 	"github.com/Exonical/go-kerberos/krb5/kkdcp"
 	"github.com/Exonical/go-kerberos/krb5/protocol"
 	"github.com/Exonical/go-kerberos/krb5/transport"
@@ -27,14 +28,16 @@ type KerberosServer struct {
 	ac  *ak.APIController
 	cs  *ak.CryptoStore
 
-	providers  map[int32]*ProviderInstance
-	mu         sync.Mutex
-	udp        []net.PacketConn
-	tcp        []net.Listener
-	kpasswdUDP []net.PacketConn
-	kpasswdTCP []net.Listener
-	kkdcp      []net.Listener
-	kkdcpHTTP  []*http.Server
+	providers    map[int32]*ProviderInstance
+	mu           sync.Mutex
+	udp          []net.PacketConn
+	tcp          []net.Listener
+	kpasswdUDP   []net.PacketConn
+	kpasswdTCP   []net.Listener
+	kadmin       net.Listener
+	kadminServer *kadm5.Server
+	kkdcp        []net.Listener
+	kkdcpHTTP    []*http.Server
 }
 
 func NewServer(ac *ak.APIController) ak.Outpost {
@@ -48,7 +51,7 @@ func NewServer(ac *ak.APIController) ak.Outpost {
 
 func (rs *KerberosServer) Start() error {
 	var group errgroup.Group
-	hasUDP, hasTCP, hasKpasswdUDP, hasKpasswdTCP, hasKKDCP := false, false, false, false, false
+	hasUDP, hasTCP, hasKpasswdUDP, hasKpasswdTCP, hasKKDCP, hasKadmin := false, false, false, false, false, false
 	rs.mu.Lock()
 	for _, provider := range rs.providers {
 		hasUDP = hasUDP || provider.Config.GetUdpEnabled()
@@ -58,9 +61,10 @@ func (rs *KerberosServer) Start() error {
 		hasKpasswdTCP = hasKpasswdTCP ||
 			(provider.Config.GetKpasswdEnabled() && provider.Config.GetTcpEnabled())
 		hasKKDCP = hasKKDCP || provider.Config.GetKkdcpEnabled()
+		hasKadmin = hasKadmin || provider.Config.GetKadminEnabled()
 	}
 	rs.mu.Unlock()
-	if !hasUDP && !hasTCP && !hasKpasswdUDP && !hasKpasswdTCP && !hasKKDCP {
+	if !hasUDP && !hasTCP && !hasKpasswdUDP && !hasKpasswdTCP && !hasKKDCP && !hasKadmin {
 		return errors.New("all kerberos providers have both UDP and TCP disabled")
 	}
 	for _, address := range config.Get().Listen.Kerberos {
@@ -106,6 +110,21 @@ func (rs *KerberosServer) Start() error {
 				rs.kpasswdTCP = append(rs.kpasswdTCP, tcp)
 				rs.mu.Unlock()
 				group.Go(func() error { return rs.serveKpasswdTCP(tcp) })
+			}
+		}
+	}
+	if hasKadmin {
+		for _, address := range config.Get().Listen.Kadmin {
+			listener, err := net.Listen("tcp", address)
+			if err != nil {
+				return err
+			}
+			rs.mu.Lock()
+			rs.kadmin = listener
+			server := rs.kadminServer
+			rs.mu.Unlock()
+			if server != nil {
+				group.Go(func() error { return server.Serve(listener) })
 			}
 		}
 	}
@@ -173,6 +192,7 @@ func (rs *KerberosServer) Stop() error {
 	tcp := append([]net.Listener(nil), rs.tcp...)
 	kpasswdUDP := append([]net.PacketConn(nil), rs.kpasswdUDP...)
 	kpasswdTCP := append([]net.Listener(nil), rs.kpasswdTCP...)
+	kadmin := rs.kadmin
 	kkdcp := append([]net.Listener(nil), rs.kkdcp...)
 	kkdcpHTTP := append([]*http.Server(nil), rs.kkdcpHTTP...)
 	rs.mu.Unlock()
@@ -196,6 +216,9 @@ func (rs *KerberosServer) Stop() error {
 	for _, listener := range kpasswdTCP {
 		listener := listener
 		errs.Go(listener.Close)
+	}
+	if kadmin != nil {
+		errs.Go(kadmin.Close)
 	}
 	for _, server := range kkdcpHTTP {
 		server := server

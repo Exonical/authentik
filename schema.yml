@@ -11156,6 +11156,130 @@ paths:
           $ref: '#/components/responses/ValidationErrorResponse'
         '403':
           $ref: '#/components/responses/GenericErrorResponse'
+  /outposts/kerberos/{id}/service_principal_create/:
+    post:
+      operationId: outposts_kerberos_service_principal_create
+      description: Create a service principal for kadm5.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      tags:
+      - outposts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KerberosServicePrincipalAdminRequest'
+        required: true
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosServicePrincipalOutpost'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /outposts/kerberos/{id}/service_principal_delete/:
+    post:
+      operationId: outposts_kerberos_service_principal_delete
+      description: Delete a service principal for kadm5.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      tags:
+      - outposts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KerberosServicePrincipalAdminRequest'
+        required: true
+      security:
+      - authentik: []
+      responses:
+        '204':
+          description: No response body
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /outposts/kerberos/{id}/service_principal_rotate/:
+    post:
+      operationId: outposts_kerberos_service_principal_rotate
+      description: Rotate a service principal for kadm5.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      tags:
+      - outposts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KerberosServicePrincipalAdminRequest'
+        required: true
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosServicePrincipalOutpost'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /outposts/kerberos/{id}/service_principal_update/:
+    post:
+      operationId: outposts_kerberos_service_principal_update
+      description: Update a service principal's ticket flags for kadm5.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      tags:
+      - outposts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KerberosServicePrincipalUpdateRequest'
+        required: true
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosServicePrincipalOutpost'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
   /outposts/kerberos/{id}/service_principals/:
     get:
       operationId: outposts_kerberos_service_principals_list
@@ -44641,6 +44765,14 @@ components:
         kdc_audit_enabled:
           type: boolean
           description: Emit authentik events for KDC ticket operations.
+        kadmin_enabled:
+          type: boolean
+          description: Serve the kadm5 admin protocol from the outpost.
+        kadmin_acl:
+          type: array
+          items:
+            type: string
+            minLength: 1
         master_key:
           type: string
         application_slug:
@@ -44842,6 +44974,14 @@ components:
         kdc_audit_enabled:
           type: boolean
           description: Emit authentik events for KDC ticket operations.
+        kadmin_enabled:
+          type: boolean
+          description: Serve the kadm5 admin protocol from the outpost.
+        kadmin_acl:
+          type: array
+          items:
+            type: string
+            minLength: 1
         master_key:
           type: string
           readOnly: true
@@ -45017,6 +45157,14 @@ components:
         kdc_audit_enabled:
           type: boolean
           description: Emit authentik events for KDC ticket operations.
+        kadmin_enabled:
+          type: boolean
+          description: Serve the kadm5 admin protocol from the outpost.
+        kadmin_acl:
+          type: array
+          items:
+            type: string
+            minLength: 1
       required:
       - name
       - realm_name
@@ -45157,6 +45305,15 @@ components:
       - provider
       - spn
       - uuid
+    KerberosServicePrincipalAdminRequest:
+      type: object
+      description: Service principal management request for the kadm5 outpost.
+      properties:
+        spn:
+          type: string
+          minLength: 1
+      required:
+      - spn
     KerberosServicePrincipalOutpost:
       type: object
       description: Service principal data consumed by the KDC outpost.
@@ -45229,6 +45386,20 @@ components:
       required:
       - provider
       - spn
+    KerberosServicePrincipalUpdateRequest:
+      type: object
+      description: Service principal ticket flag update request for the kadm5 outpost.
+      properties:
+        spn:
+          type: string
+          minLength: 1
+        ticket_flags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketFlagsEnum'
+      required:
+      - spn
+      - ticket_flags
     KerberosSetPasswordRequest:
       type: object
       description: Password change request for the Kerberos outpost.
@@ -53710,6 +53881,14 @@ components:
         kdc_audit_enabled:
           type: boolean
           description: Emit authentik events for KDC ticket operations.
+        kadmin_enabled:
+          type: boolean
+          description: Serve the kadm5 admin protocol from the outpost.
+        kadmin_acl:
+          type: array
+          items:
+            type: string
+            minLength: 1
     PatchedKerberosRealmTrustRequest:
       type: object
       description: Kerberos realm trust serializer.

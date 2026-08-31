@@ -62,6 +62,11 @@ class KerberosProviderSerializer(ProviderSerializer):
         required=False,
         default=list,
     )
+    kadmin_acl = ListField(
+        child=CharField(allow_blank=False, min_length=1),
+        required=False,
+        default=list,
+    )
 
     def to_internal_value(self, data: dict) -> dict:
         """Reject malformed kprop targets before JSON values are accepted."""
@@ -72,6 +77,14 @@ class KerberosProviderSerializer(ProviderSerializer):
         ):
             raise ValidationError(
                 {"kprop_targets": _("Kprop targets must be a list of non-empty strings.")}
+            )
+        acl = data.get("kadmin_acl")
+        if acl is not None and (
+            not isinstance(acl, list)
+            or any(not isinstance(line, str) or not line.strip() for line in acl)
+        ):
+            raise ValidationError(
+                {"kadmin_acl": _("Kadmin ACL must be a list of non-empty strings.")}
             )
         return super().to_internal_value(data)
 
@@ -142,6 +155,8 @@ class KerberosProviderSerializer(ProviderSerializer):
             "kprop_master_password",
             "kprop_interval",
             "kdc_audit_enabled",
+            "kadmin_enabled",
+            "kadmin_acl",
             "master_key",
             "outpost_set",
         ]
@@ -566,11 +581,31 @@ class KerberosAuditEventSerializer(PassiveSerializer):
     ticket_id = CharField(allow_blank=True)
 
 
+class KerberosServicePrincipalAdminSerializer(PassiveSerializer):
+    """Service principal management request for the kadm5 outpost."""
+
+    spn = CharField(allow_blank=False, min_length=1)
+
+
+class KerberosServicePrincipalUpdateSerializer(KerberosServicePrincipalAdminSerializer):
+    """Service principal ticket flag update request for the kadm5 outpost."""
+
+    ticket_flags = ListField(
+        child=ChoiceField(choices=KERBEROS_TICKET_FLAGS),
+        allow_empty=True,
+    )
+
+
 class KerberosOutpostConfigSerializer(ModelSerializer):
     """Kerberos provider serializer for outposts."""
 
     application_slug = CharField(source="application.slug")
     kprop_targets = ListField(
+        child=CharField(allow_blank=False, min_length=1),
+        required=False,
+        default=list,
+    )
+    kadmin_acl = ListField(
         child=CharField(allow_blank=False, min_length=1),
         required=False,
         default=list,
@@ -624,6 +659,8 @@ class KerberosOutpostConfigSerializer(ModelSerializer):
             "kprop_master_password",
             "kprop_interval",
             "kdc_audit_enabled",
+            "kadmin_enabled",
+            "kadmin_acl",
             "master_key",
             "application_slug",
         ]
@@ -637,6 +674,19 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
     ordering = ["name"]
     search_fields = ["name"]
     filterset_fields = ["name"]
+
+    def _require_kadmin(self, provider: KerberosProvider) -> None:
+        if not provider.kadmin_enabled:
+            raise Http404
+
+    @staticmethod
+    def _kadmin_event(provider: KerberosProvider, operation: str, spn: str) -> None:
+        Event.new(
+            "kerberos_kadmin",
+            app=provider.application.slug,
+            operation=operation,
+            spn=spn,
+        ).save()
 
     @staticmethod
     def _resolve_user(provider: KerberosProvider, username: str) -> User | None:
@@ -688,6 +738,87 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
         return self.get_paginated_response(
             KerberosUserKeyOutpostSerializer(page, many=True).data
         )
+
+    @extend_schema(
+        request=KerberosServicePrincipalAdminSerializer,
+        responses={200: KerberosServicePrincipalOutpostSerializer()},
+        operation_id="outposts_kerberos_service_principal_create",
+    )
+    @action(detail=True, methods=["POST"])
+    @validate(KerberosServicePrincipalAdminSerializer)
+    def service_principal_create(self, request: Request, pk=None, body=None) -> Response:
+        """Create a service principal for kadm5."""
+        provider = self.get_object()
+        self._require_kadmin(provider)
+        spn = body.validated_data["spn"]
+        if KerberosServicePrincipal.objects.filter(provider=provider, spn=spn).exists():
+            return Response({"detail": _("This service principal already exists.")}, status=409)
+        principal = KerberosServicePrincipal(provider=provider, spn=spn)
+        principal.save()
+        self._kadmin_event(provider, "create", spn)
+        return Response(KerberosServicePrincipalOutpostSerializer(principal).data)
+
+    @extend_schema(
+        request=KerberosServicePrincipalAdminSerializer,
+        responses={204: None},
+        operation_id="outposts_kerberos_service_principal_delete",
+    )
+    @action(detail=True, methods=["POST"])
+    @validate(KerberosServicePrincipalAdminSerializer)
+    def service_principal_delete(self, request: Request, pk=None, body=None) -> Response:
+        """Delete a service principal for kadm5."""
+        provider = self.get_object()
+        self._require_kadmin(provider)
+        spn = body.validated_data["spn"]
+        principal = KerberosServicePrincipal.objects.filter(provider=provider, spn=spn).first()
+        if principal is None:
+            raise Http404
+        principal.delete()
+        self._kadmin_event(provider, "delete", spn)
+        return Response(status=204)
+
+    @extend_schema(
+        request=KerberosServicePrincipalAdminSerializer,
+        responses={200: KerberosServicePrincipalOutpostSerializer()},
+        operation_id="outposts_kerberos_service_principal_rotate",
+    )
+    @action(detail=True, methods=["POST"])
+    @validate(KerberosServicePrincipalAdminSerializer)
+    def service_principal_rotate(self, request: Request, pk=None, body=None) -> Response:
+        """Rotate a service principal for kadm5."""
+        provider = self.get_object()
+        self._require_kadmin(provider)
+        spn = body.validated_data["spn"]
+        principal = KerberosServicePrincipal.objects.filter(provider=provider, spn=spn).first()
+        if principal is None:
+            raise Http404
+        principal.kvno += 1
+        principal.keys = {
+            str(enctype): generate_key(enctype) for enctype in provider.allowed_enctypes
+        }
+        principal.save(update_fields=["kvno", "keys"])
+        self._kadmin_event(provider, "rotate", spn)
+        return Response(KerberosServicePrincipalOutpostSerializer(principal).data)
+
+    @extend_schema(
+        request=KerberosServicePrincipalUpdateSerializer,
+        responses={200: KerberosServicePrincipalOutpostSerializer()},
+        operation_id="outposts_kerberos_service_principal_update",
+    )
+    @action(detail=True, methods=["POST"])
+    @validate(KerberosServicePrincipalUpdateSerializer)
+    def service_principal_update(self, request: Request, pk=None, body=None) -> Response:
+        """Update a service principal's ticket flags for kadm5."""
+        provider = self.get_object()
+        self._require_kadmin(provider)
+        spn = body.validated_data["spn"]
+        principal = KerberosServicePrincipal.objects.filter(provider=provider, spn=spn).first()
+        if principal is None:
+            raise Http404
+        principal.ticket_flags = body.validated_data["ticket_flags"]
+        principal.save(update_fields=["ticket_flags"])
+        self._kadmin_event(provider, "update", spn)
+        return Response(KerberosServicePrincipalOutpostSerializer(principal).data)
 
     @extend_schema(
         request=KerberosAuditEventSerializer,

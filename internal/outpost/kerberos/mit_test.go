@@ -32,6 +32,7 @@ import (
 	"github.com/Exonical/go-kerberos/krb5/ccache"
 	"github.com/Exonical/go-kerberos/krb5/client"
 	"github.com/Exonical/go-kerberos/krb5/crypto"
+	"github.com/Exonical/go-kerberos/krb5/kadm5"
 	"github.com/Exonical/go-kerberos/krb5/kdb"
 	"github.com/Exonical/go-kerberos/krb5/kdb/mitdump"
 	"github.com/Exonical/go-kerberos/krb5/kdc"
@@ -928,6 +929,45 @@ func TestMITInteropKpasswd(t *testing.T) {
 		output, "krbtgt/"+mitRealm+"@"+mitRealm,
 	) {
 		t.Fatalf("klist does not show TGT after password change:\n%s", output)
+	}
+}
+
+func TestMITInteropKadmin(t *testing.T) {
+	if _, err := exec.LookPath("kadmin"); err != nil {
+		t.Skip("kadmin not installed, skipping MIT interop test")
+	}
+	h := startMITKDC(t, false)
+	h.instance.Config.SetKadminEnabled(true)
+	acl, err := parseKadminACL([]string{"alice *"}, mitRealm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	serviceKeytab, err := h.instance.kadminKeytab()
+	if err != nil {
+		t.Fatal(err)
+	}
+	adminServer := kadm5.NewServer(&kadminBackend{instance: h.instance}, serviceKeytab)
+	adminServer.ACL = acl.Func()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = listener.Close() })
+	go func() { _ = adminServer.Serve(listener) }()
+	output := h.run(
+		t, "", "kadmin", "-p", mitUser, "-w", mitPassword,
+		"-s", listener.Addr().String(), "-q", "getprinc alice",
+	)
+	if !strings.Contains(output, "Principal: alice@"+mitRealm) {
+		t.Fatalf("kadmin getprinc output = %s", output)
+	}
+	output = h.run(
+		t, "", "kadmin", "-p", mitUser, "-w", mitPassword,
+		"-s", listener.Addr().String(), "-q", "listprincs",
+	)
+	if !strings.Contains(output, mitUser+"@"+mitRealm) ||
+		!strings.Contains(output, mitService+"@"+mitRealm) {
+		t.Fatalf("kadmin listprincs output = %s", output)
 	}
 }
 

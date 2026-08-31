@@ -77,9 +77,12 @@ type KerberosOutpostConfig struct {
 	// Interval in seconds between full kprop pushes.
 	KpropInterval *int32 `json:"kprop_interval,omitempty"`
 	// Emit authentik events for KDC ticket operations.
-	KdcAuditEnabled      *bool   `json:"kdc_audit_enabled,omitempty"`
-	MasterKey            *string `json:"master_key,omitempty"`
-	ApplicationSlug      string  `json:"application_slug"`
+	KdcAuditEnabled *bool `json:"kdc_audit_enabled,omitempty"`
+	// Serve the kadm5 admin protocol from the outpost.
+	KadminEnabled        *bool    `json:"kadmin_enabled,omitempty"`
+	KadminAcl            []string `json:"kadmin_acl,omitempty"`
+	MasterKey            *string  `json:"master_key,omitempty"`
+	ApplicationSlug      string   `json:"application_slug"`
 	AdditionalProperties map[string]interface{}
 }
 
@@ -1285,6 +1288,70 @@ func (o *KerberosOutpostConfig) SetKdcAuditEnabled(v bool) {
 	o.KdcAuditEnabled = &v
 }
 
+// GetKadminEnabled returns the KadminEnabled field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetKadminEnabled() bool {
+	if o == nil || IsNil(o.KadminEnabled) {
+		var ret bool
+		return ret
+	}
+	return *o.KadminEnabled
+}
+
+// GetKadminEnabledOk returns a tuple with the KadminEnabled field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetKadminEnabledOk() (*bool, bool) {
+	if o == nil || IsNil(o.KadminEnabled) {
+		return nil, false
+	}
+	return o.KadminEnabled, true
+}
+
+// HasKadminEnabled returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasKadminEnabled() bool {
+	if o != nil && !IsNil(o.KadminEnabled) {
+		return true
+	}
+
+	return false
+}
+
+// SetKadminEnabled gets a reference to the given bool and assigns it to the KadminEnabled field.
+func (o *KerberosOutpostConfig) SetKadminEnabled(v bool) {
+	o.KadminEnabled = &v
+}
+
+// GetKadminAcl returns the KadminAcl field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetKadminAcl() []string {
+	if o == nil || IsNil(o.KadminAcl) {
+		var ret []string
+		return ret
+	}
+	return o.KadminAcl
+}
+
+// GetKadminAclOk returns a tuple with the KadminAcl field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetKadminAclOk() ([]string, bool) {
+	if o == nil || IsNil(o.KadminAcl) {
+		return nil, false
+	}
+	return o.KadminAcl, true
+}
+
+// HasKadminAcl returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasKadminAcl() bool {
+	if o != nil && !IsNil(o.KadminAcl) {
+		return true
+	}
+
+	return false
+}
+
+// SetKadminAcl gets a reference to the given []string and assigns it to the KadminAcl field.
+func (o *KerberosOutpostConfig) SetKadminAcl(v []string) {
+	o.KadminAcl = v
+}
+
 // GetMasterKey returns the MasterKey field value if set, zero value otherwise.
 func (o *KerberosOutpostConfig) GetMasterKey() string {
 	if o == nil || IsNil(o.MasterKey) {
@@ -1452,6 +1519,12 @@ func (o KerberosOutpostConfig) ToMap() (map[string]interface{}, error) {
 	if !IsNil(o.KdcAuditEnabled) {
 		toSerialize["kdc_audit_enabled"] = o.KdcAuditEnabled
 	}
+	if !IsNil(o.KadminEnabled) {
+		toSerialize["kadmin_enabled"] = o.KadminEnabled
+	}
+	if !IsNil(o.KadminAcl) {
+		toSerialize["kadmin_acl"] = o.KadminAcl
+	}
 	if !IsNil(o.MasterKey) {
 		toSerialize["master_key"] = o.MasterKey
 	}
@@ -1541,6 +1614,8 @@ func (o *KerberosOutpostConfig) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "kprop_master_password")
 		delete(additionalProperties, "kprop_interval")
 		delete(additionalProperties, "kdc_audit_enabled")
+		delete(additionalProperties, "kadmin_enabled")
+		delete(additionalProperties, "kadmin_acl")
 		delete(additionalProperties, "master_key")
 		delete(additionalProperties, "application_slug")
 		o.AdditionalProperties = additionalProperties

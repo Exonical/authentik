@@ -30,6 +30,18 @@ import {
 } from "../models/KerberosCheckAccess";
 import { type KerberosOTPCheck, KerberosOTPCheckFromJSON } from "../models/KerberosOTPCheck";
 import {
+    type KerberosServicePrincipalAdminRequest,
+    KerberosServicePrincipalAdminRequestToJSON,
+} from "../models/KerberosServicePrincipalAdminRequest";
+import {
+    type KerberosServicePrincipalOutpost,
+    KerberosServicePrincipalOutpostFromJSON,
+} from "../models/KerberosServicePrincipalOutpost";
+import {
+    type KerberosServicePrincipalUpdateRequest,
+    KerberosServicePrincipalUpdateRequestToJSON,
+} from "../models/KerberosServicePrincipalUpdateRequest";
+import {
     type KerberosSetPasswordRequest,
     KerberosSetPasswordRequestToJSON,
 } from "../models/KerberosSetPasswordRequest";
@@ -207,6 +219,26 @@ export interface OutpostsKerberosRealmTrustsListRequest {
     page?: number;
     pageSize?: number;
     search?: string;
+}
+
+export interface OutpostsKerberosServicePrincipalCreateRequest {
+    id: number;
+    kerberosServicePrincipalAdminRequest: KerberosServicePrincipalAdminRequest;
+}
+
+export interface OutpostsKerberosServicePrincipalDeleteRequest {
+    id: number;
+    kerberosServicePrincipalAdminRequest: KerberosServicePrincipalAdminRequest;
+}
+
+export interface OutpostsKerberosServicePrincipalRotateRequest {
+    id: number;
+    kerberosServicePrincipalAdminRequest: KerberosServicePrincipalAdminRequest;
+}
+
+export interface OutpostsKerberosServicePrincipalUpdateRequest {
+    id: number;
+    kerberosServicePrincipalUpdateRequest: KerberosServicePrincipalUpdateRequest;
 }
 
 export interface OutpostsKerberosServicePrincipalsListRequest {
@@ -1413,6 +1445,316 @@ export class OutpostsApi extends runtime.BaseAPI {
         initOverrides?: RequestInit | runtime.InitOverrideFunction,
     ): Promise<PaginatedKerberosRealmTrustOutpostList> {
         const response = await this.outpostsKerberosRealmTrustsListRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for outpostsKerberosServicePrincipalCreate without sending the request
+     */
+    async outpostsKerberosServicePrincipalCreateRequestOpts(
+        requestParameters: OutpostsKerberosServicePrincipalCreateRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["id"] == null) {
+            throw new runtime.RequiredError(
+                "id",
+                'Required parameter "id" was null or undefined when calling outpostsKerberosServicePrincipalCreate().',
+            );
+        }
+
+        if (requestParameters["kerberosServicePrincipalAdminRequest"] == null) {
+            throw new runtime.RequiredError(
+                "kerberosServicePrincipalAdminRequest",
+                'Required parameter "kerberosServicePrincipalAdminRequest" was null or undefined when calling outpostsKerberosServicePrincipalCreate().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters["Content-Type"] = "application/json";
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/outposts/kerberos/{id}/service_principal_create/`;
+        urlPath = urlPath.replace("{id}", encodeURIComponent(String(requestParameters["id"])));
+
+        return {
+            path: urlPath,
+            method: "POST",
+            headers: headerParameters,
+            query: queryParameters,
+            body: KerberosServicePrincipalAdminRequestToJSON(
+                requestParameters["kerberosServicePrincipalAdminRequest"],
+            ),
+        };
+    }
+
+    /**
+     * Create a service principal for kadm5.
+     */
+    async outpostsKerberosServicePrincipalCreateRaw(
+        requestParameters: OutpostsKerberosServicePrincipalCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<KerberosServicePrincipalOutpost>> {
+        const requestOptions =
+            await this.outpostsKerberosServicePrincipalCreateRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            KerberosServicePrincipalOutpostFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Create a service principal for kadm5.
+     */
+    async outpostsKerberosServicePrincipalCreate(
+        requestParameters: OutpostsKerberosServicePrincipalCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<KerberosServicePrincipalOutpost> {
+        const response = await this.outpostsKerberosServicePrincipalCreateRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for outpostsKerberosServicePrincipalDelete without sending the request
+     */
+    async outpostsKerberosServicePrincipalDeleteRequestOpts(
+        requestParameters: OutpostsKerberosServicePrincipalDeleteRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["id"] == null) {
+            throw new runtime.RequiredError(
+                "id",
+                'Required parameter "id" was null or undefined when calling outpostsKerberosServicePrincipalDelete().',
+            );
+        }
+
+        if (requestParameters["kerberosServicePrincipalAdminRequest"] == null) {
+            throw new runtime.RequiredError(
+                "kerberosServicePrincipalAdminRequest",
+                'Required parameter "kerberosServicePrincipalAdminRequest" was null or undefined when calling outpostsKerberosServicePrincipalDelete().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters["Content-Type"] = "application/json";
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/outposts/kerberos/{id}/service_principal_delete/`;
+        urlPath = urlPath.replace("{id}", encodeURIComponent(String(requestParameters["id"])));
+
+        return {
+            path: urlPath,
+            method: "POST",
+            headers: headerParameters,
+            query: queryParameters,
+            body: KerberosServicePrincipalAdminRequestToJSON(
+                requestParameters["kerberosServicePrincipalAdminRequest"],
+            ),
+        };
+    }
+
+    /**
+     * Delete a service principal for kadm5.
+     */
+    async outpostsKerberosServicePrincipalDeleteRaw(
+        requestParameters: OutpostsKerberosServicePrincipalDeleteRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<void>> {
+        const requestOptions =
+            await this.outpostsKerberosServicePrincipalDeleteRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Delete a service principal for kadm5.
+     */
+    async outpostsKerberosServicePrincipalDelete(
+        requestParameters: OutpostsKerberosServicePrincipalDeleteRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<void> {
+        await this.outpostsKerberosServicePrincipalDeleteRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Creates request options for outpostsKerberosServicePrincipalRotate without sending the request
+     */
+    async outpostsKerberosServicePrincipalRotateRequestOpts(
+        requestParameters: OutpostsKerberosServicePrincipalRotateRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["id"] == null) {
+            throw new runtime.RequiredError(
+                "id",
+                'Required parameter "id" was null or undefined when calling outpostsKerberosServicePrincipalRotate().',
+            );
+        }
+
+        if (requestParameters["kerberosServicePrincipalAdminRequest"] == null) {
+            throw new runtime.RequiredError(
+                "kerberosServicePrincipalAdminRequest",
+                'Required parameter "kerberosServicePrincipalAdminRequest" was null or undefined when calling outpostsKerberosServicePrincipalRotate().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters["Content-Type"] = "application/json";
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/outposts/kerberos/{id}/service_principal_rotate/`;
+        urlPath = urlPath.replace("{id}", encodeURIComponent(String(requestParameters["id"])));
+
+        return {
+            path: urlPath,
+            method: "POST",
+            headers: headerParameters,
+            query: queryParameters,
+            body: KerberosServicePrincipalAdminRequestToJSON(
+                requestParameters["kerberosServicePrincipalAdminRequest"],
+            ),
+        };
+    }
+
+    /**
+     * Rotate a service principal for kadm5.
+     */
+    async outpostsKerberosServicePrincipalRotateRaw(
+        requestParameters: OutpostsKerberosServicePrincipalRotateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<KerberosServicePrincipalOutpost>> {
+        const requestOptions =
+            await this.outpostsKerberosServicePrincipalRotateRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            KerberosServicePrincipalOutpostFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Rotate a service principal for kadm5.
+     */
+    async outpostsKerberosServicePrincipalRotate(
+        requestParameters: OutpostsKerberosServicePrincipalRotateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<KerberosServicePrincipalOutpost> {
+        const response = await this.outpostsKerberosServicePrincipalRotateRaw(
+            requestParameters,
+            initOverrides,
+        );
+        return await response.value();
+    }
+
+    /**
+     * Creates request options for outpostsKerberosServicePrincipalUpdate without sending the request
+     */
+    async outpostsKerberosServicePrincipalUpdateRequestOpts(
+        requestParameters: OutpostsKerberosServicePrincipalUpdateRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["id"] == null) {
+            throw new runtime.RequiredError(
+                "id",
+                'Required parameter "id" was null or undefined when calling outpostsKerberosServicePrincipalUpdate().',
+            );
+        }
+
+        if (requestParameters["kerberosServicePrincipalUpdateRequest"] == null) {
+            throw new runtime.RequiredError(
+                "kerberosServicePrincipalUpdateRequest",
+                'Required parameter "kerberosServicePrincipalUpdateRequest" was null or undefined when calling outpostsKerberosServicePrincipalUpdate().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters["Content-Type"] = "application/json";
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/outposts/kerberos/{id}/service_principal_update/`;
+        urlPath = urlPath.replace("{id}", encodeURIComponent(String(requestParameters["id"])));
+
+        return {
+            path: urlPath,
+            method: "POST",
+            headers: headerParameters,
+            query: queryParameters,
+            body: KerberosServicePrincipalUpdateRequestToJSON(
+                requestParameters["kerberosServicePrincipalUpdateRequest"],
+            ),
+        };
+    }
+
+    /**
+     * Update a service principal\'s ticket flags for kadm5.
+     */
+    async outpostsKerberosServicePrincipalUpdateRaw(
+        requestParameters: OutpostsKerberosServicePrincipalUpdateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<KerberosServicePrincipalOutpost>> {
+        const requestOptions =
+            await this.outpostsKerberosServicePrincipalUpdateRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) =>
+            KerberosServicePrincipalOutpostFromJSON(jsonValue),
+        );
+    }
+
+    /**
+     * Update a service principal\'s ticket flags for kadm5.
+     */
+    async outpostsKerberosServicePrincipalUpdate(
+        requestParameters: OutpostsKerberosServicePrincipalUpdateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<KerberosServicePrincipalOutpost> {
+        const response = await this.outpostsKerberosServicePrincipalUpdateRaw(
             requestParameters,
             initOverrides,
         );

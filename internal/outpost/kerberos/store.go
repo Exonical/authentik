@@ -37,6 +37,9 @@ func (s *providerStore) Lookup(name principal.Principal) (kdb.PrincipalRecord, b
 	if len(name.Components) == 2 && name.Components[0] == "kadmin" && name.Components[1] == "changepw" {
 		return s.changepwRecord(name)
 	}
+	if len(name.Components) == 2 && name.Components[0] == "kadmin" && name.Components[1] == "admin" {
+		return s.syntheticRecord(name, "kadmin-admin")
+	}
 	if len(name.Components) > 1 {
 		record, ok := s.services[principalKey(name)]
 		return record, ok, nil

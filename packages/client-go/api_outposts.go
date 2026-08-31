@@ -1030,6 +1030,538 @@ func (a *OutpostsAPIService) OutpostsKerberosRealmTrustsListExecute(r ApiOutpost
 	return localVarReturnValue, localVarHTTPResponse, nil
 }
 
+type ApiOutpostsKerberosServicePrincipalCreateRequest struct {
+	ctx                                  context.Context
+	ApiService                           *OutpostsAPIService
+	id                                   int32
+	kerberosServicePrincipalAdminRequest *KerberosServicePrincipalAdminRequest
+}
+
+func (r ApiOutpostsKerberosServicePrincipalCreateRequest) KerberosServicePrincipalAdminRequest(kerberosServicePrincipalAdminRequest KerberosServicePrincipalAdminRequest) ApiOutpostsKerberosServicePrincipalCreateRequest {
+	r.kerberosServicePrincipalAdminRequest = &kerberosServicePrincipalAdminRequest
+	return r
+}
+
+func (r ApiOutpostsKerberosServicePrincipalCreateRequest) Execute() (*KerberosServicePrincipalOutpost, *http.Response, error) {
+	return r.ApiService.OutpostsKerberosServicePrincipalCreateExecute(r)
+}
+
+/*
+OutpostsKerberosServicePrincipalCreate Method for OutpostsKerberosServicePrincipalCreate
+
+Create a service principal for kadm5.
+
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param id A unique integer value identifying this Kerberos Provider.
+	@return ApiOutpostsKerberosServicePrincipalCreateRequest
+*/
+func (a *OutpostsAPIService) OutpostsKerberosServicePrincipalCreate(ctx context.Context, id int32) ApiOutpostsKerberosServicePrincipalCreateRequest {
+	return ApiOutpostsKerberosServicePrincipalCreateRequest{
+		ApiService: a,
+		ctx:        ctx,
+		id:         id,
+	}
+}
+
+// Execute executes the request
+//
+//	@return KerberosServicePrincipalOutpost
+func (a *OutpostsAPIService) OutpostsKerberosServicePrincipalCreateExecute(r ApiOutpostsKerberosServicePrincipalCreateRequest) (*KerberosServicePrincipalOutpost, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodPost
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *KerberosServicePrincipalOutpost
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OutpostsAPIService.OutpostsKerberosServicePrincipalCreate")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/outposts/kerberos/{id}/service_principal_create/"
+	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", url.PathEscape(parameterValueToString(r.id, "id")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.kerberosServicePrincipalAdminRequest == nil {
+		return localVarReturnValue, nil, reportError("kerberosServicePrincipalAdminRequest is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.kerberosServicePrincipalAdminRequest
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 400 {
+			var v ValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+			return localVarReturnValue, localVarHTTPResponse, newErr
+		}
+		if localVarHTTPResponse.StatusCode == 403 {
+			var v GenericError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiOutpostsKerberosServicePrincipalDeleteRequest struct {
+	ctx                                  context.Context
+	ApiService                           *OutpostsAPIService
+	id                                   int32
+	kerberosServicePrincipalAdminRequest *KerberosServicePrincipalAdminRequest
+}
+
+func (r ApiOutpostsKerberosServicePrincipalDeleteRequest) KerberosServicePrincipalAdminRequest(kerberosServicePrincipalAdminRequest KerberosServicePrincipalAdminRequest) ApiOutpostsKerberosServicePrincipalDeleteRequest {
+	r.kerberosServicePrincipalAdminRequest = &kerberosServicePrincipalAdminRequest
+	return r
+}
+
+func (r ApiOutpostsKerberosServicePrincipalDeleteRequest) Execute() (*http.Response, error) {
+	return r.ApiService.OutpostsKerberosServicePrincipalDeleteExecute(r)
+}
+
+/*
+OutpostsKerberosServicePrincipalDelete Method for OutpostsKerberosServicePrincipalDelete
+
+Delete a service principal for kadm5.
+
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param id A unique integer value identifying this Kerberos Provider.
+	@return ApiOutpostsKerberosServicePrincipalDeleteRequest
+*/
+func (a *OutpostsAPIService) OutpostsKerberosServicePrincipalDelete(ctx context.Context, id int32) ApiOutpostsKerberosServicePrincipalDeleteRequest {
+	return ApiOutpostsKerberosServicePrincipalDeleteRequest{
+		ApiService: a,
+		ctx:        ctx,
+		id:         id,
+	}
+}
+
+// Execute executes the request
+func (a *OutpostsAPIService) OutpostsKerberosServicePrincipalDeleteExecute(r ApiOutpostsKerberosServicePrincipalDeleteRequest) (*http.Response, error) {
+	var (
+		localVarHTTPMethod = http.MethodPost
+		localVarPostBody   interface{}
+		formFiles          []formFile
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OutpostsAPIService.OutpostsKerberosServicePrincipalDelete")
+	if err != nil {
+		return nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/outposts/kerberos/{id}/service_principal_delete/"
+	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", url.PathEscape(parameterValueToString(r.id, "id")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.kerberosServicePrincipalAdminRequest == nil {
+		return nil, reportError("kerberosServicePrincipalAdminRequest is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.kerberosServicePrincipalAdminRequest
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 400 {
+			var v ValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+			return localVarHTTPResponse, newErr
+		}
+		if localVarHTTPResponse.StatusCode == 403 {
+			var v GenericError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarHTTPResponse, newErr
+	}
+
+	return localVarHTTPResponse, nil
+}
+
+type ApiOutpostsKerberosServicePrincipalRotateRequest struct {
+	ctx                                  context.Context
+	ApiService                           *OutpostsAPIService
+	id                                   int32
+	kerberosServicePrincipalAdminRequest *KerberosServicePrincipalAdminRequest
+}
+
+func (r ApiOutpostsKerberosServicePrincipalRotateRequest) KerberosServicePrincipalAdminRequest(kerberosServicePrincipalAdminRequest KerberosServicePrincipalAdminRequest) ApiOutpostsKerberosServicePrincipalRotateRequest {
+	r.kerberosServicePrincipalAdminRequest = &kerberosServicePrincipalAdminRequest
+	return r
+}
+
+func (r ApiOutpostsKerberosServicePrincipalRotateRequest) Execute() (*KerberosServicePrincipalOutpost, *http.Response, error) {
+	return r.ApiService.OutpostsKerberosServicePrincipalRotateExecute(r)
+}
+
+/*
+OutpostsKerberosServicePrincipalRotate Method for OutpostsKerberosServicePrincipalRotate
+
+Rotate a service principal for kadm5.
+
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param id A unique integer value identifying this Kerberos Provider.
+	@return ApiOutpostsKerberosServicePrincipalRotateRequest
+*/
+func (a *OutpostsAPIService) OutpostsKerberosServicePrincipalRotate(ctx context.Context, id int32) ApiOutpostsKerberosServicePrincipalRotateRequest {
+	return ApiOutpostsKerberosServicePrincipalRotateRequest{
+		ApiService: a,
+		ctx:        ctx,
+		id:         id,
+	}
+}
+
+// Execute executes the request
+//
+//	@return KerberosServicePrincipalOutpost
+func (a *OutpostsAPIService) OutpostsKerberosServicePrincipalRotateExecute(r ApiOutpostsKerberosServicePrincipalRotateRequest) (*KerberosServicePrincipalOutpost, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodPost
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *KerberosServicePrincipalOutpost
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OutpostsAPIService.OutpostsKerberosServicePrincipalRotate")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/outposts/kerberos/{id}/service_principal_rotate/"
+	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", url.PathEscape(parameterValueToString(r.id, "id")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.kerberosServicePrincipalAdminRequest == nil {
+		return localVarReturnValue, nil, reportError("kerberosServicePrincipalAdminRequest is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.kerberosServicePrincipalAdminRequest
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 400 {
+			var v ValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+			return localVarReturnValue, localVarHTTPResponse, newErr
+		}
+		if localVarHTTPResponse.StatusCode == 403 {
+			var v GenericError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
+type ApiOutpostsKerberosServicePrincipalUpdateRequest struct {
+	ctx                                   context.Context
+	ApiService                            *OutpostsAPIService
+	id                                    int32
+	kerberosServicePrincipalUpdateRequest *KerberosServicePrincipalUpdateRequest
+}
+
+func (r ApiOutpostsKerberosServicePrincipalUpdateRequest) KerberosServicePrincipalUpdateRequest(kerberosServicePrincipalUpdateRequest KerberosServicePrincipalUpdateRequest) ApiOutpostsKerberosServicePrincipalUpdateRequest {
+	r.kerberosServicePrincipalUpdateRequest = &kerberosServicePrincipalUpdateRequest
+	return r
+}
+
+func (r ApiOutpostsKerberosServicePrincipalUpdateRequest) Execute() (*KerberosServicePrincipalOutpost, *http.Response, error) {
+	return r.ApiService.OutpostsKerberosServicePrincipalUpdateExecute(r)
+}
+
+/*
+OutpostsKerberosServicePrincipalUpdate Method for OutpostsKerberosServicePrincipalUpdate
+
+Update a service principal's ticket flags for kadm5.
+
+	@param ctx context.Context - for authentication, logging, cancellation, deadlines, tracing, etc. Passed from http.Request or context.Background().
+	@param id A unique integer value identifying this Kerberos Provider.
+	@return ApiOutpostsKerberosServicePrincipalUpdateRequest
+*/
+func (a *OutpostsAPIService) OutpostsKerberosServicePrincipalUpdate(ctx context.Context, id int32) ApiOutpostsKerberosServicePrincipalUpdateRequest {
+	return ApiOutpostsKerberosServicePrincipalUpdateRequest{
+		ApiService: a,
+		ctx:        ctx,
+		id:         id,
+	}
+}
+
+// Execute executes the request
+//
+//	@return KerberosServicePrincipalOutpost
+func (a *OutpostsAPIService) OutpostsKerberosServicePrincipalUpdateExecute(r ApiOutpostsKerberosServicePrincipalUpdateRequest) (*KerberosServicePrincipalOutpost, *http.Response, error) {
+	var (
+		localVarHTTPMethod  = http.MethodPost
+		localVarPostBody    interface{}
+		formFiles           []formFile
+		localVarReturnValue *KerberosServicePrincipalOutpost
+	)
+
+	localBasePath, err := a.client.cfg.ServerURLWithContext(r.ctx, "OutpostsAPIService.OutpostsKerberosServicePrincipalUpdate")
+	if err != nil {
+		return localVarReturnValue, nil, &GenericOpenAPIError{error: err.Error()}
+	}
+
+	localVarPath := localBasePath + "/outposts/kerberos/{id}/service_principal_update/"
+	localVarPath = strings.Replace(localVarPath, "{"+"id"+"}", url.PathEscape(parameterValueToString(r.id, "id")), -1)
+
+	localVarHeaderParams := make(map[string]string)
+	localVarQueryParams := url.Values{}
+	localVarFormParams := url.Values{}
+	if r.kerberosServicePrincipalUpdateRequest == nil {
+		return localVarReturnValue, nil, reportError("kerberosServicePrincipalUpdateRequest is required and must be specified")
+	}
+
+	// to determine the Content-Type header
+	localVarHTTPContentTypes := []string{"application/json"}
+
+	// set Content-Type header
+	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
+	if localVarHTTPContentType != "" {
+		localVarHeaderParams["Content-Type"] = localVarHTTPContentType
+	}
+
+	// to determine the Accept header
+	localVarHTTPHeaderAccepts := []string{"application/json"}
+
+	// set Accept header
+	localVarHTTPHeaderAccept := selectHeaderAccept(localVarHTTPHeaderAccepts)
+	if localVarHTTPHeaderAccept != "" {
+		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
+	}
+	// body params
+	localVarPostBody = r.kerberosServicePrincipalUpdateRequest
+	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
+	if err != nil {
+		return localVarReturnValue, nil, err
+	}
+
+	localVarHTTPResponse, err := a.client.callAPI(req)
+	if err != nil || localVarHTTPResponse == nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	localVarBody, err := io.ReadAll(localVarHTTPResponse.Body)
+	localVarHTTPResponse.Body.Close()
+	localVarHTTPResponse.Body = io.NopCloser(bytes.NewBuffer(localVarBody))
+	if err != nil {
+		return localVarReturnValue, localVarHTTPResponse, err
+	}
+
+	if localVarHTTPResponse.StatusCode >= 300 {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: localVarHTTPResponse.Status,
+		}
+		if localVarHTTPResponse.StatusCode == 400 {
+			var v ValidationError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+			return localVarReturnValue, localVarHTTPResponse, newErr
+		}
+		if localVarHTTPResponse.StatusCode == 403 {
+			var v GenericError
+			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+			if err != nil {
+				newErr.error = err.Error()
+				return localVarReturnValue, localVarHTTPResponse, newErr
+			}
+			newErr.error = formatErrorMessage(localVarHTTPResponse.Status, &v)
+			newErr.model = v
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	err = a.client.decode(&localVarReturnValue, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
+	if err != nil {
+		newErr := &GenericOpenAPIError{
+			body:  localVarBody,
+			error: err.Error(),
+		}
+		return localVarReturnValue, localVarHTTPResponse, newErr
+	}
+
+	return localVarReturnValue, localVarHTTPResponse, nil
+}
+
 type ApiOutpostsKerberosServicePrincipalsListRequest struct {
 	ctx        context.Context
 	ApiService *OutpostsAPIService
