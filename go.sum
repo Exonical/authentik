@@ -10,6 +10,8 @@ github.com/Azure/go-ntlmssp v0.1.1 h1:l+FM/EEMb0U9QZE7mKNEDw5Mu3mFiaa2GKOoTSsNDP
 github.com/Azure/go-ntlmssp v0.1.1/go.mod h1:NYqdhxd/8aAct/s4qSYZEerdPuH1liG2/X9DiVTbhpk=
 github.com/Exonical/go-kerberos v0.0.0-20260830210315-dc071caedf13 h1:Vs9zxEJ77XjaOTlRSoXX8tlEXSfYk87NR3OoatEvvJc=
 github.com/Exonical/go-kerberos v0.0.0-20260830210315-dc071caedf13/go.mod h1:b9D9zIASz9Pojg+P52o2UwbEKQ9MXP4DP1DVWrmIE5M=
+github.com/Exonical/go-kerberos v0.0.0-20260831014020-9d9498cdff39 h1:TkWra+3mBNBJICvBAPNa98LIE6Lljmfp81v2dk+yHq8=
+github.com/Exonical/go-kerberos v0.0.0-20260831014020-9d9498cdff39/go.mod h1:b9D9zIASz9Pojg+P52o2UwbEKQ9MXP4DP1DVWrmIE5M=
 github.com/alexbrainman/sspi v0.0.0-20250919150558-7d374ff0d59e h1:4dAU9FXIyQktpoUAgOJK3OTFc/xug0PCXYCqU0FgDKI=
 github.com/alexbrainman/sspi v0.0.0-20250919150558-7d374ff0d59e/go.mod h1:cEWa1LVoE5KvSD9ONXsZrj0z6KqySlCCNKHlLzbqAt4=
 github.com/avast/retry-go/v4 v4.7.0 h1:yjDs35SlGvKwRNSykujfjdMxMhMQQM0TnIjJaHB+Zio=

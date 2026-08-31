@@ -80,6 +80,7 @@ type mitHarness struct {
 	server                 *kdc.Server
 	userEnabled            *bool
 	userMaxLife            *int32
+	userFlags              *[]string
 	requiresPasswordChange *bool
 	resetPassword          *bool
 	stateMu                *sync.RWMutex
@@ -167,6 +168,7 @@ func startMITKDCWithIdentityPolicyOptions(
 	}
 	userEnabled := true
 	userMaxLife := int32(0)
+	userFlags := []string{}
 	requiresPasswordChange := false
 	resetPassword := false
 	stateMu := &sync.RWMutex{}
@@ -209,6 +211,7 @@ func startMITKDCWithIdentityPolicyOptions(
 			stateMu.RLock()
 			enabled := userEnabled
 			maxLife := userMaxLife
+			currentFlags := append([]string(nil), userFlags...)
 			requiresPWChange := requiresPasswordChange
 			currentUserKey := append([]byte(nil), userKey...)
 			stateMu.RUnlock()
@@ -227,7 +230,7 @@ func startMITKDCWithIdentityPolicyOptions(
 					"max_ticket_lifetime":      maxLife,
 					"max_renew_lifetime":       0,
 					"requires_password_change": requiresPWChange,
-					"flags":                    []string{},
+					"flags":                    currentFlags,
 					"pac_user_id":              2001,
 					"pac_primary_group_id":     2001,
 					"pac_group_ids":            []int32{},
@@ -272,6 +275,7 @@ func startMITKDCWithIdentityPolicyOptions(
 		stateMu.RLock()
 		enabled := userEnabled
 		maxLife := userMaxLife
+		currentFlags := append([]string(nil), userFlags...)
 		requiresPWChange := requiresPasswordChange
 		currentUserKey := append([]byte(nil), userKey...)
 		stateMu.RUnlock()
@@ -285,7 +289,7 @@ func startMITKDCWithIdentityPolicyOptions(
 			"max_ticket_lifetime":      maxLife,
 			"max_renew_lifetime":       0,
 			"requires_password_change": requiresPWChange,
-			"flags":                    []string{},
+			"flags":                    currentFlags,
 			"pac_user_id":              2001,
 			"pac_primary_group_id":     2001,
 			"pac_group_ids":            []int32{},
@@ -488,6 +492,7 @@ func startMITKDCWithIdentityPolicyOptions(
 		server:                 server,
 		userEnabled:            &userEnabled,
 		userMaxLife:            &userMaxLife,
+		userFlags:              &userFlags,
 		requiresPasswordChange: &requiresPasswordChange,
 		resetPassword:          &resetPassword,
 		stateMu:                stateMu,
@@ -640,6 +645,27 @@ func TestMITInteropAccountStateAndLifetime(t *testing.T) {
 	if expiration.Before(now.Add(30*time.Second)) || expiration.After(now.Add(3*time.Minute)) {
 		t.Fatalf("user ticket expiration = %v, want approximately 90 seconds from now", expiration)
 	}
+}
+
+func TestMITInteropUserTicketFlags(t *testing.T) {
+	h := startMITKDC(t, false)
+	h.stateMu.Lock()
+	*h.userFlags = []string{"disallow_forwardable"}
+	h.stateMu.Unlock()
+	h.run(t, mitPassword+"\n", "kinit", "-f", mitUser)
+	flags := h.run(t, "", "klist", "-f")
+	t.Logf("klist flags with disallow_forwardable:\n%s", flags)
+	for _, line := range strings.Split(flags, "\n") {
+		if !strings.Contains(line, "Flags:") {
+			continue
+		}
+		value := line[strings.Index(line, "Flags:")+len("Flags:"):]
+		if strings.Contains(value, "F") {
+			t.Fatalf("forwardable flag was not removed:\n%s", flags)
+		}
+		return
+	}
+	t.Fatalf("klist does not show ticket flags:\n%s", flags)
 }
 
 func TestMITInteropSPAKE(t *testing.T) {
