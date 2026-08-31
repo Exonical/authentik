@@ -54,6 +54,12 @@ export interface KerberosServicePrincipalOutpost {
      * @memberof KerberosServicePrincipalOutpost
      */
     requiredAuthIndicators: Array<string>;
+    /**
+     *
+     * @type {Array<string>}
+     * @memberof KerberosServicePrincipalOutpost
+     */
+    ticketFlags: Array<string>;
 }
 
 /**
@@ -86,6 +92,13 @@ export function instanceOfKerberosServicePrincipalOutpost(
             (value as Record<string, any>)["required_auth_indicators"] === undefined)
     )
         return false;
+    if (
+        (!("ticketFlags" in (value as Record<string, any>)) &&
+            !("ticket_flags" in (value as Record<string, any>))) ||
+        ((value as Record<string, any>)["ticketFlags"] === undefined &&
+            (value as Record<string, any>)["ticket_flags"] === undefined)
+    )
+        return false;
     return true;
 }
 
@@ -109,6 +122,7 @@ export function KerberosServicePrincipalOutpostFromJSONTyped(
         okToAuthAsDelegate: json["ok_to_auth_as_delegate"],
         allowedDelegationTargets: json["allowed_delegation_targets"],
         requiredAuthIndicators: json["required_auth_indicators"],
+        ticketFlags: json["ticket_flags"],
     };
 }
 
@@ -130,5 +144,6 @@ export function KerberosServicePrincipalOutpostToJSONTyped(
         ok_to_auth_as_delegate: value["okToAuthAsDelegate"],
         allowed_delegation_targets: value["allowedDelegationTargets"],
         required_auth_indicators: value["requiredAuthIndicators"],
+        ticket_flags: value["ticketFlags"],
     };
 }

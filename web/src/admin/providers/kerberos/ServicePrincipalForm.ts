@@ -1,11 +1,13 @@
 import "#components/ak-switch-input";
 import "#components/ak-text-input";
 import "#elements/ak-array-input";
+import "#elements/ak-checkbox-group/ak-checkbox-group";
 import "#elements/forms/HorizontalFormElement";
 import "#elements/forms/SearchSelect/index";
 
 import { aki } from "#common/api/client";
 
+import { CheckboxPair } from "#elements/ak-checkbox-group/ak-checkbox-group";
 import { ModelForm } from "#elements/forms/ModelForm";
 import { SlottedTemplateResult } from "#elements/types";
 
@@ -77,6 +79,32 @@ export class ServicePrincipalForm extends ModelForm<
     }
 
     protected override renderForm(): SlottedTemplateResult {
+        const ticketFlags: CheckboxPair[] = [
+            ["requires_preauth", msg("Requires preauthentication", {
+                id: "kerberos.service-principal.ticket-flags.requires-preauth",
+            })],
+            ["requires_hwauth", msg("Requires hardware authentication", {
+                id: "kerberos.service-principal.ticket-flags.requires-hwauth",
+            })],
+            ["disallow_postdated", msg("Disallow postdated tickets", {
+                id: "kerberos.service-principal.ticket-flags.disallow-postdated",
+            })],
+            ["disallow_forwardable", msg("Disallow forwardable tickets", {
+                id: "kerberos.service-principal.ticket-flags.disallow-forwardable",
+            })],
+            ["disallow_proxiable", msg("Disallow proxiable tickets", {
+                id: "kerberos.service-principal.ticket-flags.disallow-proxiable",
+            })],
+            ["disallow_renewable", msg("Disallow renewable tickets", {
+                id: "kerberos.service-principal.ticket-flags.disallow-renewable",
+            })],
+            ["disallow_tgt_based", msg("Disallow TGT-based tickets", {
+                id: "kerberos.service-principal.ticket-flags.disallow-tgt-based",
+            })],
+            ["disallow_server", msg("Disallow service tickets", {
+                id: "kerberos.service-principal.ticket-flags.disallow-server",
+            })],
+        ];
         return html`
             <ak-text-input
                 label=${msg("SPN", { id: "kerberos.service-principal.spn.label" })}
@@ -121,6 +149,24 @@ export class ServicePrincipalForm extends ModelForm<
                         "Optional authentik user whose policies apply when this principal acts as a Kerberos client.",
                         { id: "kerberos.service-principal.service-account.help" },
                     )}
+                </p>
+            </ak-form-element-horizontal>
+
+            <ak-form-element-horizontal
+                label=${msg("Ticket flags", {
+                    id: "kerberos.service-principal.ticket-flags.label",
+                })}
+                name="ticketFlags"
+            >
+                <ak-checkbox-group
+                    name="ticketFlags"
+                    .options=${ticketFlags}
+                    .value=${this.instance?.ticketFlags ?? []}
+                ></ak-checkbox-group>
+                <p class="pf-c-form__helper-text">
+                    ${msg("Kerberos ticket flags applied to this service principal.", {
+                        id: "kerberos.service-principal.ticket-flags.help",
+                    })}
                 </p>
             </ak-form-element-horizontal>
 

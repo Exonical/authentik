@@ -15,6 +15,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.fields import (
     BooleanField,
     CharField,
+    ChoiceField,
     IntegerField,
     ListField,
     SerializerMethodField,
@@ -39,6 +40,7 @@ from authentik.policies.password.models import PasswordPolicy
 from authentik.policies.models import PolicyBinding
 from authentik.policies.types import PolicyRequest, PolicyResult
 from authentik.providers.kerberos.models import (
+    KERBEROS_TICKET_FLAGS,
     KerberosProvider,
     KerberosRealmTrust,
     KerberosServicePrincipal,
@@ -117,6 +119,11 @@ class KerberosServicePrincipalSerializer(ModelSerializer):
         required=False,
         default=list,
     )
+    ticket_flags = ListField(
+        child=ChoiceField(choices=KERBEROS_TICKET_FLAGS),
+        required=False,
+        default=list,
+    )
 
     def to_internal_value(self, data: dict) -> dict:
         """Reject non-string targets before the child field can coerce them."""
@@ -128,6 +135,12 @@ class KerberosServicePrincipalSerializer(ModelSerializer):
             raise ValidationError(
                 {"allowed_delegation_targets": _("Delegation targets must be non-empty strings.")}
             )
+        flags = data.get("ticket_flags")
+        if flags is not None and (
+            not isinstance(flags, list)
+            or any(not isinstance(flag, str) for flag in flags)
+        ):
+            raise ValidationError({"ticket_flags": _("Ticket flags must be strings.")})
         return super().to_internal_value(data)
 
     class Meta:
@@ -142,6 +155,7 @@ class KerberosServicePrincipalSerializer(ModelSerializer):
             "ok_to_auth_as_delegate",
             "allowed_delegation_targets",
             "required_auth_indicators",
+            "ticket_flags",
         ]
         extra_kwargs = {"keys": {"read_only": True}, "kvno": {"read_only": True}}
 
@@ -327,6 +341,7 @@ class KerberosServicePrincipalOutpostSerializer(PassiveSerializer):
     ok_to_auth_as_delegate = BooleanField()
     allowed_delegation_targets = ListField(child=CharField())
     required_auth_indicators = ListField(child=CharField())
+    ticket_flags = ListField(child=CharField())
 
     def get_keys(self, obj: KerberosServicePrincipal) -> dict:
         return obj.keys
@@ -380,6 +395,7 @@ class KerberosUserKeyOutpostSerializer(PassiveSerializer):
     pac_name = CharField(source="user.name")
     pac_upn = SerializerMethodField()
     password_expiration = SerializerMethodField()
+    flags = SerializerMethodField()
 
     def get_principal(self, obj: KerberosUserKeys) -> str:
         return _canonical_principal(obj.provider, obj.user) or ""
@@ -407,6 +423,12 @@ class KerberosUserKeyOutpostSerializer(PassiveSerializer):
 
     def get_max_renew_lifetime(self, obj: KerberosUserKeys) -> int | None:
         return self._attribute_number(obj.user.attributes, "krb5MaxRenew")
+
+    def get_flags(self, obj: KerberosUserKeys) -> list[str]:
+        flags = obj.user.attributes.get("krb5Flags")
+        if not isinstance(flags, list):
+            return []
+        return [flag for flag in flags if isinstance(flag, str) and flag in KERBEROS_TICKET_FLAGS]
 
     def get_requires_password_change(self, obj: KerberosUserKeys) -> bool:
         return obj.user.attributes.get("reset_password") is True

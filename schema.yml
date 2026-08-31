@@ -44966,6 +44966,10 @@ components:
             type: string
           description: Authentication indicators required to obtain tickets for this
             service.
+        ticket_flags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketFlagsEnum'
       required:
       - keys
       - kvno
@@ -44994,6 +44998,10 @@ components:
           type: array
           items:
             type: string
+        ticket_flags:
+          type: array
+          items:
+            type: string
       required:
       - allowed_delegation_targets
       - keys
@@ -45001,6 +45009,7 @@ components:
       - ok_to_auth_as_delegate
       - required_auth_indicators
       - spn
+      - ticket_flags
     KerberosServicePrincipalRequest:
       type: object
       description: Kerberos service principal serializer.
@@ -45032,6 +45041,10 @@ components:
             minLength: 1
           description: Authentication indicators required to obtain tickets for this
             service.
+        ticket_flags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketFlagsEnum'
       required:
       - provider
       - spn
@@ -45429,8 +45442,14 @@ components:
           format: date-time
           nullable: true
           readOnly: true
+        flags:
+          type: array
+          items:
+            type: string
+          readOnly: true
       required:
       - enabled
+      - flags
       - keys
       - kvno
       - max_renew_lifetime
@@ -53518,6 +53537,10 @@ components:
             minLength: 1
           description: Authentication indicators required to obtain tickets for this
             service.
+        ticket_flags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketFlagsEnum'
     PatchedKerberosSourcePropertyMappingRequest:
       type: object
       description: Kerberos PropertyMapping Serializer
@@ -62005,6 +62028,17 @@ components:
         dark:
           type: string
           nullable: true
+    TicketFlagsEnum:
+      enum:
+      - requires_preauth
+      - requires_hwauth
+      - disallow_postdated
+      - disallow_forwardable
+      - disallow_proxiable
+      - disallow_renewable
+      - disallow_tgt_based
+      - disallow_server
+      type: string
     Token:
       type: object
       description: Token Serializer

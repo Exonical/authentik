@@ -57,6 +57,7 @@ func newS4UTestServerWithAccessCheck(
 			"max_ticket_lifetime":      nil,
 			"max_renew_lifetime":       nil,
 			"requires_password_change": false,
+			"flags":                    []string{},
 			"pac_user_id":              2001,
 			"pac_primary_group_id":     2001,
 			"pac_group_ids":            []int32{},

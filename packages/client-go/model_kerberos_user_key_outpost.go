@@ -37,6 +37,7 @@ type KerberosUserKeyOutpost struct {
 	PacName                string                 `json:"pac_name"`
 	PacUpn                 string                 `json:"pac_upn"`
 	PasswordExpiration     NullableTime           `json:"password_expiration"`
+	Flags                  []string               `json:"flags"`
 	AdditionalProperties   map[string]interface{}
 }
 
@@ -46,7 +47,7 @@ type _KerberosUserKeyOutpost KerberosUserKeyOutpost
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewKerberosUserKeyOutpost(username string, enabled bool, principal string, kvno int32, salt string, keys map[string]interface{}, maxTicketLifetime NullableInt32, maxRenewLifetime NullableInt32, requiresPasswordChange bool, pacUserId int32, pacPrimaryGroupId int32, pacGroupIds []int32, pacName string, pacUpn string, passwordExpiration NullableTime) *KerberosUserKeyOutpost {
+func NewKerberosUserKeyOutpost(username string, enabled bool, principal string, kvno int32, salt string, keys map[string]interface{}, maxTicketLifetime NullableInt32, maxRenewLifetime NullableInt32, requiresPasswordChange bool, pacUserId int32, pacPrimaryGroupId int32, pacGroupIds []int32, pacName string, pacUpn string, passwordExpiration NullableTime, flags []string) *KerberosUserKeyOutpost {
 	this := KerberosUserKeyOutpost{}
 	this.Username = username
 	this.Enabled = enabled
@@ -63,6 +64,7 @@ func NewKerberosUserKeyOutpost(username string, enabled bool, principal string, 
 	this.PacName = pacName
 	this.PacUpn = pacUpn
 	this.PasswordExpiration = passwordExpiration
+	this.Flags = flags
 	return &this
 }
 
@@ -440,6 +442,30 @@ func (o *KerberosUserKeyOutpost) SetPasswordExpiration(v time.Time) {
 	o.PasswordExpiration.Set(&v)
 }
 
+// GetFlags returns the Flags field value
+func (o *KerberosUserKeyOutpost) GetFlags() []string {
+	if o == nil {
+		var ret []string
+		return ret
+	}
+
+	return o.Flags
+}
+
+// GetFlagsOk returns a tuple with the Flags field value
+// and a boolean to check if the value has been set.
+func (o *KerberosUserKeyOutpost) GetFlagsOk() ([]string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.Flags, true
+}
+
+// SetFlags sets field value
+func (o *KerberosUserKeyOutpost) SetFlags(v []string) {
+	o.Flags = v
+}
+
 func (o KerberosUserKeyOutpost) MarshalJSON() ([]byte, error) {
 	toSerialize, err := o.ToMap()
 	if err != nil {
@@ -465,6 +491,7 @@ func (o KerberosUserKeyOutpost) ToMap() (map[string]interface{}, error) {
 	toSerialize["pac_name"] = o.PacName
 	toSerialize["pac_upn"] = o.PacUpn
 	toSerialize["password_expiration"] = o.PasswordExpiration.Get()
+	toSerialize["flags"] = o.Flags
 
 	for key, value := range o.AdditionalProperties {
 		toSerialize[key] = value
@@ -493,6 +520,7 @@ func (o *KerberosUserKeyOutpost) UnmarshalJSON(data []byte) (err error) {
 		"pac_name",
 		"pac_upn",
 		"password_expiration",
+		"flags",
 	}
 
 	allProperties := make(map[string]interface{})
@@ -537,6 +565,7 @@ func (o *KerberosUserKeyOutpost) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "pac_name")
 		delete(additionalProperties, "pac_upn")
 		delete(additionalProperties, "password_expiration")
+		delete(additionalProperties, "flags")
 		o.AdditionalProperties = additionalProperties
 	}
 

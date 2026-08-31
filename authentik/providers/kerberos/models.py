@@ -30,6 +30,17 @@ ENCTYPE_CHOICES = (
     (20, "aes256-cts-hmac-sha384-192"),
 )
 
+KERBEROS_TICKET_FLAGS = (
+    "requires_preauth",
+    "requires_hwauth",
+    "disallow_postdated",
+    "disallow_forwardable",
+    "disallow_proxiable",
+    "disallow_renewable",
+    "disallow_tgt_based",
+    "disallow_server",
+)
+
 
 class PrincipalUsernameAttribute(models.TextChoices):
     """User attribute used as the Kerberos principal component."""
@@ -297,6 +308,11 @@ class KerberosServicePrincipal(SerializerModel, PolicyBindingModel):
         default=list,
         blank=True,
         help_text=_("Authentication indicators required to obtain tickets for this service."),
+    )
+    ticket_flags = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=_("Ticket flags applied to this service principal."),
     )
 
     @property

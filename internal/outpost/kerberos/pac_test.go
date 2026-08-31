@@ -47,7 +47,7 @@ func TestPACInServiceTicket(t *testing.T) {
 			api.NullableInt32{}, api.NullableInt32{},
 			false,
 			2001, 2001, []int32{4001, 5678}, "Alice Example", "alice@example.test",
-			api.NullableTime{},
+			api.NullableTime{}, nil,
 		),
 		found: true, expires: time.Now().Add(time.Hour),
 	}
@@ -173,7 +173,7 @@ func TestPACIdentity(t *testing.T) {
 		api.NullableInt32{}, api.NullableInt32{},
 		false,
 		2007, 2007, []int32{4001, 5678}, "Alice Example", "alice@example.test",
-		api.NullableTime{},
+		api.NullableTime{}, nil,
 	)
 	identity := store.pacIdentity(response)
 	if identity == nil || identity.LogonInfo == nil {

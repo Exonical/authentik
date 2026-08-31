@@ -12,6 +12,9 @@
  * Do not edit the class manually.
  */
 
+import type { TicketFlagsEnum } from "./TicketFlagsEnum";
+import { TicketFlagsEnumFromJSON, TicketFlagsEnumToJSON } from "./TicketFlagsEnum";
+
 /**
  * Kerberos service principal serializer.
  * @export
@@ -72,6 +75,12 @@ export interface KerberosServicePrincipal {
      * @memberof KerberosServicePrincipal
      */
     requiredAuthIndicators?: Array<string>;
+    /**
+     *
+     * @type {Array<TicketFlagsEnum>}
+     * @memberof KerberosServicePrincipal
+     */
+    ticketFlags?: Array<TicketFlagsEnum>;
 }
 
 /**
@@ -119,6 +128,10 @@ export function KerberosServicePrincipalFromJSONTyped(
                 : json["allowed_delegation_targets"],
         requiredAuthIndicators:
             json["required_auth_indicators"] == null ? undefined : json["required_auth_indicators"],
+        ticketFlags:
+            json["ticket_flags"] == null
+                ? undefined
+                : (json["ticket_flags"] as Array<any>).map(TicketFlagsEnumFromJSON),
     };
 }
 
@@ -141,5 +154,9 @@ export function KerberosServicePrincipalToJSONTyped(
         ok_to_auth_as_delegate: value["okToAuthAsDelegate"],
         allowed_delegation_targets: value["allowedDelegationTargets"],
         required_auth_indicators: value["requiredAuthIndicators"],
+        ticket_flags:
+            value["ticketFlags"] == null
+                ? undefined
+                : (value["ticketFlags"] as Array<any>).map(TicketFlagsEnumToJSON),
     };
 }
