@@ -122,6 +122,21 @@ You can override the provider's ticket lifetime limits for an individual user wi
 number of seconds. Invalid values are ignored, and the provider-level maximum remains in
 effect when an override is absent or invalid.
 
+Kerberos service principals and users can also carry per-principal ticket flags.
+Users set the `krb5Flags` attribute to a list of flag names; service principals
+configure the same names through the service principal API or Admin interface.
+
+| Flag                   | Meaning                         | Enforcement                  |
+| ---------------------- | ------------------------------- | ---------------------------- |
+| `requires_preauth`     | Require preauthentication       | Pending upstream enforcement |
+| `requires_hwauth`      | Require hardware authentication | Pending upstream enforcement |
+| `disallow_postdated`   | Reject postdated tickets        | Enforced                     |
+| `disallow_forwardable` | Reject forwardable tickets      | Pending upstream enforcement |
+| `disallow_proxiable`   | Reject proxiable tickets        | Pending upstream enforcement |
+| `disallow_renewable`   | Reject renewable tickets        | Pending upstream enforcement |
+| `disallow_tgt_based`   | Reject TGT-based tickets        | Pending upstream enforcement |
+| `disallow_server`      | Reject service tickets          | Enforced                     |
+
 Set the documented [`reset_password` user attribute](../../../users-sources/user/password_reset_on_login)
 to the boolean value `True` to require a password change before normal Kerberos
 authentication succeeds. This maps to Kerberos `RequiresPWChange`; clients can use

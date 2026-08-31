@@ -149,6 +149,7 @@ func (rs *KerberosServer) Refresh() error {
 				service.Kvno,
 				service.Keys,
 				service.GetRequiredAuthIndicators(),
+				service.GetTicketFlags(),
 			)
 			if err != nil {
 				return fmt.Errorf("decode service principal %s: %w", service.Spn, err)

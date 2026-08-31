@@ -108,6 +108,7 @@ func TestStoreUserRecordPasswordExpiration(t *testing.T) {
 			"max_ticket_lifetime": null,
 			"max_renew_lifetime": null,
 			"requires_password_change": false,
+			"flags": [],
 			"pac_user_id": 0,
 			"pac_primary_group_id": 0,
 			"pac_group_ids": [],
@@ -145,6 +146,7 @@ func TestStoreUserRecordAccountStateAndLifetimes(t *testing.T) {
 			"max_ticket_lifetime": 3600,
 			"max_renew_lifetime": 7200,
 			"requires_password_change": true,
+			"flags": [],
 			"pac_user_id": 0,
 			"pac_primary_group_id": 0,
 			"pac_group_ids": [],
@@ -207,6 +209,7 @@ func TestStoreUserRecordRequiresPasswordChangeFalse(t *testing.T) {
 			"max_ticket_lifetime": null,
 			"max_renew_lifetime": null,
 			"requires_password_change": false,
+			"flags": [],
 			"pac_user_id": 0,
 			"pac_primary_group_id": 0,
 			"pac_group_ids": [],
@@ -557,6 +560,51 @@ func TestServiceRecordAuthIndicators(t *testing.T) {
 	}
 }
 
+func TestApplyTicketFlags(t *testing.T) {
+	record := kdb.PrincipalRecord{Flags: kdb.DisallowAllTickets | kdb.PWChangeService}
+	applyTicketFlags(&record, []string{
+		"requires_preauth",
+		"requires_hwauth",
+		"disallow_postdated",
+		"disallow_forwardable",
+		"disallow_proxiable",
+		"disallow_renewable",
+		"disallow_tgt_based",
+		"disallow_server",
+		"unknown",
+	})
+	want := kdb.DisallowAllTickets | kdb.PWChangeService |
+		kdb.RequiresPreAuth | kdb.RequiresHWAuth |
+		kdb.DisallowPostdated | kdb.DisallowForwardable |
+		kdb.DisallowProxiable | kdb.DisallowRenewable |
+		kdb.DisallowTGTBased | kdb.DisallowServer
+	if record.Flags != want {
+		t.Fatalf("record flags = %#x, want %#x", record.Flags, want)
+	}
+}
+
+func TestServiceRecordTicketFlags(t *testing.T) {
+	store := &providerStore{
+		realm:   testRealm,
+		allowed: map[int32]bool{18: true},
+	}
+	record, err := store.serviceRecordWithIndicators(
+		"host/service.test",
+		1,
+		map[string]interface{}{
+			"18": base64.StdEncoding.EncodeToString(make([]byte, 32)),
+		},
+		nil,
+		[]string{"disallow_server"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if record.Flags&kdb.DisallowServer == 0 {
+		t.Fatalf("service flags = %#x, missing DisallowServer", record.Flags)
+	}
+}
+
 func TestTrustRecordLookupAndDirection(t *testing.T) {
 	store := testStore(t, nil)
 	key := make([]byte, 32)
@@ -641,6 +689,7 @@ func TestCrossRealmProviderStores(t *testing.T) {
 			"max_ticket_lifetime":      nil,
 			"max_renew_lifetime":       nil,
 			"requires_password_change": false,
+			"flags":                    []string{},
 			"password_expiration":      nil,
 			"pac_user_id":              0,
 			"pac_primary_group_id":     0,
@@ -786,6 +835,7 @@ func TestStoreUserLookupCacheAndUnknown(t *testing.T) {
 			"max_ticket_lifetime":      nil,
 			"max_renew_lifetime":       nil,
 			"requires_password_change": false,
+			"flags":                    []string{},
 			"pac_user_id":              2001,
 			"pac_primary_group_id":     2001,
 			"pac_group_ids":            []int32{},
@@ -866,6 +916,7 @@ func TestStoreUserAliasLookupAndCanonicalCache(t *testing.T) {
 			"max_ticket_lifetime":      nil,
 			"max_renew_lifetime":       nil,
 			"requires_password_change": false,
+			"flags":                    []string{},
 			"pac_user_id":              2001,
 			"pac_primary_group_id":     2001,
 			"pac_group_ids":            []int32{},

@@ -246,6 +246,7 @@ func startMITKDCWithIdentityPolicyOptions(
 			"max_ticket_lifetime":      maxLife,
 			"max_renew_lifetime":       0,
 			"requires_password_change": requiresPWChange,
+			"flags":                    []string{},
 			"pac_user_id":              2001,
 			"pac_primary_group_id":     2001,
 			"pac_group_ids":            []int32{},
@@ -1162,6 +1163,7 @@ func runMITPKINITWithAnonymousEnabled(
 			"max_ticket_lifetime":      nil,
 			"max_renew_lifetime":       nil,
 			"requires_password_change": false,
+			"flags":                    []string{},
 			"keys": map[string]string{
 				"18": base64.StdEncoding.EncodeToString(userKey),
 			},
@@ -1683,11 +1685,21 @@ func startCrossRealmGoKDC(
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"username":            username,
-			"principal":           username,
-			"kvno":                1,
-			"salt":                localRealm + username,
-			"password_expiration": nil,
+			"username":                 username,
+			"enabled":                  true,
+			"principal":                username,
+			"kvno":                     1,
+			"salt":                     localRealm + username,
+			"max_ticket_lifetime":      nil,
+			"max_renew_lifetime":       nil,
+			"requires_password_change": false,
+			"flags":                    []string{},
+			"pac_user_id":              0,
+			"pac_primary_group_id":     0,
+			"pac_group_ids":            []int32{},
+			"pac_name":                 username,
+			"pac_upn":                  username + "@" + localRealm,
+			"password_expiration":      nil,
 			"keys": map[string]string{
 				"18": base64.StdEncoding.EncodeToString(userKey),
 			},

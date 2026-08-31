@@ -367,6 +367,7 @@ class KerberosProviderAPITests(APITestCase):
                 "ok_to_auth_as_delegate": True,
                 "allowed_delegation_targets": ["nfs/example", "HTTP/other"],
                 "required_auth_indicators": ["pkinit", "hardware"],
+                "ticket_flags": ["requires_preauth", "disallow_server"],
             }
         )
         self.assertTrue(serializer.is_valid(), serializer.errors)
@@ -378,6 +379,7 @@ class KerberosProviderAPITests(APITestCase):
             ["nfs/example", "HTTP/other"],
         )
         self.assertEqual(principal.required_auth_indicators, ["pkinit", "hardware"])
+        self.assertEqual(principal.ticket_flags, ["requires_preauth", "disallow_server"])
         self.assertEqual(
             KerberosServicePrincipalSerializer(principal).data["allowed_delegation_targets"],
             ["nfs/example", "HTTP/other"],
@@ -390,6 +392,56 @@ class KerberosProviderAPITests(APITestCase):
             KerberosServicePrincipalSerializer(principal).data["required_auth_indicators"],
             ["pkinit", "hardware"],
         )
+        self.assertEqual(
+            KerberosServicePrincipalSerializer(principal).data["ticket_flags"],
+            ["requires_preauth", "disallow_server"],
+        )
+
+    def test_service_principal_serializer_rejects_invalid_ticket_flags(self):
+        """Service principal ticket flags must use canonical names and strings."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.COM",
+        )
+        serializer = KerberosServicePrincipalSerializer(
+            data={
+                "provider": provider.pk,
+                "spn": "HTTP/example",
+                "ticket_flags": ["disallow_server", "not-a-flag"],
+            }
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("ticket_flags", serializer.errors)
+
+    def test_user_key_outpost_filters_ticket_flags(self):
+        """User ticket flags retain only canonical string values from a list."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.COM",
+        )
+        user = create_test_user(
+            attributes={
+                "krb5Flags": [
+                    "requires_preauth",
+                    "unknown",
+                    42,
+                    "disallow_server",
+                ]
+            }
+        )
+        user_keys, _ = KerberosUserKeys.objects.update_or_create(
+            provider=provider,
+            user=user,
+            defaults={"salt": "EXAMPLE.COMuser", "keys": {"18": "key"}},
+        )
+        self.assertEqual(
+            KerberosUserKeyOutpostSerializer(user_keys).data["flags"],
+            ["requires_preauth", "disallow_server"],
+        )
+        user.attributes["krb5Flags"] = "disallow_server"
+        user.save(update_fields=["attributes"])
+        user_keys.refresh_from_db()
+        self.assertEqual(KerberosUserKeyOutpostSerializer(user_keys).data["flags"], [])
 
     def test_service_principal_serializer_rejects_non_string_targets(self):
         """Delegation targets must be non-empty strings."""

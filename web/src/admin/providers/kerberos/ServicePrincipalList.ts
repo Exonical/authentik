@@ -32,6 +32,7 @@ function servicePrincipalRequest(item: KerberosServicePrincipal) {
         serviceAccount: item.serviceAccount,
         okToAuthAsDelegate: item.okToAuthAsDelegate,
         allowedDelegationTargets: item.allowedDelegationTargets,
+        ticketFlags: item.ticketFlags,
     };
 }
 

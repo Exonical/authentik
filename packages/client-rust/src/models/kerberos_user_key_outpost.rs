@@ -44,11 +44,13 @@ pub struct KerberosUserKeyOutpost {
     pub pac_upn: String,
     #[serde(rename = "password_expiration", deserialize_with = "Option::deserialize")]
     pub password_expiration: Option<chrono::DateTime<chrono::FixedOffset>>,
+    #[serde(rename = "flags")]
+    pub flags: Vec<String>,
 }
 
 impl KerberosUserKeyOutpost {
     /// User key data consumed by the KDC outpost.
-    pub fn new(username: String, enabled: bool, principal: String, kvno: i32, salt: String, keys: std::collections::HashMap<String, serde_json::Value>, max_ticket_lifetime: Option<i32>, max_renew_lifetime: Option<i32>, requires_password_change: bool, pac_user_id: i32, pac_primary_group_id: i32, pac_group_ids: Vec<i32>, pac_name: String, pac_upn: String, password_expiration: Option<chrono::DateTime<chrono::FixedOffset>>) -> KerberosUserKeyOutpost {
+    pub fn new(username: String, enabled: bool, principal: String, kvno: i32, salt: String, keys: std::collections::HashMap<String, serde_json::Value>, max_ticket_lifetime: Option<i32>, max_renew_lifetime: Option<i32>, requires_password_change: bool, pac_user_id: i32, pac_primary_group_id: i32, pac_group_ids: Vec<i32>, pac_name: String, pac_upn: String, password_expiration: Option<chrono::DateTime<chrono::FixedOffset>>, flags: Vec<String>) -> KerberosUserKeyOutpost {
         KerberosUserKeyOutpost {
             username,
             enabled,
@@ -65,6 +67,7 @@ impl KerberosUserKeyOutpost {
             pac_name,
             pac_upn,
             password_expiration,
+            flags,
         }
     }
 }

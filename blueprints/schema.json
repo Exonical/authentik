@@ -12545,6 +12545,23 @@
                     },
                     "title": "Required auth indicators",
                     "description": "Authentication indicators required to obtain tickets for this service."
+                },
+                "ticket_flags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "requires_preauth",
+                            "requires_hwauth",
+                            "disallow_postdated",
+                            "disallow_forwardable",
+                            "disallow_proxiable",
+                            "disallow_renewable",
+                            "disallow_tgt_based",
+                            "disallow_server"
+                        ]
+                    },
+                    "title": "Ticket flags"
                 }
             },
             "required": []

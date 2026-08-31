@@ -27,6 +27,7 @@ type KerberosServicePrincipalOutpost struct {
 	OkToAuthAsDelegate       bool                   `json:"ok_to_auth_as_delegate"`
 	AllowedDelegationTargets []string               `json:"allowed_delegation_targets"`
 	RequiredAuthIndicators   []string               `json:"required_auth_indicators"`
+	TicketFlags              []string               `json:"ticket_flags"`
 	AdditionalProperties     map[string]interface{}
 }
 
@@ -36,7 +37,7 @@ type _KerberosServicePrincipalOutpost KerberosServicePrincipalOutpost
 // This constructor will assign default values to properties that have it defined,
 // and makes sure properties required by API are set, but the set of arguments
 // will change when the set of required properties is changed
-func NewKerberosServicePrincipalOutpost(spn string, kvno int32, keys map[string]interface{}, okToAuthAsDelegate bool, allowedDelegationTargets []string, requiredAuthIndicators []string) *KerberosServicePrincipalOutpost {
+func NewKerberosServicePrincipalOutpost(spn string, kvno int32, keys map[string]interface{}, okToAuthAsDelegate bool, allowedDelegationTargets []string, requiredAuthIndicators []string, ticketFlags []string) *KerberosServicePrincipalOutpost {
 	this := KerberosServicePrincipalOutpost{}
 	this.Spn = spn
 	this.Kvno = kvno
@@ -44,6 +45,7 @@ func NewKerberosServicePrincipalOutpost(spn string, kvno int32, keys map[string]
 	this.OkToAuthAsDelegate = okToAuthAsDelegate
 	this.AllowedDelegationTargets = allowedDelegationTargets
 	this.RequiredAuthIndicators = requiredAuthIndicators
+	this.TicketFlags = ticketFlags
 	return &this
 }
 
@@ -199,6 +201,30 @@ func (o *KerberosServicePrincipalOutpost) SetRequiredAuthIndicators(v []string) 
 	o.RequiredAuthIndicators = v
 }
 
+// GetTicketFlags returns the TicketFlags field value
+func (o *KerberosServicePrincipalOutpost) GetTicketFlags() []string {
+	if o == nil {
+		var ret []string
+		return ret
+	}
+
+	return o.TicketFlags
+}
+
+// GetTicketFlagsOk returns a tuple with the TicketFlags field value
+// and a boolean to check if the value has been set.
+func (o *KerberosServicePrincipalOutpost) GetTicketFlagsOk() ([]string, bool) {
+	if o == nil {
+		return nil, false
+	}
+	return o.TicketFlags, true
+}
+
+// SetTicketFlags sets field value
+func (o *KerberosServicePrincipalOutpost) SetTicketFlags(v []string) {
+	o.TicketFlags = v
+}
+
 func (o KerberosServicePrincipalOutpost) MarshalJSON() ([]byte, error) {
 	toSerialize, err := o.ToMap()
 	if err != nil {
@@ -215,6 +241,7 @@ func (o KerberosServicePrincipalOutpost) ToMap() (map[string]interface{}, error)
 	toSerialize["ok_to_auth_as_delegate"] = o.OkToAuthAsDelegate
 	toSerialize["allowed_delegation_targets"] = o.AllowedDelegationTargets
 	toSerialize["required_auth_indicators"] = o.RequiredAuthIndicators
+	toSerialize["ticket_flags"] = o.TicketFlags
 
 	for key, value := range o.AdditionalProperties {
 		toSerialize[key] = value
@@ -234,6 +261,7 @@ func (o *KerberosServicePrincipalOutpost) UnmarshalJSON(data []byte) (err error)
 		"ok_to_auth_as_delegate",
 		"allowed_delegation_targets",
 		"required_auth_indicators",
+		"ticket_flags",
 	}
 
 	allProperties := make(map[string]interface{})
@@ -269,6 +297,7 @@ func (o *KerberosServicePrincipalOutpost) UnmarshalJSON(data []byte) (err error)
 		delete(additionalProperties, "ok_to_auth_as_delegate")
 		delete(additionalProperties, "allowed_delegation_targets")
 		delete(additionalProperties, "required_auth_indicators")
+		delete(additionalProperties, "ticket_flags")
 		o.AdditionalProperties = additionalProperties
 	}
 

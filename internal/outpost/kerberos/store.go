@@ -279,6 +279,7 @@ func (s *providerStore) userRecord(name principal.Principal) (kdb.PrincipalRecor
 		MaxLife:            time.Duration(response.GetMaxTicketLifetime()) * time.Second,
 		MaxRenew:           time.Duration(response.GetMaxRenewLifetime()) * time.Second,
 	}
+	applyTicketFlags(&record, response.GetFlags())
 	if !response.GetEnabled() {
 		record.Flags |= kdb.DisallowAllTickets
 	}
@@ -377,6 +378,7 @@ func (s *providerStore) serviceRecord(spn string, kvno int32, values map[string]
 
 func (s *providerStore) serviceRecordWithIndicators(
 	spn string, kvno int32, values map[string]interface{}, requiredIndicators []string,
+	ticketFlags ...[]string,
 ) (kdb.PrincipalRecord, error) {
 	name, err := principal.Parse(spn + "@" + s.realm)
 	if err != nil {
@@ -387,12 +389,33 @@ func (s *providerStore) serviceRecordWithIndicators(
 		return kdb.PrincipalRecord{}, err
 	}
 	record := kdb.PrincipalRecord{Name: *name, Keys: keys, KVNO: uint32(kvno)}
+	if len(ticketFlags) > 0 {
+		applyTicketFlags(&record, ticketFlags[0])
+	}
 	if len(requiredIndicators) > 0 {
 		record.Strings = map[string]string{
 			"require_auth": strings.Join(requiredIndicators, " "),
 		}
 	}
 	return record, nil
+}
+
+func applyTicketFlags(record *kdb.PrincipalRecord, flags []string) {
+	flagBits := map[string]uint32{
+		"requires_preauth":     kdb.RequiresPreAuth,
+		"requires_hwauth":      kdb.RequiresHWAuth,
+		"disallow_postdated":   kdb.DisallowPostdated,
+		"disallow_forwardable": kdb.DisallowForwardable,
+		"disallow_proxiable":   kdb.DisallowProxiable,
+		"disallow_renewable":   kdb.DisallowRenewable,
+		"disallow_tgt_based":   kdb.DisallowTGTBased,
+		"disallow_server":      kdb.DisallowServer,
+	}
+	for _, flag := range flags {
+		if bit, ok := flagBits[flag]; ok {
+			record.Flags |= bit
+		}
+	}
 }
 
 func decodeKeyValues(
