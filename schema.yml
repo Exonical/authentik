@@ -11061,6 +11061,34 @@ paths:
           $ref: '#/components/responses/ValidationErrorResponse'
         '403':
           $ref: '#/components/responses/GenericErrorResponse'
+  /outposts/kerberos/{id}/audit_event/:
+    post:
+      operationId: outposts_kerberos_audit_event_create
+      description: Record a KDC audit event.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      tags:
+      - outposts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KerberosAuditEventRequest'
+        required: true
+      security:
+      - authentik: []
+      responses:
+        '204':
+          description: No response body
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
   /outposts/kerberos/{id}/otp_check/:
     get:
       operationId: outposts_kerberos_otp_check
@@ -41729,6 +41757,14 @@ components:
       - access_request_revoked
       - custom_
       type: string
+    EventEnum:
+      enum:
+      - as_req
+      - tgs_req
+      - s4u2self
+      - s4u2proxy
+      - u2u
+      type: string
     EventMatcherPolicy:
       type: object
       description: Event Matcher Policy Serializer
@@ -44411,6 +44447,56 @@ components:
       - MIT
       - Heimdal
       type: string
+    KerberosAuditEventRequest:
+      type: object
+      description: KDC audit event data submitted by the Kerberos outpost.
+      properties:
+        event:
+          $ref: '#/components/schemas/EventEnum'
+        success:
+          type: boolean
+        client:
+          type: string
+          minLength: 1
+        service:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          minLength: 1
+        preauth_type:
+          type: string
+          minLength: 1
+        remote_addr:
+          type: string
+          minLength: 1
+        s4u2self_user:
+          type: string
+        auth_indicators:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        error_code:
+          type: integer
+        request_id:
+          type: string
+          minLength: 1
+        ticket_id:
+          type: string
+      required:
+      - auth_indicators
+      - client
+      - error_code
+      - event
+      - preauth_type
+      - remote_addr
+      - request_id
+      - s4u2self_user
+      - service
+      - status
+      - success
+      - ticket_id
     KerberosCheckAccess:
       type: object
       description: Policy access data consumed by the KDC outpost.
@@ -44552,6 +44638,9 @@ components:
           maximum: 2147483647
           minimum: 0
           description: Interval in seconds between full kprop pushes.
+        kdc_audit_enabled:
+          type: boolean
+          description: Emit authentik events for KDC ticket operations.
         master_key:
           type: string
         application_slug:
@@ -44750,6 +44839,9 @@ components:
           maximum: 2147483647
           minimum: 0
           description: Interval in seconds between full kprop pushes.
+        kdc_audit_enabled:
+          type: boolean
+          description: Emit authentik events for KDC ticket operations.
         master_key:
           type: string
           readOnly: true
@@ -44922,6 +45014,9 @@ components:
           maximum: 2147483647
           minimum: 0
           description: Interval in seconds between full kprop pushes.
+        kdc_audit_enabled:
+          type: boolean
+          description: Emit authentik events for KDC ticket operations.
       required:
       - name
       - realm_name
@@ -53612,6 +53707,9 @@ components:
           maximum: 2147483647
           minimum: 0
           description: Interval in seconds between full kprop pushes.
+        kdc_audit_enabled:
+          type: boolean
+          description: Emit authentik events for KDC ticket operations.
     PatchedKerberosRealmTrustRequest:
       type: object
       description: Kerberos realm trust serializer.

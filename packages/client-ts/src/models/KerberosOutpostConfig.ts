@@ -243,6 +243,12 @@ export interface KerberosOutpostConfig {
      */
     kpropInterval?: number;
     /**
+     * Emit authentik events for KDC ticket operations.
+     * @type {boolean}
+     * @memberof KerberosOutpostConfig
+     */
+    kdcAuditEnabled?: boolean;
+    /**
      *
      * @type {string}
      * @memberof KerberosOutpostConfig
@@ -375,6 +381,7 @@ export function KerberosOutpostConfigFromJSONTyped(
         kpropMasterPassword:
             json["kprop_master_password"] == null ? undefined : json["kprop_master_password"],
         kpropInterval: json["kprop_interval"] == null ? undefined : json["kprop_interval"],
+        kdcAuditEnabled: json["kdc_audit_enabled"] == null ? undefined : json["kdc_audit_enabled"],
         masterKey: json["master_key"] == null ? undefined : json["master_key"],
         applicationSlug: json["application_slug"],
     };
@@ -434,6 +441,7 @@ export function KerberosOutpostConfigToJSONTyped(
         kprop_client_spn: value["kpropClientSpn"],
         kprop_master_password: value["kpropMasterPassword"],
         kprop_interval: value["kpropInterval"],
+        kdc_audit_enabled: value["kdcAuditEnabled"],
         master_key: value["masterKey"],
         application_slug: value["applicationSlug"],
     };

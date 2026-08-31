@@ -141,6 +141,7 @@ class KerberosProviderSerializer(ProviderSerializer):
             "kprop_client_spn",
             "kprop_master_password",
             "kprop_interval",
+            "kdc_audit_enabled",
             "master_key",
             "outpost_set",
         ]
@@ -548,6 +549,23 @@ class KerberosPasswordPolicyErrorSerializer(PassiveSerializer):
     messages = ListField(child=CharField())
 
 
+class KerberosAuditEventSerializer(PassiveSerializer):
+    """KDC audit event data submitted by the Kerberos outpost."""
+
+    event = ChoiceField(choices=["as_req", "tgs_req", "s4u2self", "s4u2proxy", "u2u"])
+    success = BooleanField()
+    client = CharField()
+    service = CharField()
+    status = CharField()
+    preauth_type = CharField()
+    remote_addr = CharField()
+    s4u2self_user = CharField(allow_blank=True)
+    auth_indicators = ListField(child=CharField())
+    error_code = IntegerField()
+    request_id = CharField()
+    ticket_id = CharField(allow_blank=True)
+
+
 class KerberosOutpostConfigSerializer(ModelSerializer):
     """Kerberos provider serializer for outposts."""
 
@@ -605,6 +623,7 @@ class KerberosOutpostConfigSerializer(ModelSerializer):
             "kprop_client_spn",
             "kprop_master_password",
             "kprop_interval",
+            "kdc_audit_enabled",
             "master_key",
             "application_slug",
         ]
@@ -669,6 +688,24 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
         return self.get_paginated_response(
             KerberosUserKeyOutpostSerializer(page, many=True).data
         )
+
+    @extend_schema(
+        request=KerberosAuditEventSerializer,
+        responses={204: None},
+    )
+    @action(detail=True, methods=["POST"])
+    @validate(KerberosAuditEventSerializer)
+    def audit_event(self, request: Request, pk=None, body=None) -> Response:
+        """Record a KDC audit event."""
+        provider = self.get_object()
+        data = body.validated_data
+        event = Event.new("kerberos_kdc", app=provider.application.slug, **data)
+        client = data["client"].rsplit("@", 1)[0].replace(r"\@", "@")
+        user = self._resolve_user(provider, client)
+        if user is not None:
+            event.set_user(user)
+        event.save()
+        return Response(status=204)
 
     @extend_schema(
         responses={200: KerberosRealmTrustOutpostSerializer(many=True)},

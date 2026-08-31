@@ -21,6 +21,10 @@ import {
     DockerServiceConnectionRequestToJSON,
 } from "../models/DockerServiceConnectionRequest";
 import {
+    type KerberosAuditEventRequest,
+    KerberosAuditEventRequestToJSON,
+} from "../models/KerberosAuditEventRequest";
+import {
     type KerberosCheckAccess,
     KerberosCheckAccessFromJSON,
 } from "../models/KerberosCheckAccess";
@@ -175,6 +179,11 @@ export interface OutpostsKerberosAccessCheckRequest {
     clientSpn?: string;
     spn?: string;
     username?: string;
+}
+
+export interface OutpostsKerberosAuditEventCreateRequest {
+    id: number;
+    kerberosAuditEventRequest: KerberosAuditEventRequest;
 }
 
 export interface OutpostsKerberosListRequest {
@@ -1090,6 +1099,77 @@ export class OutpostsApi extends runtime.BaseAPI {
             initOverrides,
         );
         return await response.value();
+    }
+
+    /**
+     * Creates request options for outpostsKerberosAuditEventCreate without sending the request
+     */
+    async outpostsKerberosAuditEventCreateRequestOpts(
+        requestParameters: OutpostsKerberosAuditEventCreateRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["id"] == null) {
+            throw new runtime.RequiredError(
+                "id",
+                'Required parameter "id" was null or undefined when calling outpostsKerberosAuditEventCreate().',
+            );
+        }
+
+        if (requestParameters["kerberosAuditEventRequest"] == null) {
+            throw new runtime.RequiredError(
+                "kerberosAuditEventRequest",
+                'Required parameter "kerberosAuditEventRequest" was null or undefined when calling outpostsKerberosAuditEventCreate().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters["Content-Type"] = "application/json";
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/outposts/kerberos/{id}/audit_event/`;
+        urlPath = urlPath.replace("{id}", encodeURIComponent(String(requestParameters["id"])));
+
+        return {
+            path: urlPath,
+            method: "POST",
+            headers: headerParameters,
+            query: queryParameters,
+            body: KerberosAuditEventRequestToJSON(requestParameters["kerberosAuditEventRequest"]),
+        };
+    }
+
+    /**
+     * Record a KDC audit event.
+     */
+    async outpostsKerberosAuditEventCreateRaw(
+        requestParameters: OutpostsKerberosAuditEventCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<void>> {
+        const requestOptions =
+            await this.outpostsKerberosAuditEventCreateRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Record a KDC audit event.
+     */
+    async outpostsKerberosAuditEventCreate(
+        requestParameters: OutpostsKerberosAuditEventCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<void> {
+        await this.outpostsKerberosAuditEventCreateRaw(requestParameters, initOverrides);
     }
 
     /**

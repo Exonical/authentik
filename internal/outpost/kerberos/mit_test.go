@@ -84,10 +84,20 @@ type mitHarness struct {
 	requiresPasswordChange *bool
 	resetPassword          *bool
 	stateMu                *sync.RWMutex
+	auditRequests          chan api.KerberosAuditEventRequest
+	instance               *ProviderInstance
 }
 
 func startMITKDC(t *testing.T, forceTCP bool) *mitHarness {
 	return startMITKDCWithDelegation(t, forceTCP, false, true)
+}
+
+func startMITKDCWithAudit(t *testing.T) *mitHarness {
+	return startMITKDCWithIdentityPolicyOptionsAudit(
+		t, false, false, true, mitUser, mitUser,
+		func(string, string, string) bool { return true },
+		false, false, nil, nil, true,
+	)
 }
 
 func startMITKDCWithKpasswd(t *testing.T, forceTCP, withKpasswd bool) *mitHarness {
@@ -136,6 +146,20 @@ func startMITKDCWithIdentityPolicyOptions(
 	accessCheck func(username, clientSPN, spn string) bool,
 	spake, freshness bool, pkinitIndicators, requiredIndicators []string,
 ) *mitHarness {
+	return startMITKDCWithIdentityPolicyOptionsAudit(
+		t, forceTCP, withKpasswd, allowProxy, apiUsername, canonicalUsername,
+		accessCheck, spake, freshness, pkinitIndicators, requiredIndicators, false,
+	)
+}
+
+func startMITKDCWithIdentityPolicyOptionsAudit(
+	t *testing.T,
+	forceTCP, withKpasswd, allowProxy bool,
+	apiUsername, canonicalUsername string,
+	accessCheck func(username, clientSPN, spn string) bool,
+	spake, freshness bool, pkinitIndicators, requiredIndicators []string,
+	auditEnabled bool,
+) *mitHarness {
 	t.Helper()
 	tools := []string{"kinit", "kvno", "klist"}
 	if withKpasswd {
@@ -172,8 +196,19 @@ func startMITKDCWithIdentityPolicyOptions(
 	requiresPasswordChange := false
 	resetPassword := false
 	stateMu := &sync.RWMutex{}
+	auditRequests := make(chan api.KerberosAuditEventRequest, 10)
 
 	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v3/outposts/kerberos/1/audit_event/" {
+			var request api.KerberosAuditEventRequest
+			if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+				http.Error(w, "bad request", http.StatusBadRequest)
+				return
+			}
+			auditRequests <- request
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
 		if withKpasswd && r.URL.Path == "/api/v3/outposts/kerberos/1/set_password/" {
 			var request struct {
 				Username string `json:"username"`
@@ -380,6 +415,15 @@ func startMITKDCWithIdentityPolicyOptions(
 		Store:  store,
 		KDC:    server,
 	}
+	if auditEnabled {
+		instance.Config.SetKdcAuditEnabled(true)
+		instance.KDC.AuditModules = []kdc.AuditModule{
+			kdc.NewFuncAuditModule("authentik", instance.auditCallback),
+		}
+		instance.KDC.AuditErrorLog = func(err error) {
+			t.Errorf("audit module failed: %v", err)
+		}
+	}
 	instance.Config.SetKpasswdEnabled(withKpasswd)
 	instance.Config.SetUdpEnabled(true)
 	instance.Config.SetTcpEnabled(true)
@@ -496,6 +540,8 @@ func startMITKDCWithIdentityPolicyOptions(
 		requiresPasswordChange: &requiresPasswordChange,
 		resetPassword:          &resetPassword,
 		stateMu:                stateMu,
+		auditRequests:          auditRequests,
+		instance:               instance,
 	}
 }
 
@@ -572,6 +618,12 @@ func (h *mitHarness) runResult(cache, input, command string, args ...string) (st
 	return string(output), err
 }
 
+func (h *mitHarness) startAuditWorker(t *testing.T) {
+	t.Helper()
+	h.instance.Store.server.startAudit(h.instance)
+	t.Cleanup(h.instance.stopAudit)
+}
+
 func runMITFlow(t *testing.T, forceTCP bool) {
 	h := startMITKDC(t, forceTCP)
 	h.run(t, mitPassword+"\n", "kinit", mitUser)
@@ -598,6 +650,25 @@ func TestMITInteropUDP(t *testing.T) {
 
 func TestMITInteropTCP(t *testing.T) {
 	runMITFlow(t, true)
+}
+
+func TestMITInteropAudit(t *testing.T) {
+	h := startMITKDCWithAudit(t)
+	h.startAuditWorker(t)
+	h.run(t, mitPassword+"\n", "kinit", mitUser)
+	deadline := time.After(5 * time.Second)
+	for {
+		select {
+		case request := <-h.auditRequests:
+			if request.Event == api.EVENTENUM_AS_REQ &&
+				request.Client == mitUser+"@"+mitRealm &&
+				request.Success {
+				return
+			}
+		case <-deadline:
+			t.Fatal("timed out waiting for successful KDC audit event")
+		}
+	}
 }
 
 func TestMITInteropAccountStateAndLifetime(t *testing.T) {
