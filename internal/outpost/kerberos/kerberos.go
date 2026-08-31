@@ -36,16 +36,18 @@ type KerberosServer struct {
 	kpasswdTCP   []net.Listener
 	kadmin       net.Listener
 	kadminServer *kadm5.Server
+	kadminConns  map[net.Conn]struct{}
 	kkdcp        []net.Listener
 	kkdcpHTTP    []*http.Server
 }
 
 func NewServer(ac *ak.APIController) ak.Outpost {
 	return &KerberosServer{
-		log:       log.WithField("logger", "authentik.outpost.kerberos"),
-		ac:        ac,
-		cs:        ak.NewCryptoStore(ac.Client.CryptoAPI),
-		providers: make(map[int32]*ProviderInstance),
+		log:         log.WithField("logger", "authentik.outpost.kerberos"),
+		ac:          ac,
+		cs:          ak.NewCryptoStore(ac.Client.CryptoAPI),
+		providers:   make(map[int32]*ProviderInstance),
+		kadminConns: make(map[net.Conn]struct{}),
 	}
 }
 
@@ -121,11 +123,8 @@ func (rs *KerberosServer) Start() error {
 			}
 			rs.mu.Lock()
 			rs.kadmin = listener
-			server := rs.kadminServer
 			rs.mu.Unlock()
-			if server != nil {
-				group.Go(func() error { return server.Serve(listener) })
-			}
+			group.Go(func() error { return rs.serveKadmin(listener) })
 		}
 	}
 	if hasKKDCP {
@@ -193,6 +192,10 @@ func (rs *KerberosServer) Stop() error {
 	kpasswdUDP := append([]net.PacketConn(nil), rs.kpasswdUDP...)
 	kpasswdTCP := append([]net.Listener(nil), rs.kpasswdTCP...)
 	kadmin := rs.kadmin
+	kadminConns := make([]net.Conn, 0, len(rs.kadminConns))
+	for conn := range rs.kadminConns {
+		kadminConns = append(kadminConns, conn)
+	}
 	kkdcp := append([]net.Listener(nil), rs.kkdcp...)
 	kkdcpHTTP := append([]*http.Server(nil), rs.kkdcpHTTP...)
 	rs.mu.Unlock()
@@ -220,6 +223,9 @@ func (rs *KerberosServer) Stop() error {
 	if kadmin != nil {
 		errs.Go(kadmin.Close)
 	}
+	for _, conn := range kadminConns {
+		errs.Go(conn.Close)
+	}
 	for _, server := range kkdcpHTTP {
 		server := server
 		errs.Go(func() error {
@@ -233,6 +239,59 @@ func (rs *KerberosServer) Stop() error {
 		errs.Go(listener.Close)
 	}
 	return errs.Wait()
+}
+
+type singleConnListener struct {
+	conn net.Conn
+	used bool
+}
+
+func (l *singleConnListener) Accept() (net.Conn, error) {
+	if l.used {
+		return nil, net.ErrClosed
+	}
+	l.used = true
+	return l.conn, nil
+}
+
+func (l *singleConnListener) Close() error {
+	return l.conn.Close()
+}
+
+func (l *singleConnListener) Addr() net.Addr {
+	return l.conn.LocalAddr()
+}
+
+func (rs *KerberosServer) serveKadmin(listener net.Listener) error {
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			return err
+		}
+		rs.mu.Lock()
+		server := rs.kadminServer
+		if rs.kadminConns == nil {
+			rs.kadminConns = make(map[net.Conn]struct{})
+		}
+		rs.kadminConns[conn] = struct{}{}
+		rs.mu.Unlock()
+		if server == nil {
+			_ = conn.Close()
+			rs.mu.Lock()
+			delete(rs.kadminConns, conn)
+			rs.mu.Unlock()
+			continue
+		}
+		go func() {
+			defer func() {
+				_ = conn.Close()
+				rs.mu.Lock()
+				delete(rs.kadminConns, conn)
+				rs.mu.Unlock()
+			}()
+			_ = server.Serve(&singleConnListener{conn: conn})
+		}()
+	}
 }
 
 func (rs *KerberosServer) serveUDP(conn net.PacketConn) error {

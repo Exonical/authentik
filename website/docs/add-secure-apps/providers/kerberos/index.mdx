@@ -407,6 +407,9 @@ internal port `3749` (the conventional external port is `749`). Enable
 creates service principals with randomly generated keys, while password changes
 for users are applied through authentik's password policies. Service principals
 can be created, deleted, rotated, and have ticket flags updated through kadmin.
+The kadm5 listener serves only the first enabled kadmin provider because MIT
+kadmind is single-realm; additional enabled providers are ignored and a warning
+is logged by the outpost.
 
 For example, a path from `EXAMPLE.TEST` to `REMOTE.TEST` through
 `HUB.TEST` uses `HUB.TEST` as its intermediate realm.

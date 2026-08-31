@@ -229,6 +229,7 @@ func (rs *KerberosServer) Refresh() error {
 				return fmt.Errorf("build provider %d kadmin keytab: %w", provider.Pk, keytabErr)
 			}
 			kadminServer = kadm5.NewServer(&kadminBackend{instance: instance}, serviceKeytab)
+			kadminServer.PasswordQualityModules = []kadm5.PasswordQualityModule{}
 			if len(provider.GetKadminAcl()) > 0 {
 				acl, aclErr := parseKadminACL(provider.GetKadminAcl(), provider.RealmName)
 				if aclErr != nil {
@@ -239,6 +240,10 @@ func (rs *KerberosServer) Refresh() error {
 			kadminServer.ErrorLog = func(err error) {
 				instance.log.WithError(err).Warn("kadmin server error")
 			}
+		} else if provider.GetKadminEnabled() {
+			rs.log.WithField("provider", provider.Pk).Warn(
+				"kadmin is single-realm; ignoring additional enabled provider",
+			)
 		}
 		if old := rs.getCurrentProvider(provider.Pk); old != nil {
 			store.cache = old.Store.cache
@@ -408,6 +413,7 @@ type providerStore struct {
 	masterKey              []byte
 	allowed                map[int32]bool
 	services               map[string]kdb.PrincipalRecord
+	servicesMu             sync.RWMutex
 	trusts                 map[string]kdb.PrincipalRecord
 	delegations            map[string]delegationPolicy
 	cache                  map[string]cachedUserKey
