@@ -11222,6 +11222,37 @@ paths:
           $ref: '#/components/responses/ValidationErrorResponse'
         '403':
           $ref: '#/components/responses/GenericErrorResponse'
+  /outposts/kerberos/{id}/user_keys/:
+    get:
+      operationId: outposts_kerberos_user_keys_list
+      description: List all users with password-derived keys.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      - $ref: '#/components/parameters/QueryName'
+      - $ref: '#/components/parameters/QueryPaginationOrdering'
+      - $ref: '#/components/parameters/QueryPaginationPage'
+      - $ref: '#/components/parameters/QueryPaginationPageSize'
+      - $ref: '#/components/parameters/QuerySearch'
+      tags:
+      - outposts
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedKerberosUserKeyOutpostList'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
   /outposts/ldap/:
     get:
       operationId: outposts_ldap_list
@@ -44502,6 +44533,25 @@ components:
         realm_sid:
           type: string
           description: Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.
+        kprop_enabled:
+          type: boolean
+          description: Push full MIT Kerberos database dumps to replica KDCs.
+        kprop_targets:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        kprop_client_spn:
+          type: string
+          description: Service principal used to authenticate kprop pushes.
+        kprop_master_password:
+          type: string
+          description: MIT database master password used to encrypt full kprop dumps.
+        kprop_interval:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Interval in seconds between full kprop pushes.
         master_key:
           type: string
         application_slug:
@@ -44684,6 +44734,22 @@ components:
         realm_sid:
           type: string
           description: Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.
+        kprop_enabled:
+          type: boolean
+          description: Push full MIT Kerberos database dumps to replica KDCs.
+        kprop_targets:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        kprop_client_spn:
+          type: string
+          description: Service principal used to authenticate kprop pushes.
+        kprop_interval:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Interval in seconds between full kprop pushes.
         master_key:
           type: string
           readOnly: true
@@ -44836,6 +44902,26 @@ components:
         realm_sid:
           type: string
           description: Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.
+        kprop_enabled:
+          type: boolean
+          description: Push full MIT Kerberos database dumps to replica KDCs.
+        kprop_targets:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        kprop_client_spn:
+          type: string
+          description: Service principal used to authenticate kprop pushes.
+        kprop_master_password:
+          type: string
+          writeOnly: true
+          description: MIT database master password used to encrypt full kprop dumps.
+        kprop_interval:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Interval in seconds between full kprop pushes.
       required:
       - name
       - realm_name
@@ -49963,6 +50049,21 @@ components:
       - autocomplete
       - pagination
       - results
+    PaginatedKerberosUserKeyOutpostList:
+      type: object
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/KerberosUserKeyOutpost'
+        autocomplete:
+          $ref: '#/components/schemas/Autocomplete'
+      required:
+      - autocomplete
+      - pagination
+      - results
     PaginatedKubernetesServiceConnectionList:
       type: object
       properties:
@@ -53491,6 +53592,26 @@ components:
         realm_sid:
           type: string
           description: Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.
+        kprop_enabled:
+          type: boolean
+          description: Push full MIT Kerberos database dumps to replica KDCs.
+        kprop_targets:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        kprop_client_spn:
+          type: string
+          description: Service principal used to authenticate kprop pushes.
+        kprop_master_password:
+          type: string
+          writeOnly: true
+          description: MIT database master password used to encrypt full kprop dumps.
+        kprop_interval:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Interval in seconds between full kprop pushes.
     PatchedKerberosRealmTrustRequest:
       type: object
       description: Kerberos realm trust serializer.

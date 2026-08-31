@@ -358,6 +358,36 @@ no key-import API.
 The optional **Intermediate realms** (`capaths`) list configures the intermediate
 realms allowed for transited-path checking. Values are stored in the order
 required by the Kerberos trust path, from the client realm to the service realm.
+
+### MIT replica propagation
+
+The Kerberos outpost can feed full MIT database dumps to one or more MIT slave
+KDCs through `kprop` and `kpropd`. Configure the following provider settings:
+
+| Setting                 | Description                                                                                                            |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `kprop_enabled`         | Enable replica propagation.                                                                                            |
+| `kprop_targets`         | Replica targets in `host[:port]` form. The default port is `754`.                                                      |
+| `kprop_client_spn`      | Existing service principal used as the kprop client identity. Authorize this principal in each replica's `kpropd.acl`. |
+| `kprop_master_password` | MIT database master password. Use the same password when creating each replica database.                               |
+| `kprop_interval`        | Full-dump propagation interval in seconds. The default is `300`.                                                       |
+
+Create each replica database with the same master password configured above:
+
+```shell
+kdb5_util create -s -P <same password>
+```
+
+Add the configured client principal to the replica's `kpropd.acl`, then run
+`kpropd` on the default port `754` (or configure another port in
+`kprop_targets`). The outpost sends complete database dumps, so every
+configured user, service principal, trust principal, and required synthetic
+principal is refreshed on each push. Failed pushes are logged independently
+for each target and do not stop the Kerberos outpost.
+
+Changing the master password requires coordinated replica recreation or
+compatible MIT database-master-key handling. Full dumps do not provide
+incremental key-rotation semantics.
 For example, a path from `EXAMPLE.TEST` to `REMOTE.TEST` through
 `HUB.TEST` uses `HUB.TEST` as its intermediate realm.
 

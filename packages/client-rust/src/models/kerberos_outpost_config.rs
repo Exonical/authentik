@@ -91,6 +91,20 @@ pub struct KerberosOutpostConfig {
     /// Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.
     #[serde(rename = "realm_sid", skip_serializing_if = "Option::is_none")]
     pub realm_sid: Option<String>,
+    /// Push full MIT Kerberos database dumps to replica KDCs.
+    #[serde(rename = "kprop_enabled", skip_serializing_if = "Option::is_none")]
+    pub kprop_enabled: Option<bool>,
+    #[serde(rename = "kprop_targets", skip_serializing_if = "Option::is_none")]
+    pub kprop_targets: Option<Vec<String>>,
+    /// Service principal used to authenticate kprop pushes.
+    #[serde(rename = "kprop_client_spn", skip_serializing_if = "Option::is_none")]
+    pub kprop_client_spn: Option<String>,
+    /// MIT database master password used to encrypt full kprop dumps.
+    #[serde(rename = "kprop_master_password", skip_serializing_if = "Option::is_none")]
+    pub kprop_master_password: Option<String>,
+    /// Interval in seconds between full kprop pushes.
+    #[serde(rename = "kprop_interval", skip_serializing_if = "Option::is_none")]
+    pub kprop_interval: Option<u32>,
     #[serde(rename = "master_key", skip_serializing_if = "Option::is_none")]
     pub master_key: Option<String>,
     #[serde(rename = "application_slug")]
@@ -132,6 +146,11 @@ impl KerberosOutpostConfig {
             kkdcp_certificate: None,
             pac_enabled: None,
             realm_sid: None,
+            kprop_enabled: None,
+            kprop_targets: None,
+            kprop_client_spn: None,
+            kprop_master_password: None,
+            kprop_interval: None,
             master_key: None,
             application_slug,
         }

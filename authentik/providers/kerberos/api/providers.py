@@ -57,6 +57,52 @@ class KerberosProviderSerializer(ProviderSerializer):
     """KerberosProvider serializer."""
 
     outpost_set = ListField(child=CharField(), read_only=True, source="outpost_set.all")
+    kprop_targets = ListField(
+        child=CharField(allow_blank=False, min_length=1),
+        required=False,
+        default=list,
+    )
+
+    def to_internal_value(self, data: dict) -> dict:
+        """Reject malformed kprop targets before JSON values are accepted."""
+        targets = data.get("kprop_targets")
+        if targets is not None and (
+            not isinstance(targets, list)
+            or any(not isinstance(target, str) or not target.strip() for target in targets)
+        ):
+            raise ValidationError(
+                {"kprop_targets": _("Kprop targets must be a list of non-empty strings.")}
+            )
+        return super().to_internal_value(data)
+
+    def validate(self, attrs: dict) -> dict:
+        """Validate the kprop identity against this provider's principals."""
+        enabled = attrs.get("kprop_enabled", getattr(self.instance, "kprop_enabled", False))
+        if not enabled:
+            return attrs
+        client_spn = attrs.get(
+            "kprop_client_spn", getattr(self.instance, "kprop_client_spn", "")
+        )
+        if not client_spn:
+            raise ValidationError({"kprop_client_spn": _("This field is required when kprop is enabled.")})
+        provider = self.instance
+        if provider is None or not KerberosServicePrincipal.objects.filter(
+            provider=provider, spn=client_spn
+        ).exists():
+            raise ValidationError(
+                {"kprop_client_spn": _("This service principal does not belong to this provider.")}
+            )
+        targets = attrs.get("kprop_targets", getattr(self.instance, "kprop_targets", []))
+        if not targets:
+            raise ValidationError({"kprop_targets": _("At least one kprop target is required.")})
+        password = attrs.get(
+            "kprop_master_password", getattr(self.instance, "kprop_master_password", "")
+        )
+        if not password:
+            raise ValidationError(
+                {"kprop_master_password": _("This field is required when kprop is enabled.")}
+            )
+        return attrs
 
     class Meta:
         model = KerberosProvider
@@ -90,6 +136,11 @@ class KerberosProviderSerializer(ProviderSerializer):
             "kkdcp_certificate",
             "pac_enabled",
             "realm_sid",
+            "kprop_enabled",
+            "kprop_targets",
+            "kprop_client_spn",
+            "kprop_master_password",
+            "kprop_interval",
             "master_key",
             "outpost_set",
         ]
@@ -98,6 +149,7 @@ class KerberosProviderSerializer(ProviderSerializer):
             "authorization_flow": {"required": False, "allow_null": True},
             "invalidation_flow": {"required": False, "allow_null": True},
             "master_key": {"read_only": True},
+            "kprop_master_password": {"write_only": True},
         }
 
 
@@ -500,6 +552,11 @@ class KerberosOutpostConfigSerializer(ModelSerializer):
     """Kerberos provider serializer for outposts."""
 
     application_slug = CharField(source="application.slug")
+    kprop_targets = ListField(
+        child=CharField(allow_blank=False, min_length=1),
+        required=False,
+        default=list,
+    )
     maximum_ticket_lifetime = SerializerMethodField()
     maximum_ticket_renew_lifetime = SerializerMethodField()
 
@@ -543,6 +600,11 @@ class KerberosOutpostConfigSerializer(ModelSerializer):
             "kkdcp_certificate",
             "pac_enabled",
             "realm_sid",
+            "kprop_enabled",
+            "kprop_targets",
+            "kprop_client_spn",
+            "kprop_master_password",
+            "kprop_interval",
             "master_key",
             "application_slug",
         ]
@@ -589,6 +651,23 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
         page = self.paginate_queryset(principals)
         return self.get_paginated_response(
             KerberosServicePrincipalOutpostSerializer(page, many=True).data
+        )
+
+    @extend_schema(
+        responses={200: KerberosUserKeyOutpostSerializer(many=True)},
+    )
+    @action(detail=True, methods=["GET"])
+    def user_keys(self, request: Request, pk=None) -> Response:
+        """List all users with password-derived keys."""
+        provider = self.get_object()
+        user_keys = (
+            KerberosUserKeys.objects.select_related("user", "provider")
+            .filter(provider=provider)
+            .order_by("user__username")
+        )
+        page = self.paginate_queryset(user_keys)
+        return self.get_paginated_response(
+            KerberosUserKeyOutpostSerializer(page, many=True).data
         )
 
     @extend_schema(

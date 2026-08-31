@@ -461,6 +461,7 @@ export * from "./PaginatedKerberosServicePrincipalList";
 export * from "./PaginatedKerberosServicePrincipalOutpostList";
 export * from "./PaginatedKerberosSourceList";
 export * from "./PaginatedKerberosSourcePropertyMappingList";
+export * from "./PaginatedKerberosUserKeyOutpostList";
 export * from "./PaginatedKubernetesServiceConnectionList";
 export * from "./PaginatedLDAPOutpostConfigList";
 export * from "./PaginatedLDAPProviderList";

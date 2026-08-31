@@ -66,7 +66,16 @@ type KerberosOutpostConfig struct {
 	// Include an MS-PAC in issued tickets.
 	PacEnabled *bool `json:"pac_enabled,omitempty"`
 	// Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.
-	RealmSid             *string `json:"realm_sid,omitempty"`
+	RealmSid *string `json:"realm_sid,omitempty"`
+	// Push full MIT Kerberos database dumps to replica KDCs.
+	KpropEnabled *bool    `json:"kprop_enabled,omitempty"`
+	KpropTargets []string `json:"kprop_targets,omitempty"`
+	// Service principal used to authenticate kprop pushes.
+	KpropClientSpn *string `json:"kprop_client_spn,omitempty"`
+	// MIT database master password used to encrypt full kprop dumps.
+	KpropMasterPassword *string `json:"kprop_master_password,omitempty"`
+	// Interval in seconds between full kprop pushes.
+	KpropInterval        *int32  `json:"kprop_interval,omitempty"`
 	MasterKey            *string `json:"master_key,omitempty"`
 	ApplicationSlug      string  `json:"application_slug"`
 	AdditionalProperties map[string]interface{}
@@ -1082,6 +1091,166 @@ func (o *KerberosOutpostConfig) SetRealmSid(v string) {
 	o.RealmSid = &v
 }
 
+// GetKpropEnabled returns the KpropEnabled field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetKpropEnabled() bool {
+	if o == nil || IsNil(o.KpropEnabled) {
+		var ret bool
+		return ret
+	}
+	return *o.KpropEnabled
+}
+
+// GetKpropEnabledOk returns a tuple with the KpropEnabled field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetKpropEnabledOk() (*bool, bool) {
+	if o == nil || IsNil(o.KpropEnabled) {
+		return nil, false
+	}
+	return o.KpropEnabled, true
+}
+
+// HasKpropEnabled returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasKpropEnabled() bool {
+	if o != nil && !IsNil(o.KpropEnabled) {
+		return true
+	}
+
+	return false
+}
+
+// SetKpropEnabled gets a reference to the given bool and assigns it to the KpropEnabled field.
+func (o *KerberosOutpostConfig) SetKpropEnabled(v bool) {
+	o.KpropEnabled = &v
+}
+
+// GetKpropTargets returns the KpropTargets field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetKpropTargets() []string {
+	if o == nil || IsNil(o.KpropTargets) {
+		var ret []string
+		return ret
+	}
+	return o.KpropTargets
+}
+
+// GetKpropTargetsOk returns a tuple with the KpropTargets field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetKpropTargetsOk() ([]string, bool) {
+	if o == nil || IsNil(o.KpropTargets) {
+		return nil, false
+	}
+	return o.KpropTargets, true
+}
+
+// HasKpropTargets returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasKpropTargets() bool {
+	if o != nil && !IsNil(o.KpropTargets) {
+		return true
+	}
+
+	return false
+}
+
+// SetKpropTargets gets a reference to the given []string and assigns it to the KpropTargets field.
+func (o *KerberosOutpostConfig) SetKpropTargets(v []string) {
+	o.KpropTargets = v
+}
+
+// GetKpropClientSpn returns the KpropClientSpn field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetKpropClientSpn() string {
+	if o == nil || IsNil(o.KpropClientSpn) {
+		var ret string
+		return ret
+	}
+	return *o.KpropClientSpn
+}
+
+// GetKpropClientSpnOk returns a tuple with the KpropClientSpn field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetKpropClientSpnOk() (*string, bool) {
+	if o == nil || IsNil(o.KpropClientSpn) {
+		return nil, false
+	}
+	return o.KpropClientSpn, true
+}
+
+// HasKpropClientSpn returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasKpropClientSpn() bool {
+	if o != nil && !IsNil(o.KpropClientSpn) {
+		return true
+	}
+
+	return false
+}
+
+// SetKpropClientSpn gets a reference to the given string and assigns it to the KpropClientSpn field.
+func (o *KerberosOutpostConfig) SetKpropClientSpn(v string) {
+	o.KpropClientSpn = &v
+}
+
+// GetKpropMasterPassword returns the KpropMasterPassword field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetKpropMasterPassword() string {
+	if o == nil || IsNil(o.KpropMasterPassword) {
+		var ret string
+		return ret
+	}
+	return *o.KpropMasterPassword
+}
+
+// GetKpropMasterPasswordOk returns a tuple with the KpropMasterPassword field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetKpropMasterPasswordOk() (*string, bool) {
+	if o == nil || IsNil(o.KpropMasterPassword) {
+		return nil, false
+	}
+	return o.KpropMasterPassword, true
+}
+
+// HasKpropMasterPassword returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasKpropMasterPassword() bool {
+	if o != nil && !IsNil(o.KpropMasterPassword) {
+		return true
+	}
+
+	return false
+}
+
+// SetKpropMasterPassword gets a reference to the given string and assigns it to the KpropMasterPassword field.
+func (o *KerberosOutpostConfig) SetKpropMasterPassword(v string) {
+	o.KpropMasterPassword = &v
+}
+
+// GetKpropInterval returns the KpropInterval field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetKpropInterval() int32 {
+	if o == nil || IsNil(o.KpropInterval) {
+		var ret int32
+		return ret
+	}
+	return *o.KpropInterval
+}
+
+// GetKpropIntervalOk returns a tuple with the KpropInterval field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetKpropIntervalOk() (*int32, bool) {
+	if o == nil || IsNil(o.KpropInterval) {
+		return nil, false
+	}
+	return o.KpropInterval, true
+}
+
+// HasKpropInterval returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasKpropInterval() bool {
+	if o != nil && !IsNil(o.KpropInterval) {
+		return true
+	}
+
+	return false
+}
+
+// SetKpropInterval gets a reference to the given int32 and assigns it to the KpropInterval field.
+func (o *KerberosOutpostConfig) SetKpropInterval(v int32) {
+	o.KpropInterval = &v
+}
+
 // GetMasterKey returns the MasterKey field value if set, zero value otherwise.
 func (o *KerberosOutpostConfig) GetMasterKey() string {
 	if o == nil || IsNil(o.MasterKey) {
@@ -1231,6 +1400,21 @@ func (o KerberosOutpostConfig) ToMap() (map[string]interface{}, error) {
 	if !IsNil(o.RealmSid) {
 		toSerialize["realm_sid"] = o.RealmSid
 	}
+	if !IsNil(o.KpropEnabled) {
+		toSerialize["kprop_enabled"] = o.KpropEnabled
+	}
+	if !IsNil(o.KpropTargets) {
+		toSerialize["kprop_targets"] = o.KpropTargets
+	}
+	if !IsNil(o.KpropClientSpn) {
+		toSerialize["kprop_client_spn"] = o.KpropClientSpn
+	}
+	if !IsNil(o.KpropMasterPassword) {
+		toSerialize["kprop_master_password"] = o.KpropMasterPassword
+	}
+	if !IsNil(o.KpropInterval) {
+		toSerialize["kprop_interval"] = o.KpropInterval
+	}
 	if !IsNil(o.MasterKey) {
 		toSerialize["master_key"] = o.MasterKey
 	}
@@ -1314,6 +1498,11 @@ func (o *KerberosOutpostConfig) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "kkdcp_certificate")
 		delete(additionalProperties, "pac_enabled")
 		delete(additionalProperties, "realm_sid")
+		delete(additionalProperties, "kprop_enabled")
+		delete(additionalProperties, "kprop_targets")
+		delete(additionalProperties, "kprop_client_spn")
+		delete(additionalProperties, "kprop_master_password")
+		delete(additionalProperties, "kprop_interval")
 		delete(additionalProperties, "master_key")
 		delete(additionalProperties, "application_slug")
 		o.AdditionalProperties = additionalProperties

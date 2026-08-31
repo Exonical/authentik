@@ -285,6 +285,30 @@ export interface KerberosProvider {
      */
     realmSid?: string;
     /**
+     * Push full MIT Kerberos database dumps to replica KDCs.
+     * @type {boolean}
+     * @memberof KerberosProvider
+     */
+    kpropEnabled?: boolean;
+    /**
+     *
+     * @type {Array<string>}
+     * @memberof KerberosProvider
+     */
+    kpropTargets?: Array<string>;
+    /**
+     * Service principal used to authenticate kprop pushes.
+     * @type {string}
+     * @memberof KerberosProvider
+     */
+    kpropClientSpn?: string;
+    /**
+     * Interval in seconds between full kprop pushes.
+     * @type {number}
+     * @memberof KerberosProvider
+     */
+    kpropInterval?: number;
+    /**
      *
      * @type {string}
      * @memberof KerberosProvider
@@ -485,6 +509,10 @@ export function KerberosProviderFromJSONTyped(
                   : json["kkdcp_certificate"],
         pacEnabled: json["pac_enabled"] == null ? undefined : json["pac_enabled"],
         realmSid: json["realm_sid"] == null ? undefined : json["realm_sid"],
+        kpropEnabled: json["kprop_enabled"] == null ? undefined : json["kprop_enabled"],
+        kpropTargets: json["kprop_targets"] == null ? undefined : json["kprop_targets"],
+        kpropClientSpn: json["kprop_client_spn"] == null ? undefined : json["kprop_client_spn"],
+        kpropInterval: json["kprop_interval"] == null ? undefined : json["kprop_interval"],
         masterKey: json["master_key"],
         outpostSet: json["outpost_set"],
     };
@@ -555,5 +583,9 @@ export function KerberosProviderToJSONTyped(
         kkdcp_certificate: value["kkdcpCertificate"],
         pac_enabled: value["pacEnabled"],
         realm_sid: value["realmSid"],
+        kprop_enabled: value["kpropEnabled"],
+        kprop_targets: value["kpropTargets"],
+        kprop_client_spn: value["kpropClientSpn"],
+        kprop_interval: value["kpropInterval"],
     };
 }
