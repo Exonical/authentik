@@ -178,6 +178,7 @@ func (rs *KerberosServer) Stop() error {
 	rs.mu.Unlock()
 	for _, provider := range providers {
 		provider.stopKprop()
+		provider.stopAudit()
 	}
 	var errs errgroup.Group
 	for _, listener := range udp {

@@ -127,6 +127,14 @@ func (rs *KerberosServer) Refresh() error {
 			KKDCPCertificate: kkdcpCertificate,
 			log:              log.WithField("logger", "authentik.outpost.kerberos").WithField("provider", provider.Name),
 		}
+		if provider.GetKdcAuditEnabled() {
+			instance.KDC.AuditModules = []kdc.AuditModule{
+				kdc.NewFuncAuditModule("authentik", instance.auditCallback),
+			}
+			instance.KDC.AuditErrorLog = func(err error) {
+				instance.log.WithError(err).Warn("KDC audit module failed")
+			}
+		}
 		if provider.GetOtpEnabled() {
 			instance.KDC.OTPValidator = store.validateOTP
 			instance.KDC.OTPTokenInfo = func(principal.Principal) []otp.TokenInfo {
@@ -225,9 +233,11 @@ func (rs *KerberosServer) Refresh() error {
 	rs.mu.Unlock()
 	for _, provider := range oldProviders {
 		provider.stopKprop()
+		provider.stopAudit()
 	}
 	for _, provider := range providers {
 		rs.startKprop(provider)
+		rs.startAudit(provider)
 	}
 	rs.log.Info("Update kerberos providers")
 	return nil
@@ -343,6 +353,9 @@ type ProviderInstance struct {
 	log              *log.Entry
 	kpropCancel      context.CancelFunc
 	kpropDone        chan struct{}
+	auditCancel      context.CancelFunc
+	auditDone        chan struct{}
+	auditEvents      chan auditRecord
 }
 
 type cachedUserKey struct {

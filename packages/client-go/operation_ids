@@ -20,6 +20,7 @@ outposts_kerberos_user_key_retrieve
 outposts_kerberos_user_keys_list
 outposts_kerberos_access_check
 outposts_kerberos_otp_check
+outposts_kerberos_audit_event_create
 outposts_proxy_list
 outposts_radius_access_check
 outposts_radius_list

@@ -170,6 +170,15 @@ kpasswd alice@EXAMPLE.TEST
 
 The password change updates the authentik user password, rederives the Kerberos keys, and increments the key version number (KVNO). Existing tickets and service keytabs are not changed.
 
+### KDC audit events
+
+Enable **KDC audit events** to record Kerberos ticket operations as authentik events.
+The event action is `custom_kerberos_kdc` and its context includes the request type,
+success status, client and service principals, status, preauthentication type, remote
+address, S4U2Self user, authentication indicators, Kerberos error code, request ID,
+and ticket ID. Failed or denied operations are recorded with `success=false` and the
+Kerberos error code.
+
 ### Policy settings
 
 The policy switches control flags that the KDC can place on issued tickets:

@@ -219,6 +219,10 @@ class KerberosProvider(OutpostModel, Provider):
         default=300,
         help_text=_("Interval in seconds between full kprop pushes."),
     )
+    kdc_audit_enabled = models.BooleanField(
+        default=False,
+        help_text=_("Emit authentik events for KDC ticket operations."),
+    )
 
     def save(self, *args, **kwargs):
         if self.realm_sid:

@@ -10,6 +10,7 @@ from rest_framework.test import APITestCase
 
 from authentik.core.models import Application, Group
 from authentik.core.tests.utils import create_test_admin_user, create_test_cert, create_test_user
+from authentik.events.models import Event
 from authentik.crypto.models import CertificateKeyPair
 from authentik.lib.generators import generate_id
 from authentik.policies.dummy.models import DummyPolicy
@@ -77,6 +78,47 @@ class KerberosProviderAPITests(APITestCase):
         self.assertEqual(outpost_data["pkinit_indicators"], ["pkinit"])
         self.assertEqual(outpost_data["spake_indicators"], ["spake", "hardware"])
         self.assertEqual(outpost_data["encrypted_challenge_indicator"], "encrypted")
+
+    def test_outpost_audit_event_creates_event_for_client_user(self):
+        """KDC audit events preserve the payload and resolve the client user."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.COM",
+        )
+        application = Application.objects.create(
+            name=generate_id(),
+            slug=generate_id(),
+            provider=provider,
+        )
+        user = create_test_user(username="alice")
+        self.client.force_login(create_test_admin_user())
+        response = self.client.post(
+            reverse(
+                "authentik_api:kerberosprovideroutpost-audit-event",
+                kwargs={"pk": provider.pk},
+            ),
+            {
+                "event": "as_req",
+                "success": True,
+                "client": "alice",
+                "service": "krbtgt/EXAMPLE.COM",
+                "status": "ok",
+                "preauth_type": "encrypted_timestamp",
+                "remote_addr": "127.0.0.1",
+                "s4u2self_user": "",
+                "auth_indicators": ["password"],
+                "error_code": 0,
+                "request_id": "request-id",
+                "ticket_id": "",
+            },
+        )
+        self.assertEqual(response.status_code, 204)
+        event = Event.objects.get(action="custom_kerberos_kdc")
+        self.assertEqual(event.app, application.slug)
+        self.assertEqual(event.user["pk"], user.pk)
+        self.assertEqual(event.context["client"], "alice")
+        self.assertEqual(event.context["success"], True)
+        self.assertEqual(event.context["request_id"], "request-id")
 
     def test_realm_trust_serializer_round_trip(self):
         """Realm trust settings round-trip through the serializer."""

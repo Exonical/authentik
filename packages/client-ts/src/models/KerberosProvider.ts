@@ -309,6 +309,12 @@ export interface KerberosProvider {
      */
     kpropInterval?: number;
     /**
+     * Emit authentik events for KDC ticket operations.
+     * @type {boolean}
+     * @memberof KerberosProvider
+     */
+    kdcAuditEnabled?: boolean;
+    /**
      *
      * @type {string}
      * @memberof KerberosProvider
@@ -513,6 +519,7 @@ export function KerberosProviderFromJSONTyped(
         kpropTargets: json["kprop_targets"] == null ? undefined : json["kprop_targets"],
         kpropClientSpn: json["kprop_client_spn"] == null ? undefined : json["kprop_client_spn"],
         kpropInterval: json["kprop_interval"] == null ? undefined : json["kprop_interval"],
+        kdcAuditEnabled: json["kdc_audit_enabled"] == null ? undefined : json["kdc_audit_enabled"],
         masterKey: json["master_key"],
         outpostSet: json["outpost_set"],
     };
@@ -587,5 +594,6 @@ export function KerberosProviderToJSONTyped(
         kprop_targets: value["kpropTargets"],
         kprop_client_spn: value["kpropClientSpn"],
         kprop_interval: value["kpropInterval"],
+        kdc_audit_enabled: value["kdcAuditEnabled"],
     };
 }

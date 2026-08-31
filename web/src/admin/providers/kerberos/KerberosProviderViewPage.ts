@@ -102,6 +102,9 @@ const descriptionLabels: Record<string, string> = {
     "kerberos.forwardable.term": msg("Forwardable", { id: "kerberos.forwardable.term" }),
     "kerberos.renewable.term": msg("Renewable", { id: "kerberos.renewable.term" }),
     "kerberos.proxiable.term": msg("Proxiable", { id: "kerberos.proxiable.term" }),
+    "kerberos.kdc-audit-enabled.term": msg("KDC audit events enabled", {
+        id: "kerberos.kdc-audit-enabled.term",
+    }),
     "kerberos.principal-username-attribute.term": msg("Principal username attribute", {
         id: "kerberos.principal-username-attribute.term",
     }),
@@ -298,6 +301,11 @@ export class KerberosProviderViewPage extends AKElement {
                                                 "Password changes enabled",
                                                 this.provider.kpasswdEnabled,
                                                 "kerberos.kpasswd-enabled.term",
+                                            )}
+                                            ${this.renderBoolean(
+                                                "KDC audit events enabled",
+                                                this.provider.kdcAuditEnabled,
+                                                "kerberos.kdc-audit-enabled.term",
                                             )}
                                             ${this.renderBoolean(
                                                 "KDC Proxy enabled",

@@ -526,6 +526,13 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                     label=${msg("Proxiable", { id: "kerberos.proxiable.label" })}
                     ?checked=${provider.proxiable ?? false}
                 ></ak-switch-input>
+                <ak-switch-input
+                    name="kdcAuditEnabled"
+                    label=${msg("KDC audit events enabled", {
+                        id: "kerberos.kdc-audit-enabled.label",
+                    })}
+                    ?checked=${provider.kdcAuditEnabled ?? false}
+                ></ak-switch-input>
             </div>
         </ak-form-group>
 

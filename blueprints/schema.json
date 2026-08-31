@@ -12454,6 +12454,11 @@
                     "maximum": 2147483647,
                     "title": "Kprop interval",
                     "description": "Interval in seconds between full kprop pushes."
+                },
+                "kdc_audit_enabled": {
+                    "type": "boolean",
+                    "title": "Kdc audit enabled",
+                    "description": "Emit authentik events for KDC ticket operations."
                 }
             },
             "required": []
