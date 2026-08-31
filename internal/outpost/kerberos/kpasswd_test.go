@@ -224,6 +224,48 @@ func TestKpasswdClientChangesPasswordThroughServer(t *testing.T) {
 	}
 }
 
+func TestPasswordPolicyError(t *testing.T) {
+	var responseBody = `{"messages":["Password is too short.","Use a longer password."]}`
+	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(responseBody))
+	}))
+	t.Cleanup(apiServer.Close)
+	parsed, err := url.Parse(apiServer.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := api.NewConfiguration()
+	cfg.Host = parsed.Host
+	cfg.Scheme = parsed.Scheme
+	cfg.Servers = api.ServerConfigurations{{URL: "/api/v3"}}
+	response, err := api.NewAPIClient(cfg).OutpostsAPI.
+		OutpostsKerberosSetPasswordCreate(context.Background(), 1).
+		KerberosSetPasswordRequest(*api.NewKerberosSetPasswordRequest("alice", "short")).
+		Execute()
+	message, ok := passwordPolicyError(response, err)
+	if !ok {
+		t.Fatalf("passwordPolicyError(%v) did not recognize policy response", err)
+	}
+	if message != "Password is too short.\nUse a longer password." {
+		t.Fatalf("message = %q", message)
+	}
+
+	apiServer.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{"detail":"invalid request"}`))
+	})
+	response, err = api.NewAPIClient(cfg).OutpostsAPI.
+		OutpostsKerberosSetPasswordCreate(context.Background(), 1).
+		KerberosSetPasswordRequest(*api.NewKerberosSetPasswordRequest("alice", "short")).
+		Execute()
+	if _, ok := passwordPolicyError(response, err); ok {
+		t.Fatal("malformed policy response was recognized")
+	}
+}
+
 func uint32Pointer(value uint32) *uint32 {
 	return &value
 }

@@ -11184,7 +11184,11 @@ paths:
         '204':
           description: No response body
         '400':
-          $ref: '#/components/responses/ValidationErrorResponse'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosPasswordPolicyError'
+          description: ''
         '403':
           $ref: '#/components/responses/GenericErrorResponse'
   /outposts/kerberos/{id}/user_key/:
@@ -44509,6 +44513,16 @@ components:
       - name
       - pk
       - realm_name
+    KerberosPasswordPolicyError:
+      type: object
+      description: Password policy failure returned by the Kerberos outpost.
+      properties:
+        messages:
+          type: array
+          items:
+            type: string
+      required:
+      - messages
     KerberosProvider:
       type: object
       description: KerberosProvider serializer.

@@ -179,6 +179,14 @@ func startMITKDCWithIdentityPolicyOptions(
 				http.Error(w, "bad request", http.StatusBadRequest)
 				return
 			}
+			if request.Password == "short" {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusBadRequest)
+				_ = json.NewEncoder(w).Encode(map[string][]string{
+					"messages": {"Password is too short."},
+				})
+				return
+			}
 			newUserKey, err := etype.StringToKey(
 				[]byte(request.Password), []byte(mitRealm+canonicalUsername), nil,
 			)
@@ -750,6 +758,11 @@ func TestMITInteropKpasswd(t *testing.T) {
 			!strings.Contains(lower, "password change") {
 			t.Fatalf("kinit did not report password-change requirement:\n%s", output)
 		}
+	}
+	if output, err := h.runResult(h.cache, mitPassword+"\nshort\nshort\n", "kpasswd", mitUser); err == nil {
+		t.Fatalf("kpasswd unexpectedly accepted a policy-violating password:\n%s", output)
+	} else if !strings.Contains(output, "Password is too short.") {
+		t.Fatalf("kpasswd did not print the password policy message:\n%s", output)
 	}
 	h.run(t, mitPassword+"\n"+newPassword+"\n"+newPassword+"\n", "kpasswd", mitUser)
 	select {

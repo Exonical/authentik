@@ -277,6 +277,7 @@ export * from "./KadminTypeEnum";
 export * from "./KerberosCheckAccess";
 export * from "./KerberosOTPCheck";
 export * from "./KerberosOutpostConfig";
+export * from "./KerberosPasswordPolicyError";
 export * from "./KerberosProvider";
 export * from "./KerberosProviderRequest";
 export * from "./KerberosRealmTrust";

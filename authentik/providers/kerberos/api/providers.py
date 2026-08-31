@@ -35,8 +35,9 @@ from authentik.lib.utils.time import timedelta_from_string
 from authentik.policies.api.exec import PolicyTestResultSerializer
 from authentik.policies.engine import PolicyEngine
 from authentik.policies.expiry.models import PasswordExpiryPolicy
+from authentik.policies.password.models import PasswordPolicy
 from authentik.policies.models import PolicyBinding
-from authentik.policies.types import PolicyResult
+from authentik.policies.types import PolicyRequest, PolicyResult
 from authentik.providers.kerberos.models import (
     KerberosProvider,
     KerberosRealmTrust,
@@ -467,6 +468,12 @@ class KerberosSetPasswordSerializer(PassiveSerializer):
     password = CharField(write_only=True)
 
 
+class KerberosPasswordPolicyErrorSerializer(PassiveSerializer):
+    """Password policy failure returned by the Kerberos outpost."""
+
+    messages = ListField(child=CharField())
+
+
 class KerberosOutpostConfigSerializer(ModelSerializer):
     """Kerberos provider serializer for outposts."""
 
@@ -696,7 +703,7 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
 
     @extend_schema(
         request=KerberosSetPasswordSerializer,
-        responses={204: None},
+        responses={204: None, 400: KerberosPasswordPolicyErrorSerializer()},
     )
     @action(detail=True, methods=["POST"])
     @validate(KerberosSetPasswordSerializer)
@@ -719,7 +726,28 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
             raise Http404
         if not user.is_active:
             raise Http404
-        user.set_password(body.validated_data["password"], request=request)
+        password = body.validated_data["password"]
+        policy_request = PolicyRequest(user)
+        policy_request.context["password"] = password
+        policies = PasswordPolicy.objects.filter(
+            pk__in=PolicyBinding.objects.filter(
+                target=provider.application,
+                enabled=True,
+            ).values("policy_id")
+        )
+        messages = []
+        for policy in policies:
+            policy_request.context[policy.password_field] = password
+            try:
+                result = policy.passes(policy_request)
+            except Exception:  # noqa: BLE001
+                messages.append(_("Password policy evaluation failed."))
+                continue
+            if not result.passing:
+                messages.extend(result.messages)
+        if messages:
+            return Response({"messages": messages}, status=400)
+        user.set_password(password, request=request)
         user.save()
         if user.attributes.get("reset_password") is True:
             user.attributes["reset_password"] = False

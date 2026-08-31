@@ -3,9 +3,11 @@ package kerberos
 import (
 	"context"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"strings"
 	"time"
 
@@ -189,13 +191,34 @@ func (rs *KerberosServer) handleKpasswd(data []byte, udp bool) ([]byte, error) {
 	password := append([]byte(nil), part.UserData...)
 	requestBody := api.NewKerberosSetPasswordRequest(username, string(password))
 	clear(password)
-	if _, err := rs.ac.Client.OutpostsAPI.
+	response, err := rs.ac.Client.OutpostsAPI.
 		OutpostsKerberosSetPasswordCreate(context.Background(), provider.Store.providerID).
-		KerberosSetPasswordRequest(*requestBody).Execute(); err != nil {
+		KerberosSetPasswordRequest(*requestBody).Execute()
+	if err != nil {
+		if message, ok := passwordPolicyError(response, err); ok {
+			return buildKpasswdReply(verified, 4, message, now)
+		}
 		return buildKpasswdReply(verified, 2, "password change failed", now)
 	}
 	provider.Store.invalidateUserKey(username)
 	return buildKpasswdReply(verified, 0, "", now)
+}
+
+func passwordPolicyError(response *http.Response, err error) (string, bool) {
+	if response == nil || response.StatusCode != http.StatusBadRequest {
+		return "", false
+	}
+	var openAPIError *api.GenericOpenAPIError
+	if !errors.As(err, &openAPIError) {
+		return "", false
+	}
+	var payload struct {
+		Messages []string `json:"messages"`
+	}
+	if json.Unmarshal(openAPIError.Body(), &payload) != nil || len(payload.Messages) == 0 {
+		return "", false
+	}
+	return strings.Join(payload.Messages, "\n"), true
 }
 
 func buildKpasswdReply(state *ap.VerifiedAPReq, code uint16, message string, now time.Time) ([]byte, error) {

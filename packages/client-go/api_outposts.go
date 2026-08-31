@@ -1178,7 +1178,7 @@ func (a *OutpostsAPIService) OutpostsKerberosSetPasswordCreateExecute(r ApiOutpo
 			error: localVarHTTPResponse.Status,
 		}
 		if localVarHTTPResponse.StatusCode == 400 {
-			var v ValidationError
+			var v KerberosPasswordPolicyError
 			err = a.client.decode(&v, localVarBody, localVarHTTPResponse.Header.Get("Content-Type"))
 			if err != nil {
 				newErr.error = err.Error()
