@@ -26,7 +26,6 @@ pub enum EventEnum {
     U2u,
 
 }
-
 impl std::fmt::Display for EventEnum {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {

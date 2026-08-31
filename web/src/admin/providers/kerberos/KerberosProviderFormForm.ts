@@ -422,6 +422,45 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
 
         <ak-form-group
             open
+            label=${msg("Kadmin settings", { id: "kerberos.kadmin-settings.label" })}
+        >
+            <div class="pf-c-form">
+                <ak-switch-input
+                    name="kadminEnabled"
+                    label=${msg("Enable Kerberos administration", {
+                        id: "kerberos.kadmin-enabled.label",
+                    })}
+                    ?checked=${provider.kadminEnabled ?? false}
+                ></ak-switch-input>
+                <ak-form-element-horizontal
+                    label=${msg("Kadmin ACL", { id: "kerberos.kadmin-acl.label" })}
+                    name="kadminAcl"
+                    .errorMessages=${errors?.kadminAcl}
+                >
+                    <ak-array-input
+                        name="kadmin-acl-entry"
+                        .items=${provider.kadminAcl ?? []}
+                        .newItem=${() => ""}
+                        .row=${(entry: string) => html`
+                            <ak-text-input
+                                name="entry"
+                                value="${entry}"
+                                placeholder="admin *"
+                                input-hint="code"
+                            ></ak-text-input>
+                        `}
+                    ></ak-array-input>
+                    <p class="pf-c-form__helper-text">
+                        ${msg("MIT kadm5.acl entries controlling administrative access.", {
+                            id: "kerberos.kadmin-acl.help",
+                        })}
+                    </p>
+                </ak-form-element-horizontal>
+            </div>
+        </ak-form-group>
+
+        <ak-form-group
+            open
             label=${msg("Policy settings", { id: "kerberos.policy-settings.label" })}
         >
             <div class="pf-c-form">

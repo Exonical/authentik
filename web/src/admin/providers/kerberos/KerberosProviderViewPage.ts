@@ -105,6 +105,12 @@ const descriptionLabels: Record<string, string> = {
     "kerberos.kdc-audit-enabled.term": msg("KDC audit events enabled", {
         id: "kerberos.kdc-audit-enabled.term",
     }),
+    "kerberos.kadmin-enabled.term": msg("Kerberos administration enabled", {
+        id: "kerberos.kadmin-enabled.term",
+    }),
+    "kerberos.kadmin-acl.term": msg("Kadmin ACL", {
+        id: "kerberos.kadmin-acl.term",
+    }),
     "kerberos.principal-username-attribute.term": msg("Principal username attribute", {
         id: "kerberos.principal-username-attribute.term",
     }),
@@ -306,6 +312,16 @@ export class KerberosProviderViewPage extends AKElement {
                                                 "KDC audit events enabled",
                                                 this.provider.kdcAuditEnabled,
                                                 "kerberos.kdc-audit-enabled.term",
+                                            )}
+                                            ${this.renderBoolean(
+                                                "Kerberos administration enabled",
+                                                this.provider.kadminEnabled,
+                                                "kerberos.kadmin-enabled.term",
+                                            )}
+                                            ${this.renderDescription(
+                                                "Kadmin ACL",
+                                                this.provider.kadminAcl?.join(", ") || "-",
+                                                "kerberos.kadmin-acl.term",
                                             )}
                                             ${this.renderBoolean(
                                                 "KDC Proxy enabled",

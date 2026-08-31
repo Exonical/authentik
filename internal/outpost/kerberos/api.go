@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Exonical/go-kerberos/krb5/kadm5"
 	"github.com/Exonical/go-kerberos/krb5/kdb"
 	"github.com/Exonical/go-kerberos/krb5/kdc"
 	"github.com/Exonical/go-kerberos/krb5/otp"
@@ -47,6 +48,7 @@ func (rs *KerberosServer) Refresh() error {
 	}
 
 	providers := make(map[int32]*ProviderInstance, len(apiProviders))
+	var kadminServer *kadm5.Server
 	for _, provider := range apiProviders {
 		masterKey, err := base64.StdEncoding.DecodeString(provider.GetMasterKey())
 		if err != nil {
@@ -221,6 +223,23 @@ func (rs *KerberosServer) Refresh() error {
 				trust.GetCapaths(),
 			)
 		}
+		if provider.GetKadminEnabled() && kadminServer == nil {
+			serviceKeytab, keytabErr := instance.kadminKeytab()
+			if keytabErr != nil {
+				return fmt.Errorf("build provider %d kadmin keytab: %w", provider.Pk, keytabErr)
+			}
+			kadminServer = kadm5.NewServer(&kadminBackend{instance: instance}, serviceKeytab)
+			if len(provider.GetKadminAcl()) > 0 {
+				acl, aclErr := parseKadminACL(provider.GetKadminAcl(), provider.RealmName)
+				if aclErr != nil {
+					return fmt.Errorf("parse provider %d kadmin ACL: %w", provider.Pk, aclErr)
+				}
+				kadminServer.ACL = acl.Func()
+			}
+			kadminServer.ErrorLog = func(err error) {
+				instance.log.WithError(err).Warn("kadmin server error")
+			}
+		}
 		if old := rs.getCurrentProvider(provider.Pk); old != nil {
 			store.cache = old.Store.cache
 			store.accessCache = old.Store.accessCache
@@ -230,6 +249,7 @@ func (rs *KerberosServer) Refresh() error {
 	rs.mu.Lock()
 	oldProviders := rs.providers
 	rs.providers = providers
+	rs.kadminServer = kadminServer
 	rs.mu.Unlock()
 	for _, provider := range oldProviders {
 		provider.stopKprop()
@@ -241,6 +261,19 @@ func (rs *KerberosServer) Refresh() error {
 	}
 	rs.log.Info("Update kerberos providers")
 	return nil
+}
+
+func parseKadminACL(lines []string, realm string) (*kadm5.ACL, error) {
+	aclLines := make([]string, 0, len(lines))
+	for _, line := range lines {
+		fields := strings.Fields(line)
+		if len(fields) >= 2 && fields[0] != "*" && !strings.Contains(fields[0], "@") {
+			fields[0] += "@" + realm
+			line = strings.Join(fields, " ")
+		}
+		aclLines = append(aclLines, line)
+	}
+	return kadm5.ParseACL(strings.NewReader(strings.Join(aclLines, "\n")))
 }
 
 func setCapaths(server *kdc.Server, clientRealm, serverRealm string, intermediates []string) {

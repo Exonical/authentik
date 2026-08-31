@@ -249,6 +249,18 @@ export interface KerberosOutpostConfig {
      */
     kdcAuditEnabled?: boolean;
     /**
+     * Serve the kadm5 admin protocol from the outpost.
+     * @type {boolean}
+     * @memberof KerberosOutpostConfig
+     */
+    kadminEnabled?: boolean;
+    /**
+     *
+     * @type {Array<string>}
+     * @memberof KerberosOutpostConfig
+     */
+    kadminAcl?: Array<string>;
+    /**
      *
      * @type {string}
      * @memberof KerberosOutpostConfig
@@ -382,6 +394,8 @@ export function KerberosOutpostConfigFromJSONTyped(
             json["kprop_master_password"] == null ? undefined : json["kprop_master_password"],
         kpropInterval: json["kprop_interval"] == null ? undefined : json["kprop_interval"],
         kdcAuditEnabled: json["kdc_audit_enabled"] == null ? undefined : json["kdc_audit_enabled"],
+        kadminEnabled: json["kadmin_enabled"] == null ? undefined : json["kadmin_enabled"],
+        kadminAcl: json["kadmin_acl"] == null ? undefined : json["kadmin_acl"],
         masterKey: json["master_key"] == null ? undefined : json["master_key"],
         applicationSlug: json["application_slug"],
     };
@@ -442,6 +456,8 @@ export function KerberosOutpostConfigToJSONTyped(
         kprop_master_password: value["kpropMasterPassword"],
         kprop_interval: value["kpropInterval"],
         kdc_audit_enabled: value["kdcAuditEnabled"],
+        kadmin_enabled: value["kadminEnabled"],
+        kadmin_acl: value["kadminAcl"],
         master_key: value["masterKey"],
         application_slug: value["applicationSlug"],
     };

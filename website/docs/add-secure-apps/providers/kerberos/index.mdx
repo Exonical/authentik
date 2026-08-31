@@ -397,6 +397,17 @@ for each target and do not stop the Kerberos outpost.
 Changing the master password requires coordinated replica recreation or
 compatible MIT database-master-key handling. Full dumps do not provide
 incremental key-rotation semantics.
+
+## Kerberos administration
+
+The outpost can expose the MIT `kadmin` (kadm5) administration protocol on
+internal port `3749` (the conventional external port is `749`). Enable
+`kadmin_enabled` and add MIT `kadm5.acl` lines to `kadmin_acl`, for example
+`admin *`. User principals are managed by authentik: `addprinc -randkey`
+creates service principals with randomly generated keys, while password changes
+for users are applied through authentik's password policies. Service principals
+can be created, deleted, rotated, and have ticket flags updated through kadmin.
+
 For example, a path from `EXAMPLE.TEST` to `REMOTE.TEST` through
 `HUB.TEST` uses `HUB.TEST` as its intermediate realm.
 

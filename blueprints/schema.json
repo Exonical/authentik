@@ -12459,6 +12459,19 @@
                     "type": "boolean",
                     "title": "Kdc audit enabled",
                     "description": "Emit authentik events for KDC ticket operations."
+                },
+                "kadmin_enabled": {
+                    "type": "boolean",
+                    "title": "Kadmin enabled",
+                    "description": "Serve the kadm5 admin protocol from the outpost."
+                },
+                "kadmin_acl": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "title": "Kadmin acl"
                 }
             },
             "required": []

@@ -39,7 +39,6 @@ pub struct KerberosAuditEventRequest {
     #[serde(rename = "ticket_id")]
     pub ticket_id: String,
 }
-
 impl KerberosAuditEventRequest {
     /// KDC audit event data submitted by the Kerberos outpost.
     pub fn new(event: models::EventEnum, success: bool, client: String, service: String, status: String, preauth_type: String, remote_addr: String, s4u2self_user: String, auth_indicators: Vec<String>, error_code: i32, request_id: String, ticket_id: String) -> KerberosAuditEventRequest {

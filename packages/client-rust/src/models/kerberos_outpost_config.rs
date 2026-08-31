@@ -108,6 +108,11 @@ pub struct KerberosOutpostConfig {
     /// Emit authentik events for KDC ticket operations.
     #[serde(rename = "kdc_audit_enabled", skip_serializing_if = "Option::is_none")]
     pub kdc_audit_enabled: Option<bool>,
+    /// Serve the kadm5 admin protocol from the outpost.
+    #[serde(rename = "kadmin_enabled", skip_serializing_if = "Option::is_none")]
+    pub kadmin_enabled: Option<bool>,
+    #[serde(rename = "kadmin_acl", skip_serializing_if = "Option::is_none")]
+    pub kadmin_acl: Option<Vec<String>>,
     #[serde(rename = "master_key", skip_serializing_if = "Option::is_none")]
     pub master_key: Option<String>,
     #[serde(rename = "application_slug")]
@@ -155,6 +160,8 @@ impl KerberosOutpostConfig {
             kprop_master_password: None,
             kprop_interval: None,
             kdc_audit_enabled: None,
+            kadmin_enabled: None,
+            kadmin_acl: None,
             master_key: None,
             application_slug,
         }

@@ -436,6 +436,64 @@ class KerberosProviderAPITests(APITestCase):
         self.assertIn("keys", payload["results"][0])
         self.assertIn("salt", payload["results"][0])
 
+    def test_kadmin_service_principal_actions_are_provider_scoped(self):
+        """Kadm5 service-principal actions require the provider setting."""
+        disabled = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="DISABLED.COM",
+        )
+        Application.objects.create(name=generate_id(), slug=generate_id(), provider=disabled)
+        self.client.force_login(create_test_admin_user())
+        create_url = reverse(
+            "authentik_api:kerberosprovideroutpost-service-principal-create",
+            kwargs={"pk": disabled.pk},
+        )
+        self.assertEqual(self.client.post(create_url, {"spn": "host/disabled"}).status_code, 404)
+
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.COM",
+            kadmin_enabled=True,
+        )
+        Application.objects.create(name=generate_id(), slug=generate_id(), provider=provider)
+        create_url = reverse(
+            "authentik_api:kerberosprovideroutpost-service-principal-create",
+            kwargs={"pk": provider.pk},
+        )
+        response = self.client.post(create_url, {"spn": "host/example"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["spn"], "host/example")
+        self.assertEqual(self.client.post(create_url, {"spn": "host/example"}).status_code, 409)
+
+        rotate_url = reverse(
+            "authentik_api:kerberosprovideroutpost-service-principal-rotate",
+            kwargs={"pk": provider.pk},
+        )
+        response = self.client.post(rotate_url, {"spn": "host/example"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["kvno"], 2)
+
+        update_url = reverse(
+            "authentik_api:kerberosprovideroutpost-service-principal-update",
+            kwargs={"pk": provider.pk},
+        )
+        response = self.client.post(
+            update_url,
+            {"spn": "host/example", "ticket_flags": ["disallow_server"]},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["ticket_flags"], ["disallow_server"])
+
+        delete_url = reverse(
+            "authentik_api:kerberosprovideroutpost-service-principal-delete",
+            kwargs={"pk": provider.pk},
+        )
+        self.assertEqual(
+            self.client.post(delete_url, {"spn": "host/example"}).status_code,
+            204,
+        )
+        self.assertEqual(self.client.post(delete_url, {"spn": "host/example"}).status_code, 404)
+
     def test_service_principal_serializer_round_trip(self):
         """Service principal delegation settings round-trip through the serializer."""
         provider = KerberosProvider.objects.create(

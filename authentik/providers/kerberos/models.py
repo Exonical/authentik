@@ -223,6 +223,15 @@ class KerberosProvider(OutpostModel, Provider):
         default=False,
         help_text=_("Emit authentik events for KDC ticket operations."),
     )
+    kadmin_enabled = models.BooleanField(
+        default=False,
+        help_text=_("Serve the kadm5 admin protocol from the outpost."),
+    )
+    kadmin_acl = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=_("MIT kadm5 ACL entries controlling administrative access."),
+    )
 
     def save(self, *args, **kwargs):
         if self.realm_sid:

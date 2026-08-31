@@ -266,6 +266,18 @@ export interface KerberosProviderRequest {
      * @memberof KerberosProviderRequest
      */
     kdcAuditEnabled?: boolean;
+    /**
+     * Serve the kadm5 admin protocol from the outpost.
+     * @type {boolean}
+     * @memberof KerberosProviderRequest
+     */
+    kadminEnabled?: boolean;
+    /**
+     *
+     * @type {Array<string>}
+     * @memberof KerberosProviderRequest
+     */
+    kadminAcl?: Array<string>;
 }
 
 /**
@@ -388,6 +400,8 @@ export function KerberosProviderRequestFromJSONTyped(
             json["kprop_master_password"] == null ? undefined : json["kprop_master_password"],
         kpropInterval: json["kprop_interval"] == null ? undefined : json["kprop_interval"],
         kdcAuditEnabled: json["kdc_audit_enabled"] == null ? undefined : json["kdc_audit_enabled"],
+        kadminEnabled: json["kadmin_enabled"] == null ? undefined : json["kadmin_enabled"],
+        kadminAcl: json["kadmin_acl"] == null ? undefined : json["kadmin_acl"],
     };
 }
 
@@ -449,5 +463,7 @@ export function KerberosProviderRequestToJSONTyped(
         kprop_master_password: value["kpropMasterPassword"],
         kprop_interval: value["kpropInterval"],
         kdc_audit_enabled: value["kdcAuditEnabled"],
+        kadmin_enabled: value["kadminEnabled"],
+        kadmin_acl: value["kadminAcl"],
     };
 }
