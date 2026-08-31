@@ -259,15 +259,33 @@ func (s *providerStore) userRecord(name principal.Principal) (kdb.PrincipalRecor
 		}
 		return kdb.PrincipalRecord{}, false, fmt.Errorf("retrieve user key for %q: %w", username, err)
 	}
+	record, err := s.userRecordFromResponse(name, response)
+	if err != nil {
+		return kdb.PrincipalRecord{}, false, fmt.Errorf("retrieve user key for %q: %w", username, err)
+	}
+	canonicalUsername := record.Name.Components[0]
+	cached := cachedUserKey{
+		record: record, identity: response, found: true, expires: now.Add(userKeyCacheTTL),
+	}
+	s.cacheMu.Lock()
+	s.cache[username] = cached
+	if canonicalUsername != username {
+		s.cache[canonicalUsername] = cached
+	}
+	s.cacheMu.Unlock()
+	return record, canonicalUsername == username && len(record.Keys) > 0, nil
+}
+
+func (s *providerStore) userRecordFromResponse(
+	name principal.Principal, response *api.KerberosUserKeyOutpost,
+) (kdb.PrincipalRecord, error) {
 	canonicalUsername := response.GetPrincipal()
 	if canonicalUsername == "" {
-		return kdb.PrincipalRecord{}, false, fmt.Errorf(
-			"retrieve user key for %q: response has no canonical principal", username,
-		)
+		return kdb.PrincipalRecord{}, fmt.Errorf("response has no canonical principal")
 	}
 	keys, err := decodeKeyValues(response.Keys, s.allowed, uint32(response.Kvno), response.Salt)
 	if err != nil {
-		return kdb.PrincipalRecord{}, false, fmt.Errorf("decode user key for %q: %w", username, err)
+		return kdb.PrincipalRecord{}, fmt.Errorf("decode user key: %w", err)
 	}
 	record := kdb.PrincipalRecord{
 		Name: principal.Principal{
@@ -286,16 +304,7 @@ func (s *providerStore) userRecord(name principal.Principal) (kdb.PrincipalRecor
 	if response.GetRequiresPasswordChange() {
 		record.Flags |= kdb.RequiresPWChange
 	}
-	cached := cachedUserKey{
-		record: record, identity: response, found: true, expires: now.Add(userKeyCacheTTL),
-	}
-	s.cacheMu.Lock()
-	s.cache[username] = cached
-	if canonicalUsername != username {
-		s.cache[canonicalUsername] = cached
-	}
-	s.cacheMu.Unlock()
-	return record, canonicalUsername == username && len(keys) > 0, nil
+	return record, nil
 }
 
 func (s *providerStore) generatePACIdentity(

@@ -12424,6 +12424,36 @@
                     "type": "string",
                     "title": "Realm sid",
                     "description": "Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3."
+                },
+                "kprop_enabled": {
+                    "type": "boolean",
+                    "title": "Kprop enabled",
+                    "description": "Push full MIT Kerberos database dumps to replica KDCs."
+                },
+                "kprop_targets": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "title": "Kprop targets"
+                },
+                "kprop_client_spn": {
+                    "type": "string",
+                    "title": "Kprop client spn",
+                    "description": "Service principal used to authenticate kprop pushes."
+                },
+                "kprop_master_password": {
+                    "type": "string",
+                    "title": "Kprop master password",
+                    "description": "MIT database master password used to encrypt full kprop dumps."
+                },
+                "kprop_interval": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647,
+                    "title": "Kprop interval",
+                    "description": "Interval in seconds between full kprop pushes."
                 }
             },
             "required": []

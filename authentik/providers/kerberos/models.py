@@ -198,6 +198,27 @@ class KerberosProvider(OutpostModel, Provider):
         validators=[validate_realm_sid],
         help_text=_("Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3."),
     )
+    kprop_enabled = models.BooleanField(
+        default=False,
+        help_text=_("Push full MIT Kerberos database dumps to replica KDCs."),
+    )
+    kprop_targets = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=_("Replica targets in host[:port] form; the default kprop port is 754."),
+    )
+    kprop_client_spn = models.TextField(
+        blank=True,
+        help_text=_("Service principal used to authenticate kprop pushes."),
+    )
+    kprop_master_password = models.TextField(
+        blank=True,
+        help_text=_("MIT database master password used to encrypt full kprop dumps."),
+    )
+    kprop_interval = models.PositiveIntegerField(
+        default=300,
+        help_text=_("Interval in seconds between full kprop pushes."),
+    )
 
     def save(self, *args, **kwargs):
         if self.realm_sid:

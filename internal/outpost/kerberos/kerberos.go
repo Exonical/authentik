@@ -165,6 +165,10 @@ func (rs *KerberosServer) Start() error {
 
 func (rs *KerberosServer) Stop() error {
 	rs.mu.Lock()
+	providers := make([]*ProviderInstance, 0, len(rs.providers))
+	for _, provider := range rs.providers {
+		providers = append(providers, provider)
+	}
 	udp := append([]net.PacketConn(nil), rs.udp...)
 	tcp := append([]net.Listener(nil), rs.tcp...)
 	kpasswdUDP := append([]net.PacketConn(nil), rs.kpasswdUDP...)
@@ -172,6 +176,9 @@ func (rs *KerberosServer) Stop() error {
 	kkdcp := append([]net.Listener(nil), rs.kkdcp...)
 	kkdcpHTTP := append([]*http.Server(nil), rs.kkdcpHTTP...)
 	rs.mu.Unlock()
+	for _, provider := range providers {
+		provider.stopKprop()
+	}
 	var errs errgroup.Group
 	for _, listener := range udp {
 		listener := listener

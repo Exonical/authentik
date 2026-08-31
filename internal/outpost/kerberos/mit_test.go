@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"math/big"
 	"net"
 	"net/http"
@@ -36,6 +37,7 @@ import (
 	"github.com/Exonical/go-kerberos/krb5/kdc"
 	"github.com/Exonical/go-kerberos/krb5/keytab"
 	"github.com/Exonical/go-kerberos/krb5/kkdcp"
+	"github.com/Exonical/go-kerberos/krb5/kprop"
 	"github.com/Exonical/go-kerberos/krb5/otp"
 	"github.com/Exonical/go-kerberos/krb5/principal"
 	"github.com/Exonical/go-kerberos/krb5/protocol"
@@ -201,6 +203,43 @@ func startMITKDCWithIdentityPolicyOptions(
 			stateMu.Unlock()
 			passwordChanged <- request.Password
 			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if r.URL.Path == "/api/v3/outposts/kerberos/1/user_keys/" {
+			stateMu.RLock()
+			enabled := userEnabled
+			maxLife := userMaxLife
+			requiresPWChange := requiresPasswordChange
+			currentUserKey := append([]byte(nil), userKey...)
+			stateMu.RUnlock()
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
+				"pagination": map[string]int{
+					"count": 1, "current": 1, "next": 0, "previous": 0,
+					"total_pages": 1, "start_index": 1, "end_index": 1,
+				},
+				"results": []map[string]interface{}{{
+					"username":                 canonicalUsername,
+					"enabled":                  enabled,
+					"principal":                canonicalUsername,
+					"kvno":                     1,
+					"salt":                     mitRealm + canonicalUsername,
+					"max_ticket_lifetime":      maxLife,
+					"max_renew_lifetime":       0,
+					"requires_password_change": requiresPWChange,
+					"flags":                    []string{},
+					"pac_user_id":              2001,
+					"pac_primary_group_id":     2001,
+					"pac_group_ids":            []int32{},
+					"pac_name":                 canonicalUsername,
+					"pac_upn":                  canonicalUsername + "@" + mitRealm,
+					"password_expiration":      nil,
+					"keys": map[string]string{
+						"18": base64.StdEncoding.EncodeToString(currentUserKey),
+					},
+				}},
+				"autocomplete": map[string]interface{}{},
+			})
 			return
 		}
 		if r.URL.Path == "/api/v3/outposts/kerberos/1/otp_check/" {
@@ -1600,6 +1639,136 @@ func TestMITPeerRealmCrossRealm(t *testing.T) {
 	} {
 		if !strings.Contains(tickets, servicePrincipal) {
 			t.Fatalf("klist output missing %s:\n%s", servicePrincipal, tickets)
+		}
+	}
+}
+
+func TestMITKpropInterop(t *testing.T) {
+	for _, tool := range []string{"kdb5_util", "kadmin.local"} {
+		if _, err := exec.LookPath(tool); err != nil {
+			t.Skipf("%s not installed, skipping MIT kprop interop", tool)
+		}
+	}
+	harness := startMITKDC(t, false)
+	const masterPassword = "kprop-master-password"
+
+	replicaKey := make([]byte, 32)
+	for i := range replicaKey {
+		replicaKey[i] = byte(80 + i)
+	}
+	for _, spn := range []string{"host/kprop-client", "host/127.0.0.1"} {
+		record, err := harness.store.serviceRecord(spn, 1, map[string]interface{}{
+			"18": base64.StdEncoding.EncodeToString(replicaKey),
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		harness.store.services[principalKey(record.Name)] = record
+	}
+
+	receiverKeytab := &keytab.Keytab{Entries: []keytab.Entry{{
+		Principal: mustPrincipal(t, "host/127.0.0.1@"+mitRealm),
+		KVNO:      1,
+		Enctype:   crypto.EnctypeAES256SHA1,
+		Key:       replicaKey,
+	}}}
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = listener.Close() })
+	received := make(chan []byte, 1)
+	receiver := &kprop.Server{
+		Keytab: receiverKeytab,
+		Realm:  mitRealm,
+		Load: func(r io.Reader, size uint64) error {
+			data, err := io.ReadAll(r)
+			if err != nil {
+				return err
+			}
+			if uint64(len(data)) != size {
+				return fmt.Errorf("received dump size %d, want %d", len(data), size)
+			}
+			received <- data
+			return nil
+		},
+		ErrorLog: func(err error) { t.Logf("kprop receiver: %v", err) },
+	}
+	receiverDone := make(chan error, 1)
+	go func() { receiverDone <- receiver.Serve(listener) }()
+	t.Cleanup(func() {
+		_ = listener.Close()
+		select {
+		case <-receiverDone:
+		case <-time.After(time.Second):
+			t.Error("kprop receiver did not stop")
+		}
+	})
+
+	instance := &ProviderInstance{
+		Config: *api.NewKerberosOutpostConfig(1, "test", mitRealm, 3600, 3600, "test"),
+		Store:  harness.store,
+		KDC:    harness.server,
+	}
+	instance.Config.SetKpropEnabled(true)
+	instance.Config.SetKpropTargets([]string{listener.Addr().String()})
+	instance.Config.SetKpropClientSpn("host/kprop-client")
+	instance.Config.SetKpropMasterPassword(masterPassword)
+	instance.Config.SetKpropInterval(300)
+	instance.pushKprop(context.Background())
+
+	var dump []byte
+	select {
+	case dump = <-received:
+	case <-time.After(3 * time.Second):
+		t.Fatal("timed out waiting for kprop dump")
+	}
+	if len(dump) == 0 {
+		t.Fatal("kprop dump is empty")
+	}
+
+	dir := t.TempDir()
+	database := filepath.Join(dir, "principal")
+	stash := filepath.Join(dir, ".k5."+mitRealm)
+	krb5Config := filepath.Join(dir, "krb5.conf")
+	kdcConfig := filepath.Join(dir, "kdc.conf")
+	if err := os.WriteFile(krb5Config, []byte(fmt.Sprintf(`[libdefaults]
+ default_realm = %s
+ dns_lookup_kdc = false
+ dns_lookup_realm = false
+[realms]
+ %s = {
+ }
+`, mitRealm, mitRealm)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(kdcConfig, []byte(fmt.Sprintf(`[kdcdefaults]
+[realms]
+ %s = {
+  database_name = %s
+  admin_database_name = %s.kadm5
+  key_stash_file = %s
+ }
+`, mitRealm, database, database, stash)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	mitEnv := append(os.Environ(),
+		"KRB5_CONFIG="+krb5Config,
+		"KRB5_KDC_PROFILE="+kdcConfig,
+	)
+	runCrossRealmCommand(t, mitEnv, "kdb5_util", "create", "-r", mitRealm,
+		"-d", database, "-s", "-P", masterPassword)
+	dumpPath := filepath.Join(dir, "authentik.dump")
+	if err := os.WriteFile(dumpPath, dump, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	runCrossRealmCommand(t, mitEnv, "kdb5_util", "load", "-update", "-r", mitRealm,
+		"-d", database, dumpPath)
+	output := runCrossRealmCommand(t, mitEnv, "kadmin.local", "-r", mitRealm,
+		"-d", database, "-q", "listprincs")
+	for _, expected := range []string{"alice", "krbtgt/" + mitRealm, mitService} {
+		if !strings.Contains(output, expected) {
+			t.Fatalf("loaded replica database missing %s:\n%s", expected, output)
 		}
 	}
 }

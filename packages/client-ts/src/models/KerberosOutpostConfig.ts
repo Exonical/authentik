@@ -213,6 +213,36 @@ export interface KerberosOutpostConfig {
      */
     realmSid?: string;
     /**
+     * Push full MIT Kerberos database dumps to replica KDCs.
+     * @type {boolean}
+     * @memberof KerberosOutpostConfig
+     */
+    kpropEnabled?: boolean;
+    /**
+     *
+     * @type {Array<string>}
+     * @memberof KerberosOutpostConfig
+     */
+    kpropTargets?: Array<string>;
+    /**
+     * Service principal used to authenticate kprop pushes.
+     * @type {string}
+     * @memberof KerberosOutpostConfig
+     */
+    kpropClientSpn?: string;
+    /**
+     * MIT database master password used to encrypt full kprop dumps.
+     * @type {string}
+     * @memberof KerberosOutpostConfig
+     */
+    kpropMasterPassword?: string;
+    /**
+     * Interval in seconds between full kprop pushes.
+     * @type {number}
+     * @memberof KerberosOutpostConfig
+     */
+    kpropInterval?: number;
+    /**
      *
      * @type {string}
      * @memberof KerberosOutpostConfig
@@ -339,6 +369,12 @@ export function KerberosOutpostConfigFromJSONTyped(
                   : json["kkdcp_certificate"],
         pacEnabled: json["pac_enabled"] == null ? undefined : json["pac_enabled"],
         realmSid: json["realm_sid"] == null ? undefined : json["realm_sid"],
+        kpropEnabled: json["kprop_enabled"] == null ? undefined : json["kprop_enabled"],
+        kpropTargets: json["kprop_targets"] == null ? undefined : json["kprop_targets"],
+        kpropClientSpn: json["kprop_client_spn"] == null ? undefined : json["kprop_client_spn"],
+        kpropMasterPassword:
+            json["kprop_master_password"] == null ? undefined : json["kprop_master_password"],
+        kpropInterval: json["kprop_interval"] == null ? undefined : json["kprop_interval"],
         masterKey: json["master_key"] == null ? undefined : json["master_key"],
         applicationSlug: json["application_slug"],
     };
@@ -393,6 +429,11 @@ export function KerberosOutpostConfigToJSONTyped(
         kkdcp_certificate: value["kkdcpCertificate"],
         pac_enabled: value["pacEnabled"],
         realm_sid: value["realmSid"],
+        kprop_enabled: value["kpropEnabled"],
+        kprop_targets: value["kpropTargets"],
+        kprop_client_spn: value["kpropClientSpn"],
+        kprop_master_password: value["kpropMasterPassword"],
+        kprop_interval: value["kpropInterval"],
         master_key: value["masterKey"],
         application_slug: value["applicationSlug"],
     };

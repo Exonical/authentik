@@ -352,6 +352,48 @@ class KerberosProviderAPITests(APITestCase):
         self.assertEqual(payload["results"][0]["ok_to_auth_as_delegate"], True)
         self.assertEqual(payload["results"][0]["allowed_delegation_targets"], ["nfs/example"])
 
+    def test_outpost_user_keys_is_paginated_and_provider_scoped(self):
+        """Bulk user keys include all rows for one provider and paginate."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.COM",
+        )
+        other_provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="OTHER.COM",
+        )
+        Application.objects.create(name=generate_id(), slug=generate_id(), provider=provider)
+        user = create_test_user(username=generate_id())
+        other_user = create_test_user(username=generate_id())
+        KerberosUserKeys.objects.update_or_create(
+            provider=provider,
+            user=user,
+            defaults={"kvno": 1},
+        )
+        KerberosUserKeys.objects.update_or_create(
+            provider=other_provider,
+            user=other_user,
+            defaults={"kvno": 1},
+        )
+        self.client.force_login(create_test_admin_user())
+        KerberosUserKeys.objects.filter(provider=provider).exclude(user=user).delete()
+
+        response = self.client.get(
+            reverse(
+                "authentik_api:kerberosprovideroutpost-user-keys",
+                kwargs={"pk": provider.pk},
+            ),
+            {"page_size": 1},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = loads(response.content)
+        self.assertEqual(payload["pagination"]["count"], 1)
+        self.assertEqual(len(payload["results"]), 1)
+        self.assertEqual(payload["results"][0]["username"], user.username)
+        self.assertIn("keys", payload["results"][0])
+        self.assertIn("salt", payload["results"][0])
+
     def test_service_principal_serializer_round_trip(self):
         """Service principal delegation settings round-trip through the serializer."""
         provider = KerberosProvider.objects.create(

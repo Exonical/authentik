@@ -357,6 +357,71 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
 
         <ak-form-group
             open
+            label=${msg("MIT replica propagation", { id: "kerberos.kprop.label" })}
+        >
+            <div class="pf-c-form">
+                <ak-switch-input
+                    name="kpropEnabled"
+                    label=${msg("Enable MIT replica propagation", {
+                        id: "kerberos.kprop-enabled.label",
+                    })}
+                    ?checked=${provider.kpropEnabled ?? false}
+                ></ak-switch-input>
+                <ak-form-element-horizontal
+                    label=${msg("Replica targets", { id: "kerberos.kprop-targets.label" })}
+                    name="kpropTargets"
+                    .errorMessages=${errors?.kpropTargets}
+                >
+                    <ak-array-input
+                        name="kprop-target"
+                        .items=${provider.kpropTargets ?? []}
+                        .newItem=${() => ""}
+                        .row=${(target: string) => html`
+                            <ak-text-input
+                                name="target"
+                                value="${target}"
+                                placeholder="kdc.example.com:754"
+                                input-hint="code"
+                            ></ak-text-input>
+                        `}
+                    ></ak-array-input>
+                    <p class="pf-c-form__helper-text">
+                        ${msg("Replica hosts in host[:port] form. The default port is 754.", {
+                            id: "kerberos.kprop-targets.help",
+                        })}
+                    </p>
+                </ak-form-element-horizontal>
+                <ak-text-input
+                    name="kpropClientSpn"
+                    value=${ifDefined(provider.kpropClientSpn)}
+                    label=${msg("Kprop client SPN", { id: "kerberos.kprop-client-spn.label" })}
+                    placeholder="host/authentik.example.com"
+                    input-hint="code"
+                    .errorMessages=${errors?.kpropClientSpn}
+                ></ak-text-input>
+                <ak-text-input
+                    name="kpropMasterPassword"
+                    label=${msg("MIT database master password", {
+                        id: "kerberos.kprop-master-password.label",
+                    })}
+                    type="password"
+                    .errorMessages=${errors?.kpropMasterPassword}
+                ></ak-text-input>
+                <ak-text-input
+                    name="kpropInterval"
+                    value="${provider.kpropInterval ?? 300}"
+                    label=${msg("Propagation interval", {
+                        id: "kerberos.kprop-interval.label",
+                    })}
+                    type="number"
+                    min="1"
+                    .errorMessages=${errors?.kpropInterval}
+                ></ak-text-input>
+            </div>
+        </ak-form-group>
+
+        <ak-form-group
+            open
             label=${msg("Policy settings", { id: "kerberos.policy-settings.label" })}
         >
             <div class="pf-c-form">

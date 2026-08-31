@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -219,8 +220,15 @@ func (rs *KerberosServer) Refresh() error {
 		providers[provider.Pk] = instance
 	}
 	rs.mu.Lock()
+	oldProviders := rs.providers
 	rs.providers = providers
 	rs.mu.Unlock()
+	for _, provider := range oldProviders {
+		provider.stopKprop()
+	}
+	for _, provider := range providers {
+		rs.startKprop(provider)
+	}
 	rs.log.Info("Update kerberos providers")
 	return nil
 }
@@ -333,6 +341,8 @@ type ProviderInstance struct {
 	KDC              *kdc.Server
 	KKDCPCertificate *tls.Certificate
 	log              *log.Entry
+	kpropCancel      context.CancelFunc
+	kpropDone        chan struct{}
 }
 
 type cachedUserKey struct {
@@ -364,6 +374,17 @@ type providerStore struct {
 	pacEnabled             bool
 	realmSID               *pac.SID
 	otpEnabled             bool
+}
+
+func (s *providerStore) allowedEnctypes() []int32 {
+	enctypes := make([]int32, 0, len(s.allowed))
+	for enctype := range s.allowed {
+		enctypes = append(enctypes, enctype)
+	}
+	sort.Slice(enctypes, func(i, j int) bool {
+		return enctypes[i] < enctypes[j]
+	})
+	return enctypes
 }
 
 type delegationPolicy struct {
