@@ -122,7 +122,13 @@ func (instance *ProviderInstance) snapshotDump(ctx context.Context) ([]byte, err
 			return nil, err
 		}
 	}
+	instance.Store.servicesMu.RLock()
+	services := make([]kdb.PrincipalRecord, 0, len(instance.Store.services))
 	for _, record := range instance.Store.services {
+		services = append(services, record)
+	}
+	instance.Store.servicesMu.RUnlock()
+	for _, record := range services {
 		if err := add(record); err != nil {
 			return nil, fmt.Errorf("add service principal: %w", err)
 		}

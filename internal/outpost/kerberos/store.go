@@ -41,6 +41,8 @@ func (s *providerStore) Lookup(name principal.Principal) (kdb.PrincipalRecord, b
 		return s.syntheticRecord(name, "kadmin-admin")
 	}
 	if len(name.Components) > 1 {
+		s.servicesMu.RLock()
+		defer s.servicesMu.RUnlock()
 		record, ok := s.services[principalKey(name)]
 		return record, ok, nil
 	}

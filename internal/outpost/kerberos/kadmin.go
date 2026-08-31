@@ -34,7 +34,13 @@ func (b *kadminBackend) GetRealm() string {
 
 func (b *kadminBackend) ListPrincipals() []string {
 	instance := b.instance
-	names := make([]string, 0, len(instance.Store.services)+len(instance.Store.trusts)+2)
+	instance.Store.servicesMu.RLock()
+	services := make([]kdb.PrincipalRecord, 0, len(instance.Store.services))
+	for _, record := range instance.Store.services {
+		services = append(services, record)
+	}
+	instance.Store.servicesMu.RUnlock()
+	names := make([]string, 0, len(services)+len(instance.Store.trusts)+2)
 	add := func(name principal.Principal) {
 		if formatted, err := name.Format(); err == nil {
 			names = append(names, formatted)
@@ -52,7 +58,7 @@ func (b *kadminBackend) ListPrincipals() []string {
 		Realm: instance.Store.realm, NameType: principal.NTSrvInstance,
 		Components: []string{"kadmin", "admin"},
 	})
-	for _, record := range instance.Store.services {
+	for _, record := range services {
 		add(record.Name)
 	}
 	for _, record := range instance.Store.trusts {
@@ -199,6 +205,9 @@ func (b *kadminBackend) ChangePasswordWithPolicyAndKeepOld(
 			Code:    kadm5.PassQualityGeneric,
 			Message: message,
 		}
+	}
+	if err == nil {
+		b.instance.Store.invalidateUserKey(username)
 	}
 	return err
 }

@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -198,6 +199,23 @@ func startMITKDCWithIdentityPolicyOptionsAudit(
 	resetPassword := false
 	stateMu := &sync.RWMutex{}
 	auditRequests := make(chan api.KerberosAuditEventRequest, 10)
+	var store *providerStore
+	servicePayload := func(record kdb.PrincipalRecord) map[string]interface{} {
+		keys := make(map[string]string, len(record.Keys))
+		for enctype, key := range record.Keys {
+			keys[strconv.Itoa(int(enctype))] = base64.StdEncoding.EncodeToString(key.Key)
+		}
+		spn, _ := record.Name.Format()
+		return map[string]interface{}{
+			"spn":                        strings.TrimSuffix(spn, "@"+mitRealm),
+			"kvno":                       record.KVNO,
+			"keys":                       keys,
+			"ok_to_auth_as_delegate":     false,
+			"allowed_delegation_targets": []string{},
+			"required_auth_indicators":   []string{},
+			"ticket_flags":               []string{},
+		}
+	}
 
 	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v3/outposts/kerberos/1/audit_event/" {
@@ -208,6 +226,87 @@ func startMITKDCWithIdentityPolicyOptionsAudit(
 			}
 			auditRequests <- request
 			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		if strings.HasPrefix(r.URL.Path, "/api/v3/outposts/kerberos/1/service_principal_") {
+			var request struct {
+				Spn         string   `json:"spn"`
+				TicketFlags []string `json:"ticket_flags"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+				http.Error(w, "bad request", http.StatusBadRequest)
+				return
+			}
+			name, err := principal.Parse(request.Spn + "@" + mitRealm)
+			if err != nil {
+				http.Error(w, "bad principal", http.StatusBadRequest)
+				return
+			}
+			key := principalKey(*name)
+			store.servicesMu.Lock()
+			defer store.servicesMu.Unlock()
+			record, exists := store.services[key]
+			switch {
+			case strings.HasSuffix(r.URL.Path, "service_principal_create/"):
+				if exists {
+					w.WriteHeader(http.StatusConflict)
+					return
+				}
+				value := make([]byte, 32)
+				for i := range value {
+					value[i] = byte(64 + i)
+				}
+				record, err = store.serviceRecord(request.Spn, 1, map[string]interface{}{
+					"18": base64.StdEncoding.EncodeToString(value),
+				})
+				if err != nil {
+					http.Error(w, "bad service", http.StatusBadRequest)
+					return
+				}
+				store.services[key] = record
+			case strings.HasSuffix(r.URL.Path, "service_principal_rotate/"):
+				if !exists {
+					http.NotFound(w, r)
+					return
+				}
+				value := make([]byte, 32)
+				for i := range value {
+					value[i] = byte(96 + i + int(record.KVNO))
+				}
+				record, err = store.serviceRecord(request.Spn, int32(record.KVNO+1), map[string]interface{}{
+					"18": base64.StdEncoding.EncodeToString(value),
+				})
+				if err != nil {
+					http.Error(w, "bad service", http.StatusBadRequest)
+					return
+				}
+				store.services[key] = record
+			case strings.HasSuffix(r.URL.Path, "service_principal_update/"):
+				if !exists {
+					http.NotFound(w, r)
+					return
+				}
+				record, err = store.serviceRecordWithIndicators(
+					request.Spn, int32(record.KVNO), map[string]interface{}{
+						"18": base64.StdEncoding.EncodeToString(record.Keys[18].Key),
+					}, nil, request.TicketFlags,
+				)
+				if err != nil {
+					http.Error(w, "bad service", http.StatusBadRequest)
+					return
+				}
+				store.services[key] = record
+			case strings.HasSuffix(r.URL.Path, "service_principal_delete/"):
+				if !exists {
+					http.NotFound(w, r)
+					return
+				}
+				delete(store.services, key)
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(servicePayload(record))
 			return
 		}
 		if withKpasswd && r.URL.Path == "/api/v3/outposts/kerberos/1/set_password/" {
@@ -348,7 +447,7 @@ func startMITKDCWithIdentityPolicyOptionsAudit(
 	cfg.Servers = api.ServerConfigurations{{URL: "/api/v3"}}
 
 	outpost := &KerberosServer{ac: &ak.APIController{Client: api.NewAPIClient(cfg)}}
-	store := &providerStore{
+	store = &providerStore{
 		realm:       mitRealm,
 		masterKey:   []byte("provider master key"),
 		allowed:     map[int32]bool{18: true},
@@ -933,20 +1032,23 @@ func TestMITInteropKpasswd(t *testing.T) {
 }
 
 func TestMITInteropKadmin(t *testing.T) {
-	if _, err := exec.LookPath("kadmin"); err != nil {
+	kadminPath, err := exec.LookPath("kadmin")
+	if err != nil {
 		t.Skip("kadmin not installed, skipping MIT interop test")
 	}
-	h := startMITKDC(t, false)
+	t.Logf("using MIT kadmin binary %s", kadminPath)
+	h := startMITKDCWithKpasswd(t, false, true)
 	h.instance.Config.SetKadminEnabled(true)
 	acl, err := parseKadminACL([]string{"alice *"}, mitRealm)
 	if err != nil {
 		t.Fatal(err)
 	}
-	serviceKeytab, err := h.instance.kadminKeytab()
+	adminKeytab, err := h.instance.kadminKeytab()
 	if err != nil {
 		t.Fatal(err)
 	}
-	adminServer := kadm5.NewServer(&kadminBackend{instance: h.instance}, serviceKeytab)
+	adminServer := kadm5.NewServer(&kadminBackend{instance: h.instance}, adminKeytab)
+	adminServer.PasswordQualityModules = []kadm5.PasswordQualityModule{}
 	adminServer.ACL = acl.Func()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -961,13 +1063,71 @@ func TestMITInteropKadmin(t *testing.T) {
 	if !strings.Contains(output, "Principal: alice@"+mitRealm) {
 		t.Fatalf("kadmin getprinc output = %s", output)
 	}
+	h.run(
+		t, "", "kadmin", "-p", mitUser, "-w", mitPassword,
+		"-s", listener.Addr().String(), "-q", "addprinc -randkey host/newnode.test",
+	)
 	output = h.run(
 		t, "", "kadmin", "-p", mitUser, "-w", mitPassword,
+		"-s", listener.Addr().String(), "-q", "getprinc host/newnode.test",
+	)
+	if !strings.Contains(output, "Principal: host/newnode.test@"+mitRealm) {
+		t.Fatalf("new service principal missing from getprinc output = %s", output)
+	}
+	extractedKeytab := filepath.Join(t.TempDir(), "newnode.keytab")
+	h.run(
+		t, "", "kadmin", "-p", mitUser, "-w", mitPassword,
+		"-s", listener.Addr().String(), "-q",
+		"ktadd -k "+extractedKeytab+" host/newnode.test",
+	)
+	h.run(t, "", "kinit", "-k", "-t", extractedKeytab, "host/newnode.test")
+	h.run(t, "", "kdestroy")
+	h.run(t, mitPassword+"\n", "kinit", mitUser)
+	h.run(t, "", "kvno", "host/newnode.test")
+	newPassword := "alice-password-updated"
+	h.run(
+		t, "", "kadmin", "-p", mitUser, "-w", mitPassword,
+		"-s", listener.Addr().String(), "-q", "cpw -pw "+newPassword+" alice",
+	)
+	h.run(t, "", "kdestroy")
+	h.run(t, newPassword+"\n", "kinit", mitUser)
+	h.run(
+		t, "", "kadmin", "-p", mitUser, "-w", newPassword,
+		"-s", listener.Addr().String(), "-q", "delprinc -force host/newnode.test",
+	)
+	if output, err := h.runResult(
+		h.cache, "", "kadmin", "-p", mitUser, "-w", newPassword,
+		"-s", listener.Addr().String(), "-q", "getprinc host/newnode.test",
+	); err != nil || strings.Contains(output, "Principal: host/newnode.test@"+mitRealm) {
+		t.Fatalf("deleted service principal unexpectedly resolved: err=%v output=%s", err, output)
+	}
+	output = h.run(
+		t, "", "kadmin", "-p", mitUser, "-w", newPassword,
 		"-s", listener.Addr().String(), "-q", "listprincs",
 	)
 	if !strings.Contains(output, mitUser+"@"+mitRealm) ||
 		!strings.Contains(output, mitService+"@"+mitRealm) {
 		t.Fatalf("kadmin listprincs output = %s", output)
+	}
+	deniedACL, err := parseKadminACL([]string{"other *"}, mitRealm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	deniedServer := kadm5.NewServer(&kadminBackend{instance: h.instance}, adminKeytab)
+	deniedServer.PasswordQualityModules = []kadm5.PasswordQualityModule{}
+	deniedServer.ACL = deniedACL.Func()
+	deniedListener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = deniedListener.Close() })
+	go func() { _ = deniedServer.Serve(deniedListener) }()
+	if output, err := h.runResult(
+		h.cache, "", "kadmin", "-p", mitUser, "-w", newPassword,
+		"-s", deniedListener.Addr().String(), "-q", "addprinc -randkey host/denied.test",
+	); err != nil || (!strings.Contains(strings.ToLower(output), "permission") &&
+		!strings.Contains(strings.ToLower(output), "privilege")) {
+		t.Fatalf("unlisted principal was not denied: err=%v output=%s", err, output)
 	}
 }
 
