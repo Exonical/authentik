@@ -15,6 +15,7 @@ from authentik.lib.generators import generate_id
 from authentik.policies.dummy.models import DummyPolicy
 from authentik.policies.expiry.models import PasswordExpiryPolicy
 from authentik.policies.models import PolicyBinding
+from authentik.policies.password.models import PasswordPolicy
 from authentik.providers.kerberos.api.providers import (
     KerberosOutpostConfigSerializer,
     KerberosProviderSerializer,
@@ -792,6 +793,71 @@ class KerberosProviderAPITests(APITestCase):
         self.assertEqual(response.status_code, 204)
         user.refresh_from_db()
         self.assertTrue(user.check_password("mapped-password"))
+
+    def test_set_password_enforces_bound_password_policy(self):
+        """Bound password policies reject password changes without changing the password."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.COM",
+        )
+        application = Application.objects.create(
+            name=generate_id(),
+            slug=generate_id(),
+            provider=provider,
+        )
+        user = create_test_user()
+        user.set_password("old-password")
+        user.save()
+        policy = PasswordPolicy.objects.create(
+            name=generate_id(),
+            length_min=20,
+            error_message="Password is too short.",
+        )
+        PolicyBinding.objects.create(target=application, policy=policy, order=0)
+        self.client.force_login(create_test_admin_user())
+
+        response = self.client.post(
+            reverse(
+                "authentik_api:kerberosprovideroutpost-set-password",
+                kwargs={"pk": provider.pk},
+            ),
+            {"username": user.username, "password": "short"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {"messages": ["Password is too short."]})
+        user.refresh_from_db()
+        self.assertTrue(user.check_password("old-password"))
+
+    def test_set_password_accepts_passing_bound_password_policy(self):
+        """Passing bound password policies allow password changes."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.COM",
+        )
+        application = Application.objects.create(
+            name=generate_id(),
+            slug=generate_id(),
+            provider=provider,
+        )
+        user = create_test_user()
+        policy = PasswordPolicy.objects.create(name=generate_id(), length_min=3)
+        PolicyBinding.objects.create(target=application, policy=policy, order=0)
+        self.client.force_login(create_test_admin_user())
+
+        response = self.client.post(
+            reverse(
+                "authentik_api:kerberosprovideroutpost-set-password",
+                kwargs={"pk": provider.pk},
+            ),
+            {"username": user.username, "password": "passing-password"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 204)
+        user.refresh_from_db()
+        self.assertTrue(user.check_password("passing-password"))
 
     def test_set_password_allows_users_without_keys(self):
         """Password changes do not require a pre-existing key record."""
