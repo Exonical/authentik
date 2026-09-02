@@ -1,5 +1,6 @@
 import "#admin/providers/ak-provider-wizard";
 import "#admin/providers/google_workspace/GoogleWorkspaceProviderForm";
+import "#admin/providers/kerberos/KerberosProviderForm";
 import "#admin/providers/ldap/LDAPProviderForm";
 import "#admin/providers/microsoft_entra/MicrosoftEntraProviderForm";
 import "#admin/providers/oauth2/OAuth2ProviderForm";

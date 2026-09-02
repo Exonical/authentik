@@ -5,6 +5,7 @@ go 1.27.0
 require (
 	beryju.io/ldap v0.2.2
 	beryju.io/radius-eap v0.1.1
+	github.com/Exonical/go-kerberos v0.0.0-20260831014020-9d9498cdff39
 	github.com/avast/retry-go/v4 v4.7.0
 	github.com/getsentry/sentry-go v0.48.0
 	github.com/go-ldap/ldap/v3 v3.4.14
@@ -25,12 +26,15 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
 	github.com/wwt/guac v1.3.2
+	golang.org/x/crypto v0.55.0
 	golang.org/x/sync v0.22.0
 	gopkg.in/yaml.v2 v2.4.0
 	layeh.com/radius v0.0.0-20231213012653-1006025d24f8
 )
 
 require (
+	filippo.io/edwards25519 v1.1.0 // indirect
+	filippo.io/nistec v0.0.4 // indirect
 	github.com/Azure/go-ntlmssp v0.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -70,7 +74,6 @@ require (
 	go.opentelemetry.io/otel/metric v1.45.0 // indirect
 	go.opentelemetry.io/otel/trace v1.45.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
-	golang.org/x/crypto v0.55.0 // indirect
 	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.41.0 // indirect

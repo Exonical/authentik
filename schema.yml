@@ -10998,6 +10998,413 @@ paths:
           $ref: '#/components/responses/ValidationErrorResponse'
         '403':
           $ref: '#/components/responses/GenericErrorResponse'
+  /outposts/kerberos/:
+    get:
+      operationId: outposts_kerberos_list
+      description: Kerberos provider configuration viewset for outposts.
+      parameters:
+      - $ref: '#/components/parameters/QueryName'
+      - $ref: '#/components/parameters/QueryPaginationOrdering'
+      - $ref: '#/components/parameters/QueryPaginationPage'
+      - $ref: '#/components/parameters/QueryPaginationPageSize'
+      - $ref: '#/components/parameters/QuerySearch'
+      tags:
+      - outposts
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedKerberosOutpostConfigList'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /outposts/kerberos/{id}/access_check/:
+    get:
+      operationId: outposts_kerberos_access_check
+      description: Check application and optional service-principal policy access.
+      parameters:
+      - in: query
+        name: client_spn
+        schema:
+          type: string
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      - in: query
+        name: spn
+        schema:
+          type: string
+      - in: query
+        name: username
+        schema:
+          type: string
+      tags:
+      - outposts
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosCheckAccess'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /outposts/kerberos/{id}/audit_event/:
+    post:
+      operationId: outposts_kerberos_audit_event_create
+      description: Record a KDC audit event.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      tags:
+      - outposts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KerberosAuditEventRequest'
+        required: true
+      security:
+      - authentik: []
+      responses:
+        '204':
+          description: No response body
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /outposts/kerberos/{id}/otp_check/:
+    get:
+      operationId: outposts_kerberos_otp_check
+      description: Check a user's authentik TOTP or static authentication token.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      - in: query
+        name: username
+        schema:
+          type: string
+        required: true
+      - in: query
+        name: value
+        schema:
+          type: string
+        required: true
+      tags:
+      - outposts
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosOTPCheck'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /outposts/kerberos/{id}/realm_trusts/:
+    get:
+      operationId: outposts_kerberos_realm_trusts_list
+      description: List the configured realm trusts.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      - $ref: '#/components/parameters/QueryName'
+      - $ref: '#/components/parameters/QueryPaginationOrdering'
+      - $ref: '#/components/parameters/QueryPaginationPage'
+      - $ref: '#/components/parameters/QueryPaginationPageSize'
+      - $ref: '#/components/parameters/QuerySearch'
+      tags:
+      - outposts
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedKerberosRealmTrustOutpostList'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /outposts/kerberos/{id}/service_principal_create/:
+    post:
+      operationId: outposts_kerberos_service_principal_create
+      description: Create a service principal for kadm5.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      tags:
+      - outposts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KerberosServicePrincipalAdminRequest'
+        required: true
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosServicePrincipalOutpost'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /outposts/kerberos/{id}/service_principal_delete/:
+    post:
+      operationId: outposts_kerberos_service_principal_delete
+      description: Delete a service principal for kadm5.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      tags:
+      - outposts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KerberosServicePrincipalAdminRequest'
+        required: true
+      security:
+      - authentik: []
+      responses:
+        '204':
+          description: No response body
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /outposts/kerberos/{id}/service_principal_rotate/:
+    post:
+      operationId: outposts_kerberos_service_principal_rotate
+      description: Rotate a service principal for kadm5.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      tags:
+      - outposts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KerberosServicePrincipalAdminRequest'
+        required: true
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosServicePrincipalOutpost'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /outposts/kerberos/{id}/service_principal_update/:
+    post:
+      operationId: outposts_kerberos_service_principal_update
+      description: Update a service principal's ticket flags for kadm5.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      tags:
+      - outposts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KerberosServicePrincipalUpdateRequest'
+        required: true
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosServicePrincipalOutpost'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /outposts/kerberos/{id}/service_principals/:
+    get:
+      operationId: outposts_kerberos_service_principals_list
+      description: List the configured service principals.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      - $ref: '#/components/parameters/QueryName'
+      - $ref: '#/components/parameters/QueryPaginationOrdering'
+      - $ref: '#/components/parameters/QueryPaginationPage'
+      - $ref: '#/components/parameters/QueryPaginationPageSize'
+      - $ref: '#/components/parameters/QuerySearch'
+      tags:
+      - outposts
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedKerberosServicePrincipalOutpostList'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /outposts/kerberos/{id}/set_password/:
+    post:
+      operationId: outposts_kerberos_set_password_create
+      description: Set a user's password through the Kerberos outpost.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      tags:
+      - outposts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KerberosSetPasswordRequest'
+        required: true
+      security:
+      - authentik: []
+      responses:
+        '204':
+          description: No response body
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosPasswordPolicyError'
+          description: ''
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /outposts/kerberos/{id}/user_key/:
+    get:
+      operationId: outposts_kerberos_user_key_retrieve
+      description: Get one user's password-derived key set.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      - in: query
+        name: username
+        schema:
+          type: string
+        required: true
+      tags:
+      - outposts
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosUserKeyOutpost'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /outposts/kerberos/{id}/user_keys/:
+    get:
+      operationId: outposts_kerberos_user_keys_list
+      description: List all users with password-derived keys.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      - $ref: '#/components/parameters/QueryName'
+      - $ref: '#/components/parameters/QueryPaginationOrdering'
+      - $ref: '#/components/parameters/QueryPaginationPage'
+      - $ref: '#/components/parameters/QueryPaginationPageSize'
+      - $ref: '#/components/parameters/QuerySearch'
+      tags:
+      - outposts
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedKerberosUserKeyOutpostList'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
   /outposts/ldap/:
     get:
       operationId: outposts_ldap_list
@@ -17894,6 +18301,664 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/UsedBy'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /providers/kerberos/:
+    get:
+      operationId: providers_kerberos_list
+      description: KerberosProvider viewset.
+      parameters:
+      - in: query
+        name: application__isnull
+        schema:
+          type: boolean
+      - in: query
+        name: name__iexact
+        schema:
+          type: string
+      - $ref: '#/components/parameters/QueryPaginationOrdering'
+      - $ref: '#/components/parameters/QueryPaginationPage'
+      - $ref: '#/components/parameters/QueryPaginationPageSize'
+      - in: query
+        name: realm_name__iexact
+        schema:
+          type: string
+      - $ref: '#/components/parameters/QuerySearch'
+      tags:
+      - providers
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedKerberosProviderList'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+    post:
+      operationId: providers_kerberos_create
+      description: KerberosProvider viewset.
+      tags:
+      - providers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KerberosProviderRequest'
+        required: true
+      security:
+      - authentik: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosProvider'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /providers/kerberos/{id}/:
+    get:
+      operationId: providers_kerberos_retrieve
+      description: KerberosProvider viewset.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      tags:
+      - providers
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosProvider'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+    put:
+      operationId: providers_kerberos_update
+      description: KerberosProvider viewset.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      tags:
+      - providers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KerberosProviderRequest'
+        required: true
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosProvider'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+    patch:
+      operationId: providers_kerberos_partial_update
+      description: KerberosProvider viewset.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      tags:
+      - providers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedKerberosProviderRequest'
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosProvider'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+    delete:
+      operationId: providers_kerberos_destroy
+      description: KerberosProvider viewset.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      tags:
+      - providers
+      security:
+      - authentik: []
+      responses:
+        '204':
+          description: No response body
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /providers/kerberos/{id}/used_by/:
+    get:
+      operationId: providers_kerberos_used_by_list
+      description: Get a list of all objects that use this object
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Kerberos Provider.
+        required: true
+      tags:
+      - providers
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UsedBy'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /providers/kerberos_realm_trusts/:
+    get:
+      operationId: providers_kerberos_realm_trusts_list
+      description: Kerberos realm trust viewset.
+      parameters:
+      - $ref: '#/components/parameters/QueryPaginationOrdering'
+      - $ref: '#/components/parameters/QueryPaginationPage'
+      - $ref: '#/components/parameters/QueryPaginationPageSize'
+      - in: query
+        name: provider
+        schema:
+          type: integer
+      - in: query
+        name: remote_realm__iexact
+        schema:
+          type: string
+      - $ref: '#/components/parameters/QuerySearch'
+      tags:
+      - providers
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedKerberosRealmTrustList'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+    post:
+      operationId: providers_kerberos_realm_trusts_create
+      description: Kerberos realm trust viewset.
+      tags:
+      - providers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KerberosRealmTrustRequest'
+        required: true
+      security:
+      - authentik: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosRealmTrust'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /providers/kerberos_realm_trusts/{uuid}/:
+    get:
+      operationId: providers_kerberos_realm_trusts_retrieve
+      description: Kerberos realm trust viewset.
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Kerberos Realm Trust.
+        required: true
+      tags:
+      - providers
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosRealmTrust'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+    put:
+      operationId: providers_kerberos_realm_trusts_update
+      description: Kerberos realm trust viewset.
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Kerberos Realm Trust.
+        required: true
+      tags:
+      - providers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KerberosRealmTrustRequest'
+        required: true
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosRealmTrust'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+    patch:
+      operationId: providers_kerberos_realm_trusts_partial_update
+      description: Kerberos realm trust viewset.
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Kerberos Realm Trust.
+        required: true
+      tags:
+      - providers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedKerberosRealmTrustRequest'
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosRealmTrust'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+    delete:
+      operationId: providers_kerberos_realm_trusts_destroy
+      description: Kerberos realm trust viewset.
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Kerberos Realm Trust.
+        required: true
+      tags:
+      - providers
+      security:
+      - authentik: []
+      responses:
+        '204':
+          description: No response body
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /providers/kerberos_realm_trusts/{uuid}/keytab/:
+    get:
+      operationId: providers_kerberos_realm_trusts_keytab_retrieve
+      description: Export one directional trust keytab.
+      parameters:
+      - in: query
+        name: direction
+        schema:
+          allOf:
+          - $ref: '#/components/schemas/DirectionEnum'
+          description: Trust key direction.
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Kerberos Realm Trust.
+        required: true
+      tags:
+      - providers
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosRealmTrust'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /providers/kerberos_realm_trusts/{uuid}/rotate/:
+    post:
+      operationId: providers_kerberos_realm_trusts_rotate_create
+      description: Rotate one directional trust key set.
+      parameters:
+      - in: query
+        name: direction
+        schema:
+          allOf:
+          - $ref: '#/components/schemas/DirectionEnum'
+          description: Trust key direction.
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Kerberos Realm Trust.
+        required: true
+      tags:
+      - providers
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosRealmTrust'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /providers/kerberos_service_principals/:
+    get:
+      operationId: providers_kerberos_service_principals_list
+      description: Kerberos service principal viewset.
+      parameters:
+      - $ref: '#/components/parameters/QueryPaginationOrdering'
+      - $ref: '#/components/parameters/QueryPaginationPage'
+      - $ref: '#/components/parameters/QueryPaginationPageSize'
+      - in: query
+        name: provider
+        schema:
+          type: integer
+      - $ref: '#/components/parameters/QuerySearch'
+      - in: query
+        name: spn__iexact
+        schema:
+          type: string
+      tags:
+      - providers
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedKerberosServicePrincipalList'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+    post:
+      operationId: providers_kerberos_service_principals_create
+      description: Kerberos service principal viewset.
+      tags:
+      - providers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KerberosServicePrincipalRequest'
+        required: true
+      security:
+      - authentik: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosServicePrincipal'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /providers/kerberos_service_principals/{uuid}/:
+    get:
+      operationId: providers_kerberos_service_principals_retrieve
+      description: Kerberos service principal viewset.
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Kerberos Service Principal.
+        required: true
+      tags:
+      - providers
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosServicePrincipal'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+    put:
+      operationId: providers_kerberos_service_principals_update
+      description: Kerberos service principal viewset.
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Kerberos Service Principal.
+        required: true
+      tags:
+      - providers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KerberosServicePrincipalRequest'
+        required: true
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosServicePrincipal'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+    patch:
+      operationId: providers_kerberos_service_principals_partial_update
+      description: Kerberos service principal viewset.
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Kerberos Service Principal.
+        required: true
+      tags:
+      - providers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedKerberosServicePrincipalRequest'
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosServicePrincipal'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+    delete:
+      operationId: providers_kerberos_service_principals_destroy
+      description: Kerberos service principal viewset.
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Kerberos Service Principal.
+        required: true
+      tags:
+      - providers
+      security:
+      - authentik: []
+      responses:
+        '204':
+          description: No response body
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /providers/kerberos_service_principals/{uuid}/keytab/:
+    get:
+      operationId: providers_kerberos_service_principals_keytab_retrieve
+      description: Export this service principal as a base64-encoded MIT keytab.
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Kerberos Service Principal.
+        required: true
+      tags:
+      - providers
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosServicePrincipal'
+          description: ''
+        '400':
+          $ref: '#/components/responses/ValidationErrorResponse'
+        '403':
+          $ref: '#/components/responses/GenericErrorResponse'
+  /providers/kerberos_service_principals/{uuid}/rotate/:
+    post:
+      operationId: providers_kerberos_service_principals_rotate_create
+      description: Rotate this service principal's keys and increment its kvno.
+      parameters:
+      - in: path
+        name: uuid
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this Kerberos Service Principal.
+        required: true
+      tags:
+      - providers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KerberosServicePrincipalRequest'
+        required: true
+      security:
+      - authentik: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KerberosServicePrincipal'
           description: ''
         '400':
           $ref: '#/components/responses/ValidationErrorResponse'
@@ -36139,6 +37204,13 @@ components:
       - ed25519
       - ed448
       type: string
+    AllowedEnctypesEnum:
+      enum:
+      - 17
+      - 18
+      - 19
+      - 20
+      type: integer
     App:
       type: object
       description: Serialize Application info
@@ -36179,6 +37251,7 @@ components:
       - authentik.providers.proxy
       - authentik.providers.rac
       - authentik.providers.radius
+      - authentik.providers.kerberos
       - authentik.providers.saml
       - authentik.providers.scim
       - authentik.rbac
@@ -39758,6 +40831,11 @@ components:
       - '6'
       - '8'
       type: string
+    DirectionEnum:
+      type: string
+      enum:
+      - incoming
+      - outgoing
     Disk:
       type: object
       properties:
@@ -40817,6 +41895,14 @@ components:
       - access_request_denied
       - access_request_revoked
       - custom_
+      type: string
+    EventEnum:
+      enum:
+      - as_req
+      - tgs_req
+      - s4u2self
+      - s4u2proxy
+      - u2u
       type: string
     EventMatcherPolicy:
       type: object
@@ -43500,6 +44586,849 @@ components:
       - MIT
       - Heimdal
       type: string
+    KerberosAuditEventRequest:
+      type: object
+      description: KDC audit event data submitted by the Kerberos outpost.
+      properties:
+        event:
+          $ref: '#/components/schemas/EventEnum'
+        success:
+          type: boolean
+        client:
+          type: string
+          minLength: 1
+        service:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          minLength: 1
+        preauth_type:
+          type: string
+          minLength: 1
+        remote_addr:
+          type: string
+          minLength: 1
+        s4u2self_user:
+          type: string
+        auth_indicators:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        error_code:
+          type: integer
+        request_id:
+          type: string
+          minLength: 1
+        ticket_id:
+          type: string
+      required:
+      - auth_indicators
+      - client
+      - error_code
+      - event
+      - preauth_type
+      - remote_addr
+      - request_id
+      - s4u2self_user
+      - service
+      - status
+      - success
+      - ticket_id
+    KerberosCheckAccess:
+      type: object
+      description: Policy access data consumed by the KDC outpost.
+      properties:
+        access:
+          $ref: '#/components/schemas/PolicyTestResult'
+      required:
+      - access
+    KerberosOTPCheck:
+      type: object
+      description: OTP validation data consumed by the KDC outpost.
+      properties:
+        allowed:
+          type: boolean
+      required:
+      - allowed
+    KerberosOutpostConfig:
+      type: object
+      description: Kerberos provider serializer for outposts.
+      properties:
+        pk:
+          type: integer
+          readOnly: true
+          title: ID
+        name:
+          type: string
+        realm_name:
+          type: string
+          maxLength: 255
+        default_domain:
+          type: string
+          maxLength: 255
+        maximum_ticket_lifetime:
+          type: integer
+          readOnly: true
+        maximum_ticket_renew_lifetime:
+          type: integer
+          readOnly: true
+        default_ticket_lifetime:
+          type: string
+        default_ticket_renew_lifetime:
+          type: string
+        allowed_enctypes:
+          type: array
+          items:
+            allOf:
+            - $ref: '#/components/schemas/AllowedEnctypesEnum'
+            minimum: -2147483648
+            maximum: 2147483647
+        require_preauthentication:
+          type: boolean
+        spake_enabled:
+          type: boolean
+          description: Advertise PA-SPAKE preauthentication (RFC 9588).
+        udp_enabled:
+          type: boolean
+        tcp_enabled:
+          type: boolean
+        kpasswd_enabled:
+          type: boolean
+          description: Enable RFC 3244 password changes through the Kerberos outpost.
+        forwardable:
+          type: boolean
+        renewable:
+          type: boolean
+        proxiable:
+          type: boolean
+        principal_username_attribute:
+          $ref: '#/components/schemas/PrincipalUsernameAttributeEnum'
+        pkinit_certificate:
+          type: string
+          format: uuid
+          nullable: true
+          description: Certificate/key pair the KDC uses to sign PKINIT replies. Requires
+            a private key.
+        pkinit_client_ca:
+          type: string
+          format: uuid
+          nullable: true
+          description: CA certificate used to validate PKINIT client certificates.
+        pkinit_require_freshness:
+          type: boolean
+          description: Require RFC 8070 freshness tokens on PKINIT requests.
+        pkinit_indicators:
+          type: array
+          items:
+            type: string
+          description: Authentication indicators asserted after successful PKINIT.
+        spake_indicators:
+          type: array
+          items:
+            type: string
+          description: Indicators asserted after SPAKE preauthentication.
+        encrypted_challenge_indicator:
+          type: string
+          description: Indicator asserted after encrypted-challenge preauthentication.
+        otp_enabled:
+          type: boolean
+          description: Enable RFC 6560 OTP preauthentication backed by the user's
+            authentik TOTP and static authenticator devices.
+        otp_indicators:
+          type: array
+          items:
+            type: string
+          description: Authentication indicators asserted after successful OTP preauthentication.
+        anonymous_pkinit_enabled:
+          type: boolean
+          description: Allow anonymous PKINIT requests.
+        kkdcp_enabled:
+          type: boolean
+          description: Enable KDC Proxy over HTTPS (MS-KKDCP).
+        kkdcp_certificate:
+          type: string
+          format: uuid
+          nullable: true
+          description: Certificate/key pair the KDC Proxy listener uses for TLS.
+        pac_enabled:
+          type: boolean
+          description: Include an MS-PAC in issued tickets.
+        realm_sid:
+          type: string
+          description: Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.
+        kprop_enabled:
+          type: boolean
+          description: Push full MIT Kerberos database dumps to replica KDCs.
+        kprop_targets:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        kprop_client_spn:
+          type: string
+          description: Service principal used to authenticate kprop pushes.
+        kprop_master_password:
+          type: string
+          description: MIT database master password used to encrypt full kprop dumps.
+        kprop_interval:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Interval in seconds between full kprop pushes.
+        kdc_audit_enabled:
+          type: boolean
+          description: Emit authentik events for KDC ticket operations.
+        kadmin_enabled:
+          type: boolean
+          description: Serve the kadm5 admin protocol from the outpost.
+        kadmin_acl:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        master_key:
+          type: string
+        application_slug:
+          type: string
+      required:
+      - application_slug
+      - maximum_ticket_lifetime
+      - maximum_ticket_renew_lifetime
+      - name
+      - pk
+      - realm_name
+    KerberosPasswordPolicyError:
+      type: object
+      description: Password policy failure returned by the Kerberos outpost.
+      properties:
+        messages:
+          type: array
+          items:
+            type: string
+      required:
+      - messages
+    KerberosProvider:
+      type: object
+      description: KerberosProvider serializer.
+      properties:
+        pk:
+          type: integer
+          readOnly: true
+          title: ID
+        name:
+          type: string
+        authentication_flow:
+          type: string
+          format: uuid
+          nullable: true
+          description: Flow used for authentication when the associated application
+            is accessed by an un-authenticated user.
+        authorization_flow:
+          type: string
+          format: uuid
+          nullable: true
+          description: Flow used when authorizing this provider.
+        invalidation_flow:
+          type: string
+          format: uuid
+          nullable: true
+          description: Flow used ending the session from a provider.
+        property_mappings:
+          type: array
+          items:
+            type: string
+            format: uuid
+        component:
+          type: string
+          description: Get object component so that we know how to edit the object
+          readOnly: true
+        assigned_application_slug:
+          type: string
+          description: Internal application name, used in URLs.
+          readOnly: true
+          nullable: true
+        assigned_application_name:
+          type: string
+          description: Application's display Name.
+          readOnly: true
+          nullable: true
+        assigned_backchannel_application_slug:
+          type: string
+          description: Internal application name, used in URLs.
+          readOnly: true
+          nullable: true
+        assigned_backchannel_application_name:
+          type: string
+          description: Application's display Name.
+          readOnly: true
+          nullable: true
+        verbose_name:
+          type: string
+          description: Return object's verbose_name
+          readOnly: true
+        verbose_name_plural:
+          type: string
+          description: Return object's plural verbose_name
+          readOnly: true
+        meta_model_name:
+          type: string
+          description: Return internal model name
+          readOnly: true
+        realm_name:
+          type: string
+          maxLength: 255
+        default_domain:
+          type: string
+          maxLength: 255
+        maximum_ticket_lifetime:
+          type: string
+        maximum_ticket_renew_lifetime:
+          type: string
+        default_ticket_lifetime:
+          type: string
+        default_ticket_renew_lifetime:
+          type: string
+        allowed_enctypes:
+          type: array
+          items:
+            allOf:
+            - $ref: '#/components/schemas/AllowedEnctypesEnum'
+            minimum: -2147483648
+            maximum: 2147483647
+        require_preauthentication:
+          type: boolean
+        spake_enabled:
+          type: boolean
+          description: Advertise PA-SPAKE preauthentication (RFC 9588).
+        udp_enabled:
+          type: boolean
+        tcp_enabled:
+          type: boolean
+        kpasswd_enabled:
+          type: boolean
+          description: Enable RFC 3244 password changes through the Kerberos outpost.
+        forwardable:
+          type: boolean
+        renewable:
+          type: boolean
+        proxiable:
+          type: boolean
+        principal_username_attribute:
+          $ref: '#/components/schemas/PrincipalUsernameAttributeEnum'
+        pkinit_certificate:
+          type: string
+          format: uuid
+          nullable: true
+          description: Certificate/key pair the KDC uses to sign PKINIT replies. Requires
+            a private key.
+        pkinit_client_ca:
+          type: string
+          format: uuid
+          nullable: true
+          description: CA certificate used to validate PKINIT client certificates.
+        pkinit_require_freshness:
+          type: boolean
+          description: Require RFC 8070 freshness tokens on PKINIT requests.
+        pkinit_indicators:
+          type: array
+          items:
+            type: string
+          description: Authentication indicators asserted after successful PKINIT.
+        spake_indicators:
+          type: array
+          items:
+            type: string
+          description: Indicators asserted after SPAKE preauthentication.
+        encrypted_challenge_indicator:
+          type: string
+          description: Indicator asserted after encrypted-challenge preauthentication.
+        otp_enabled:
+          type: boolean
+          description: Enable RFC 6560 OTP preauthentication backed by the user's
+            authentik TOTP and static authenticator devices.
+        otp_indicators:
+          type: array
+          items:
+            type: string
+          description: Authentication indicators asserted after successful OTP preauthentication.
+        anonymous_pkinit_enabled:
+          type: boolean
+          description: Allow anonymous PKINIT requests.
+        kkdcp_enabled:
+          type: boolean
+          description: Enable KDC Proxy over HTTPS (MS-KKDCP).
+        kkdcp_certificate:
+          type: string
+          format: uuid
+          nullable: true
+          description: Certificate/key pair the KDC Proxy listener uses for TLS.
+        pac_enabled:
+          type: boolean
+          description: Include an MS-PAC in issued tickets.
+        realm_sid:
+          type: string
+          description: Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.
+        kprop_enabled:
+          type: boolean
+          description: Push full MIT Kerberos database dumps to replica KDCs.
+        kprop_targets:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        kprop_client_spn:
+          type: string
+          description: Service principal used to authenticate kprop pushes.
+        kprop_interval:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Interval in seconds between full kprop pushes.
+        kdc_audit_enabled:
+          type: boolean
+          description: Emit authentik events for KDC ticket operations.
+        kadmin_enabled:
+          type: boolean
+          description: Serve the kadm5 admin protocol from the outpost.
+        kadmin_acl:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        master_key:
+          type: string
+          readOnly: true
+        outpost_set:
+          type: array
+          items:
+            type: string
+          readOnly: true
+      required:
+      - assigned_application_name
+      - assigned_application_slug
+      - assigned_backchannel_application_name
+      - assigned_backchannel_application_slug
+      - component
+      - master_key
+      - meta_model_name
+      - name
+      - outpost_set
+      - pk
+      - realm_name
+      - verbose_name
+      - verbose_name_plural
+    KerberosProviderRequest:
+      type: object
+      description: KerberosProvider serializer.
+      properties:
+        name:
+          type: string
+          minLength: 1
+        authentication_flow:
+          type: string
+          format: uuid
+          nullable: true
+          description: Flow used for authentication when the associated application
+            is accessed by an un-authenticated user.
+        authorization_flow:
+          type: string
+          format: uuid
+          nullable: true
+          description: Flow used when authorizing this provider.
+        invalidation_flow:
+          type: string
+          format: uuid
+          nullable: true
+          description: Flow used ending the session from a provider.
+        property_mappings:
+          type: array
+          items:
+            type: string
+            format: uuid
+        realm_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        default_domain:
+          type: string
+          maxLength: 255
+        maximum_ticket_lifetime:
+          type: string
+          minLength: 1
+        maximum_ticket_renew_lifetime:
+          type: string
+          minLength: 1
+        default_ticket_lifetime:
+          type: string
+          minLength: 1
+        default_ticket_renew_lifetime:
+          type: string
+          minLength: 1
+        allowed_enctypes:
+          type: array
+          items:
+            allOf:
+            - $ref: '#/components/schemas/AllowedEnctypesEnum'
+            minimum: -2147483648
+            maximum: 2147483647
+        require_preauthentication:
+          type: boolean
+        spake_enabled:
+          type: boolean
+          description: Advertise PA-SPAKE preauthentication (RFC 9588).
+        udp_enabled:
+          type: boolean
+        tcp_enabled:
+          type: boolean
+        kpasswd_enabled:
+          type: boolean
+          description: Enable RFC 3244 password changes through the Kerberos outpost.
+        forwardable:
+          type: boolean
+        renewable:
+          type: boolean
+        proxiable:
+          type: boolean
+        principal_username_attribute:
+          $ref: '#/components/schemas/PrincipalUsernameAttributeEnum'
+        pkinit_certificate:
+          type: string
+          format: uuid
+          nullable: true
+          description: Certificate/key pair the KDC uses to sign PKINIT replies. Requires
+            a private key.
+        pkinit_client_ca:
+          type: string
+          format: uuid
+          nullable: true
+          description: CA certificate used to validate PKINIT client certificates.
+        pkinit_require_freshness:
+          type: boolean
+          description: Require RFC 8070 freshness tokens on PKINIT requests.
+        pkinit_indicators:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: Authentication indicators asserted after successful PKINIT.
+        spake_indicators:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: Indicators asserted after SPAKE preauthentication.
+        encrypted_challenge_indicator:
+          type: string
+          description: Indicator asserted after encrypted-challenge preauthentication.
+        otp_enabled:
+          type: boolean
+          description: Enable RFC 6560 OTP preauthentication backed by the user's
+            authentik TOTP and static authenticator devices.
+        otp_indicators:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: Authentication indicators asserted after successful OTP preauthentication.
+        anonymous_pkinit_enabled:
+          type: boolean
+          description: Allow anonymous PKINIT requests.
+        kkdcp_enabled:
+          type: boolean
+          description: Enable KDC Proxy over HTTPS (MS-KKDCP).
+        kkdcp_certificate:
+          type: string
+          format: uuid
+          nullable: true
+          description: Certificate/key pair the KDC Proxy listener uses for TLS.
+        pac_enabled:
+          type: boolean
+          description: Include an MS-PAC in issued tickets.
+        realm_sid:
+          type: string
+          description: Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.
+        kprop_enabled:
+          type: boolean
+          description: Push full MIT Kerberos database dumps to replica KDCs.
+        kprop_targets:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        kprop_client_spn:
+          type: string
+          description: Service principal used to authenticate kprop pushes.
+        kprop_master_password:
+          type: string
+          writeOnly: true
+          description: MIT database master password used to encrypt full kprop dumps.
+        kprop_interval:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Interval in seconds between full kprop pushes.
+        kdc_audit_enabled:
+          type: boolean
+          description: Emit authentik events for KDC ticket operations.
+        kadmin_enabled:
+          type: boolean
+          description: Serve the kadm5 admin protocol from the outpost.
+        kadmin_acl:
+          type: array
+          items:
+            type: string
+            minLength: 1
+      required:
+      - name
+      - realm_name
+    KerberosRealmTrust:
+      type: object
+      description: Kerberos realm trust serializer.
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          readOnly: true
+        provider:
+          type: integer
+        remote_realm:
+          type: string
+          minLength: 1
+        capaths:
+          type: array
+          items:
+            type: string
+          description: Intermediate realms for transited-path checking.
+        outgoing_kvno:
+          type: integer
+          readOnly: true
+        outgoing_keys:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        incoming_kvno:
+          type: integer
+          readOnly: true
+        incoming_keys:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+      required:
+      - incoming_keys
+      - incoming_kvno
+      - outgoing_keys
+      - outgoing_kvno
+      - provider
+      - remote_realm
+      - uuid
+    KerberosRealmTrustOutpost:
+      type: object
+      description: Realm trust data consumed by the KDC outpost.
+      properties:
+        remote_realm:
+          type: string
+        capaths:
+          type: array
+          items:
+            type: string
+        outgoing_kvno:
+          type: integer
+        outgoing_keys:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        incoming_kvno:
+          type: integer
+        incoming_keys:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+      required:
+      - capaths
+      - incoming_keys
+      - incoming_kvno
+      - outgoing_keys
+      - outgoing_kvno
+      - remote_realm
+    KerberosRealmTrustRequest:
+      type: object
+      description: Kerberos realm trust serializer.
+      properties:
+        provider:
+          type: integer
+        remote_realm:
+          type: string
+          minLength: 1
+        capaths:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: Intermediate realms for transited-path checking.
+      required:
+      - provider
+      - remote_realm
+    KerberosServicePrincipal:
+      type: object
+      description: Kerberos service principal serializer.
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          readOnly: true
+        provider:
+          type: integer
+        spn:
+          type: string
+          maxLength: 1024
+        service_account:
+          type: integer
+          nullable: true
+          description: Optional authentik user (typically a service account) whose
+            policies are evaluated when this principal acts as a Kerberos client.
+        kvno:
+          type: integer
+          readOnly: true
+        keys:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        ok_to_auth_as_delegate:
+          type: boolean
+          description: Allow this service principal to authenticate as a user for
+            delegation.
+        allowed_delegation_targets:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        required_auth_indicators:
+          type: array
+          items:
+            type: string
+          description: Authentication indicators required to obtain tickets for this
+            service.
+        ticket_flags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketFlagsEnum'
+      required:
+      - keys
+      - kvno
+      - provider
+      - spn
+      - uuid
+    KerberosServicePrincipalAdminRequest:
+      type: object
+      description: Service principal management request for the kadm5 outpost.
+      properties:
+        spn:
+          type: string
+          minLength: 1
+      required:
+      - spn
+    KerberosServicePrincipalOutpost:
+      type: object
+      description: Service principal data consumed by the KDC outpost.
+      properties:
+        spn:
+          type: string
+        kvno:
+          type: integer
+        keys:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        ok_to_auth_as_delegate:
+          type: boolean
+        allowed_delegation_targets:
+          type: array
+          items:
+            type: string
+        required_auth_indicators:
+          type: array
+          items:
+            type: string
+        ticket_flags:
+          type: array
+          items:
+            type: string
+      required:
+      - allowed_delegation_targets
+      - keys
+      - kvno
+      - ok_to_auth_as_delegate
+      - required_auth_indicators
+      - spn
+      - ticket_flags
+    KerberosServicePrincipalRequest:
+      type: object
+      description: Kerberos service principal serializer.
+      properties:
+        provider:
+          type: integer
+        spn:
+          type: string
+          minLength: 1
+          maxLength: 1024
+        service_account:
+          type: integer
+          nullable: true
+          description: Optional authentik user (typically a service account) whose
+            policies are evaluated when this principal acts as a Kerberos client.
+        ok_to_auth_as_delegate:
+          type: boolean
+          description: Allow this service principal to authenticate as a user for
+            delegation.
+        allowed_delegation_targets:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        required_auth_indicators:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: Authentication indicators required to obtain tickets for this
+            service.
+        ticket_flags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketFlagsEnum'
+      required:
+      - provider
+      - spn
+    KerberosServicePrincipalUpdateRequest:
+      type: object
+      description: Service principal ticket flag update request for the kadm5 outpost.
+      properties:
+        spn:
+          type: string
+          minLength: 1
+        ticket_flags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketFlagsEnum'
+      required:
+      - spn
+      - ticket_flags
+    KerberosSetPasswordRequest:
+      type: object
+      description: Password change request for the Kerberos outpost.
+      properties:
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - password
+      - username
     KerberosSource:
       type: object
       description: Kerberos Source Serializer
@@ -43829,6 +45758,79 @@ components:
       - name
       - realm
       - slug
+    KerberosUserKeyOutpost:
+      type: object
+      description: User key data consumed by the KDC outpost.
+      properties:
+        username:
+          type: string
+        enabled:
+          type: boolean
+        principal:
+          type: string
+          readOnly: true
+        kvno:
+          type: integer
+        salt:
+          type: string
+        keys:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        max_ticket_lifetime:
+          type: integer
+          nullable: true
+          readOnly: true
+        max_renew_lifetime:
+          type: integer
+          nullable: true
+          readOnly: true
+        requires_password_change:
+          type: boolean
+          readOnly: true
+        pac_user_id:
+          type: integer
+          readOnly: true
+        pac_primary_group_id:
+          type: integer
+          readOnly: true
+        pac_group_ids:
+          type: array
+          items:
+            type: integer
+          readOnly: true
+        pac_name:
+          type: string
+        pac_upn:
+          type: string
+          readOnly: true
+        password_expiration:
+          type: string
+          format: date-time
+          nullable: true
+          readOnly: true
+        flags:
+          type: array
+          items:
+            type: string
+          readOnly: true
+      required:
+      - enabled
+      - flags
+      - keys
+      - kvno
+      - max_renew_lifetime
+      - max_ticket_lifetime
+      - pac_group_ids
+      - pac_name
+      - pac_primary_group_id
+      - pac_upn
+      - pac_user_id
+      - password_expiration
+      - principal
+      - requires_password_change
+      - salt
+      - username
     KeyTypeEnum:
       type: string
       enum:
@@ -45496,6 +47498,10 @@ components:
       - authentik_providers_rac.racpropertymapping
       - authentik_providers_radius.radiusprovider
       - authentik_providers_radius.radiusproviderpropertymapping
+      - authentik_providers_kerberos.kerberosprovider
+      - authentik_providers_kerberos.kerberosserviceprincipal
+      - authentik_providers_kerberos.kerberosrealmtrust
+      - authentik_providers_kerberos.kerberosuserkeys
       - authentik_providers_saml.samlprovider
       - authentik_providers_saml.samlpropertymapping
       - authentik_providers_scim.scimprovider
@@ -47221,6 +49227,7 @@ components:
       - ldap
       - radius
       - rac
+      - kerberos
       type: string
     PKCEMethodEnum:
       enum:
@@ -48203,6 +50210,96 @@ components:
       - autocomplete
       - pagination
       - results
+    PaginatedKerberosOutpostConfigList:
+      type: object
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/KerberosOutpostConfig'
+        autocomplete:
+          $ref: '#/components/schemas/Autocomplete'
+      required:
+      - autocomplete
+      - pagination
+      - results
+    PaginatedKerberosProviderList:
+      type: object
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/KerberosProvider'
+        autocomplete:
+          $ref: '#/components/schemas/Autocomplete'
+      required:
+      - autocomplete
+      - pagination
+      - results
+    PaginatedKerberosRealmTrustList:
+      type: object
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/KerberosRealmTrust'
+        autocomplete:
+          $ref: '#/components/schemas/Autocomplete'
+      required:
+      - autocomplete
+      - pagination
+      - results
+    PaginatedKerberosRealmTrustOutpostList:
+      type: object
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/KerberosRealmTrustOutpost'
+        autocomplete:
+          $ref: '#/components/schemas/Autocomplete'
+      required:
+      - autocomplete
+      - pagination
+      - results
+    PaginatedKerberosServicePrincipalList:
+      type: object
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/KerberosServicePrincipal'
+        autocomplete:
+          $ref: '#/components/schemas/Autocomplete'
+      required:
+      - autocomplete
+      - pagination
+      - results
+    PaginatedKerberosServicePrincipalOutpostList:
+      type: object
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/KerberosServicePrincipalOutpost'
+        autocomplete:
+          $ref: '#/components/schemas/Autocomplete'
+      required:
+      - autocomplete
+      - pagination
+      - results
     PaginatedKerberosSourceList:
       type: object
       properties:
@@ -48227,6 +50324,21 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/KerberosSourcePropertyMapping'
+        autocomplete:
+          $ref: '#/components/schemas/Autocomplete'
+      required:
+      - autocomplete
+      - pagination
+      - results
+    PaginatedKerberosUserKeyOutpostList:
+      type: object
+      properties:
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/KerberosUserKeyOutpost'
         autocomplete:
           $ref: '#/components/schemas/Autocomplete'
       required:
@@ -51631,6 +53743,217 @@ components:
           description: If this flag is set, this Stage will jump to the next Stage
             when no Invitation is given. By default this Stage will cancel the Flow
             when no invitation is given.
+    PatchedKerberosProviderRequest:
+      type: object
+      description: KerberosProvider serializer.
+      properties:
+        name:
+          type: string
+          minLength: 1
+        authentication_flow:
+          type: string
+          format: uuid
+          nullable: true
+          description: Flow used for authentication when the associated application
+            is accessed by an un-authenticated user.
+        authorization_flow:
+          type: string
+          format: uuid
+          nullable: true
+          description: Flow used when authorizing this provider.
+        invalidation_flow:
+          type: string
+          format: uuid
+          nullable: true
+          description: Flow used ending the session from a provider.
+        property_mappings:
+          type: array
+          items:
+            type: string
+            format: uuid
+        realm_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        default_domain:
+          type: string
+          maxLength: 255
+        maximum_ticket_lifetime:
+          type: string
+          minLength: 1
+        maximum_ticket_renew_lifetime:
+          type: string
+          minLength: 1
+        default_ticket_lifetime:
+          type: string
+          minLength: 1
+        default_ticket_renew_lifetime:
+          type: string
+          minLength: 1
+        allowed_enctypes:
+          type: array
+          items:
+            allOf:
+            - $ref: '#/components/schemas/AllowedEnctypesEnum'
+            minimum: -2147483648
+            maximum: 2147483647
+        require_preauthentication:
+          type: boolean
+        spake_enabled:
+          type: boolean
+          description: Advertise PA-SPAKE preauthentication (RFC 9588).
+        udp_enabled:
+          type: boolean
+        tcp_enabled:
+          type: boolean
+        kpasswd_enabled:
+          type: boolean
+          description: Enable RFC 3244 password changes through the Kerberos outpost.
+        forwardable:
+          type: boolean
+        renewable:
+          type: boolean
+        proxiable:
+          type: boolean
+        principal_username_attribute:
+          $ref: '#/components/schemas/PrincipalUsernameAttributeEnum'
+        pkinit_certificate:
+          type: string
+          format: uuid
+          nullable: true
+          description: Certificate/key pair the KDC uses to sign PKINIT replies. Requires
+            a private key.
+        pkinit_client_ca:
+          type: string
+          format: uuid
+          nullable: true
+          description: CA certificate used to validate PKINIT client certificates.
+        pkinit_require_freshness:
+          type: boolean
+          description: Require RFC 8070 freshness tokens on PKINIT requests.
+        pkinit_indicators:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: Authentication indicators asserted after successful PKINIT.
+        spake_indicators:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: Indicators asserted after SPAKE preauthentication.
+        encrypted_challenge_indicator:
+          type: string
+          description: Indicator asserted after encrypted-challenge preauthentication.
+        otp_enabled:
+          type: boolean
+          description: Enable RFC 6560 OTP preauthentication backed by the user's
+            authentik TOTP and static authenticator devices.
+        otp_indicators:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: Authentication indicators asserted after successful OTP preauthentication.
+        anonymous_pkinit_enabled:
+          type: boolean
+          description: Allow anonymous PKINIT requests.
+        kkdcp_enabled:
+          type: boolean
+          description: Enable KDC Proxy over HTTPS (MS-KKDCP).
+        kkdcp_certificate:
+          type: string
+          format: uuid
+          nullable: true
+          description: Certificate/key pair the KDC Proxy listener uses for TLS.
+        pac_enabled:
+          type: boolean
+          description: Include an MS-PAC in issued tickets.
+        realm_sid:
+          type: string
+          description: Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.
+        kprop_enabled:
+          type: boolean
+          description: Push full MIT Kerberos database dumps to replica KDCs.
+        kprop_targets:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        kprop_client_spn:
+          type: string
+          description: Service principal used to authenticate kprop pushes.
+        kprop_master_password:
+          type: string
+          writeOnly: true
+          description: MIT database master password used to encrypt full kprop dumps.
+        kprop_interval:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Interval in seconds between full kprop pushes.
+        kdc_audit_enabled:
+          type: boolean
+          description: Emit authentik events for KDC ticket operations.
+        kadmin_enabled:
+          type: boolean
+          description: Serve the kadm5 admin protocol from the outpost.
+        kadmin_acl:
+          type: array
+          items:
+            type: string
+            minLength: 1
+    PatchedKerberosRealmTrustRequest:
+      type: object
+      description: Kerberos realm trust serializer.
+      properties:
+        provider:
+          type: integer
+        remote_realm:
+          type: string
+          minLength: 1
+        capaths:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: Intermediate realms for transited-path checking.
+    PatchedKerberosServicePrincipalRequest:
+      type: object
+      description: Kerberos service principal serializer.
+      properties:
+        provider:
+          type: integer
+        spn:
+          type: string
+          minLength: 1
+          maxLength: 1024
+        service_account:
+          type: integer
+          nullable: true
+          description: Optional authentik user (typically a service account) whose
+            policies are evaluated when this principal acts as a Kerberos client.
+        ok_to_auth_as_delegate:
+          type: boolean
+          description: Allow this service principal to authenticate as a user for
+            delegation.
+        allowed_delegation_targets:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        required_auth_indicators:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          description: Authentication indicators required to obtain tickets for this
+            service.
+        ticket_flags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketFlagsEnum'
     PatchedKerberosSourcePropertyMappingRequest:
       type: object
       description: Kerberos PropertyMapping Serializer
@@ -54876,6 +57199,12 @@ components:
       - log_messages
       - messages
       - passing
+    PrincipalUsernameAttributeEnum:
+      enum:
+      - username
+      - email
+      - upn
+      type: string
     Process:
       type: object
       properties:
@@ -55310,6 +57639,7 @@ components:
     ProviderModelEnum:
       enum:
       - authentik_providers_google_workspace.googleworkspaceprovider
+      - authentik_providers_kerberos.kerberosprovider
       - authentik_providers_ldap.ldapprovider
       - authentik_providers_microsoft_entra.microsoftentraprovider
       - authentik_providers_oauth2.oauth2provider
@@ -60111,6 +62441,17 @@ components:
         dark:
           type: string
           nullable: true
+    TicketFlagsEnum:
+      enum:
+      - requires_preauth
+      - requires_hwauth
+      - disallow_postdated
+      - disallow_forwardable
+      - disallow_proxiable
+      - disallow_renewable
+      - disallow_tgt_based
+      - disallow_server
+      type: string
     Token:
       type: object
       description: Token Serializer
@@ -62068,6 +64409,7 @@ components:
     modelRequest:
       oneOf:
       - $ref: '#/components/schemas/GoogleWorkspaceProviderRequest'
+      - $ref: '#/components/schemas/KerberosProviderRequest'
       - $ref: '#/components/schemas/LDAPProviderRequest'
       - $ref: '#/components/schemas/MicrosoftEntraProviderRequest'
       - $ref: '#/components/schemas/OAuth2ProviderRequest'
@@ -62082,6 +64424,7 @@ components:
         propertyName: provider_model
         mapping:
           authentik_providers_google_workspace.googleworkspaceprovider: '#/components/schemas/GoogleWorkspaceProviderRequest'
+          authentik_providers_kerberos.kerberosprovider: '#/components/schemas/KerberosProviderRequest'
           authentik_providers_ldap.ldapprovider: '#/components/schemas/LDAPProviderRequest'
           authentik_providers_microsoft_entra.microsoftentraprovider: '#/components/schemas/MicrosoftEntraProviderRequest'
           authentik_providers_oauth2.oauth2provider: '#/components/schemas/OAuth2ProviderRequest'

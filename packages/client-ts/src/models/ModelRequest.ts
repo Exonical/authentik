@@ -17,6 +17,11 @@ import {
     GoogleWorkspaceProviderRequestFromJSONTyped,
     GoogleWorkspaceProviderRequestToJSON,
 } from "./GoogleWorkspaceProviderRequest";
+import type { KerberosProviderRequest } from "./KerberosProviderRequest";
+import {
+    KerberosProviderRequestFromJSONTyped,
+    KerberosProviderRequestToJSON,
+} from "./KerberosProviderRequest";
 import type { LDAPProviderRequest } from "./LDAPProviderRequest";
 import { LDAPProviderRequestFromJSONTyped, LDAPProviderRequestToJSON } from "./LDAPProviderRequest";
 import type { MicrosoftEntraProviderRequest } from "./MicrosoftEntraProviderRequest";
@@ -62,6 +67,7 @@ export type ModelRequest =
     | ({
           providerModel: "authentik_providers_google_workspace.googleworkspaceprovider";
       } & GoogleWorkspaceProviderRequest)
+    | ({ providerModel: "authentik_providers_kerberos.kerberosprovider" } & KerberosProviderRequest)
     | ({ providerModel: "authentik_providers_ldap.ldapprovider" } & LDAPProviderRequest)
     | ({
           providerModel: "authentik_providers_microsoft_entra.microsoftentraprovider";
@@ -89,6 +95,10 @@ export function ModelRequestFromJSONTyped(json: any, ignoreDiscriminator: boolea
         case "authentik_providers_google_workspace.googleworkspaceprovider":
             return Object.assign({}, GoogleWorkspaceProviderRequestFromJSONTyped(json, true), {
                 providerModel: "authentik_providers_google_workspace.googleworkspaceprovider",
+            } as const);
+        case "authentik_providers_kerberos.kerberosprovider":
+            return Object.assign({}, KerberosProviderRequestFromJSONTyped(json, true), {
+                providerModel: "authentik_providers_kerberos.kerberosprovider",
             } as const);
         case "authentik_providers_ldap.ldapprovider":
             return Object.assign({}, LDAPProviderRequestFromJSONTyped(json, true), {
@@ -150,6 +160,10 @@ export function ModelRequestToJSONTyped(
         case "authentik_providers_google_workspace.googleworkspaceprovider":
             return Object.assign({}, GoogleWorkspaceProviderRequestToJSON(value), {
                 provider_model: "authentik_providers_google_workspace.googleworkspaceprovider",
+            } as const);
+        case "authentik_providers_kerberos.kerberosprovider":
+            return Object.assign({}, KerberosProviderRequestToJSON(value), {
+                provider_model: "authentik_providers_kerberos.kerberosprovider",
             } as const);
         case "authentik_providers_ldap.ldapprovider":
             return Object.assign({}, LDAPProviderRequestToJSON(value), {

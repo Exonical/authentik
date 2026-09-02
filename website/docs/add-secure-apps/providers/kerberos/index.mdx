@@ -1,0 +1,445 @@
+---
+title: Kerberos provider
+sidebar_position: 6
+sidebar_label: "Kerberos Provider"
+toc_max_heading_level: 4
+---
+
+The Kerberos provider supplies a Kerberos Key Distribution Center (KDC) through a Kerberos outpost. The outpost handles Authentication Service (AS) and Ticket-Granting Service (TGS) exchanges over UDP and TCP on port `3088` and is compatible with MIT Kerberos clients.
+
+Create a Kerberos provider, associate it with an application, and select that application when you create a [Kerberos outpost](../../outposts/index.mdx).
+
+## How the Kerberos provider works
+
+The provider stores the realm configuration, user keys, service principals, and ticket policy in authentik. The Kerberos outpost retrieves this configuration from authentik and uses the go-kerberos library to process Kerberos requests.
+
+The outpost listens on both UDP and TCP by default. Use **UDP enabled** and **TCP enabled** to disable either transport. At least one transport must remain enabled.
+
+### User keys
+
+authentik derives a user's Kerberos keys from their password when the password is set or changed. The keys are stored for each Kerberos provider and are used by the outpost during password-based Kerberos authentication.
+
+Users that already exist when you create the provider receive provider-specific keys after their next successful password login. Failed login attempts do not create keys. When a password changes, authentik replaces the keys and increments the key version number (KVNO). A successful login only creates missing provider keys; it does not replace existing keys or change their KVNO.
+
+:::warning
+Kerberos keys are recoverable password-derived key material. Protect access to the authentik database and the provider's outpost.
+:::
+
+## Configure the provider
+
+The Kerberos provider form groups settings into flow, ticket, network, policy, principal mapping, and PKINIT settings.
+
+### Realm and domain
+
+**Realm** is the case-sensitive Kerberos realm name, such as `EXAMPLE.TEST`. **Default domain** is an optional domain value associated with the provider.
+
+### Flow settings
+
+The provider includes **Authentication flow** and **Authorization flow** fields inherited from the base provider. These flow fields do not replace Kerberos protocol authentication or the Kerberos preauthentication setting.
+
+### Ticket settings
+
+Use the following settings to control ticket lifetimes:
+
+| Setting                           | Description                                                                       |
+| --------------------------------- | --------------------------------------------------------------------------------- |
+| **Maximum ticket lifetime**       | Maximum lifetime of an issued ticket.                                             |
+| **Maximum ticket renew lifetime** | Maximum time for which a ticket can be renewed.                                   |
+| **Default ticket lifetime**       | Lifetime used when a client does not request a lifetime.                          |
+| **Default ticket renew lifetime** | Default lifetime for ticket renewal when a client requests renewable credentials. |
+
+Enter durations using the authentik time delta format, such as `hours=10` or `days=7`. The maximum values limit the corresponding default values and client requests.
+
+### Encryption types
+
+**Allowed encryption types** controls the encryption types that authentik generates and accepts for Kerberos user and service keys. The available values are:
+
+- `aes128-cts-hmac-sha1-96`
+- `aes256-cts-hmac-sha1-96`
+- `aes128-cts-hmac-sha256-128`
+- `aes256-cts-hmac-sha384-192`
+
+### Network settings
+
+**UDP enabled** and **TCP enabled** control which transports the outpost accepts for this provider. The outpost deployment exposes port `3088` for both transports, but the provider settings can disable either protocol.
+
+**SPAKE preauthentication enabled** advertises PA-SPAKE preauthentication (RFC 9588). When
+disabled, clients use the existing encrypted-timestamp preauthentication flow.
+
+**OTP preauthentication enabled** advertises RFC 6560 OTP preauthentication. OTP requests
+must be protected by FAST and are checked against the user's confirmed authentik TOTP and
+static authenticator devices. Static authenticator tokens are consumed after successful use.
+Configure **OTP indicators** to assert authentication indicators after successful OTP
+preauthentication. OTP codes are never cached.
+
+### Authentication indicators
+
+Authentication indicators record how a Kerberos ticket was obtained. Configure
+**PKINIT indicators** to assert indicators after successful certificate-based
+authentication, **SPAKE indicators** to assert indicators after successful
+PA-SPAKE authentication, and **Encrypted-challenge indicator** to assert one
+indicator after successful FAST encrypted-challenge preauthentication. These
+indicators are asserted only by their corresponding authentication mechanism;
+configuring an indicator does not make other authentication methods satisfy it.
+
+Service principals can set **Required authentication indicators**. The KDC
+requires at least one of the listed indicators (an ANY-match policy) in the
+ticket's authentication history before issuing a ticket for that service. For
+example, a service requiring `pkinit` accepts a PKINIT-authenticated ticket but
+rejects a password-authenticated ticket without that indicator. authentik does
+not currently assert indicators for OTP preauthentication.
+
+### Microsoft PAC
+
+Kerberos providers can include a Microsoft Privilege Attribute Certificate (MS-PAC) in
+issued tickets. Enable **Include MS-PAC in tickets** and configure a domain SID such as
+`S-1-5-21-1-2-3`. When the realm SID is left blank, authentik generates and persists a
+stable random SID when the provider is saved.
+
+The SID must use the format `S-1-5-21-<a>-<b>-<c>`, where each authority is an unsigned
+32-bit integer. PAC user and group identifiers mirror the LDAP POSIX mapping: a user's
+RID is `2000 + user.pk`, unless the string `uidNumber` attribute overrides it. The
+primary group RID is the same user RID, representing the LDAP virtual primary group.
+Each real group contributes a RID of `4000 + group.num_pk`, unless its string
+`gidNumber` attribute overrides it.
+
+PACs improve interoperability with applications that consume Windows-style authorization
+data, but they also expose group membership and identity information to ticket services.
+Use a stable domain SID consistently across providers that share an authorization domain.
+This setting generates PAC identity data only; PAC credential buffers are not generated by
+this feature.
+
+### Account state and per-user lifetimes
+
+The Kerberos outpost maps an inactive authentik user to a Kerberos principal with all
+tickets disabled. MIT Kerberos clients therefore receive `KRB5KDC_ERR_CLIENT_REVOKED`
+(`Client's credentials have been revoked`) instead of an unknown-principal response.
+Reactivating the user allows authentication again after the outpost refreshes its cached
+record.
+
+You can override the provider's ticket lifetime limits for an individual user with the
+`krb5MaxLife` and `krb5MaxRenew` user attributes. Set either attribute to a non-negative
+number of seconds. Invalid values are ignored, and the provider-level maximum remains in
+effect when an override is absent or invalid.
+
+Kerberos service principals and users can also carry per-principal ticket flags.
+Users set the `krb5Flags` attribute to a list of flag names; service principals
+configure the same names through the service principal API or Admin interface.
+
+| Flag                   | Meaning                         | Enforcement                  |
+| ---------------------- | ------------------------------- | ---------------------------- |
+| `requires_preauth`     | Require preauthentication       | Pending upstream enforcement |
+| `requires_hwauth`      | Require hardware authentication | Pending upstream enforcement |
+| `disallow_postdated`   | Reject postdated tickets        | Enforced                     |
+| `disallow_forwardable` | Reject forwardable tickets      | Pending upstream enforcement |
+| `disallow_proxiable`   | Reject proxiable tickets        | Pending upstream enforcement |
+| `disallow_renewable`   | Reject renewable tickets        | Pending upstream enforcement |
+| `disallow_tgt_based`   | Reject TGT-based tickets        | Pending upstream enforcement |
+| `disallow_server`      | Reject service tickets          | Enforced                     |
+
+Set the documented [`reset_password` user attribute](../../../users-sources/user/password_reset_on_login)
+to the boolean value `True` to require a password change before normal Kerberos
+authentication succeeds. This maps to Kerberos `RequiresPWChange`; clients can use
+`kadmin/changepw` to change the password because the outpost's password-change service
+has the required `PWChangeService` flag. After a successful Kerberos password change,
+the outpost clears `reset_password` to `False`.
+
+### Password changes (kpasswd)
+
+The Kerberos outpost supports RFC 3244 password changes through the MIT `kpasswd` protocol. Enable **Password changes enabled** to allow password changes for this provider. The outpost listens on port `3464` by default for this protocol. Publish this port for both UDP and TCP, or map it to the standard Kerberos password-change port `464`:
+
+Password policies bound to the Kerberos provider's application are enforced during password changes through `kpasswd`. If a new password violates a bound policy, the change is rejected and the policy messages are returned to the client.
+
+```yaml
+services:
+    authentik_kerberos:
+        ports:
+            - 3464:3464/tcp
+            - 3464:3464/udp
+            # Alternatively, publish the standard client port:
+            # - 464:3464/tcp
+            # - 464:3464/udp
+```
+
+After obtaining a ticket, use the MIT client to change the password:
+
+```shell
+kinit alice@EXAMPLE.TEST
+kpasswd alice@EXAMPLE.TEST
+```
+
+The password change updates the authentik user password, rederives the Kerberos keys, and increments the key version number (KVNO). Existing tickets and service keytabs are not changed.
+
+### KDC audit events
+
+Enable **KDC audit events** to record Kerberos ticket operations as authentik events.
+The event action is `custom_kerberos_kdc` and its context includes the request type,
+success status, client and service principals, status, preauthentication type, remote
+address, S4U2Self user, authentication indicators, Kerberos error code, request ID,
+and ticket ID. Failed or denied operations are recorded with `success=false` and the
+Kerberos error code.
+
+### Policy settings
+
+The policy switches control flags that the KDC can place on issued tickets:
+
+- **Require preauthentication** requires Kerberos preauthentication. Disable this only when clients require unauthenticated initial requests.
+- **Forwardable** allows forwardable tickets.
+- **Renewable** allows renewable tickets.
+- **Proxiable** allows proxiable tickets.
+
+### Principal mapping
+
+**Principal username attribute** selects the user value that becomes the username component of a Kerberos principal. The available values are:
+
+- **Username** uses the user's `username`.
+- **Email** uses the user's email address.
+- **UPN** uses the `upn` user attribute. If the attribute is not set, authentik falls back to the user's `username`.
+
+For example, with **Email** selected, a user whose email address is `alex@example.com` authenticates as `alex@example.com@EXAMPLE.TEST`.
+
+### Principal aliases and canonicalization
+
+The configured **Principal username attribute** determines the canonical
+principal. A user's other identifiers, such as their username, email address,
+or UPN, can be used as aliases. MIT Kerberos clients can request alias
+canonicalization with `kinit -C`:
+
+```bash
+kinit -C 'alex\@example.com'
+klist
+```
+
+Escape the `@` when it is part of the alias rather than the realm separator.
+The resulting ticket cache uses the canonical principal selected by the
+provider. Without `-C`, an alias is not accepted as a client principal.
+
+## Access control
+
+Application policy bindings gate all Kerberos ticket issuance. You can also
+bind policies to individual service principals to control access to specific
+services. Service-principal policy bindings are managed through the API using
+the service principal's policy-binding (`pbm`) UUID with the `PolicyBinding`
+API.
+
+When a policy denies access, Kerberos clients receive a KDC policy error.
+
+Service principals can optionally be linked to authentik service-account users.
+When a linked principal authenticates as a Kerberos client, the linked user's
+application and service-principal policies are evaluated. Unlinked service
+principals retain the default access behavior.
+
+## Service principals
+
+Service principals identify services that accept Kerberos tickets. Create a service principal for each Kerberos-enabled service, using the service name and host name required by that service, such as `HTTP/app.example.com` or `nfs/fileserver.example.com`.
+
+Service principals are available through the Kerberos service principal API. To create one, send a `POST` request to `/api/v3/providers/kerberos_service_principals/` with the provider and service principal name:
+
+```json
+{
+    "provider": 1,
+    "spn": "HTTP/app.example.com"
+}
+```
+
+The provider's **Allowed encryption types** setting determines which keys are generated. To rotate a service principal's keys and increment its KVNO, send a `POST` request to:
+
+```text
+/api/v3/providers/kerberos_service_principals/<uuid>/rotate/
+```
+
+Export a service principal as a MIT keytab with a `GET` request to:
+
+```text
+/api/v3/providers/kerberos_service_principals/<uuid>/keytab/
+```
+
+The response contains the keytab as a base64-encoded `keytab` value. Decode that value and install the resulting file on the service host. After rotating keys, replace the service's keytab and restart or reload the service as required.
+
+## Constrained delegation (S4U)
+
+Constrained delegation allows a service to act on behalf of a user. The service
+uses **S4U2Self** to obtain a ticket to itself for a user, then uses
+**S4U2Proxy** to obtain a ticket to an allowed downstream service. For example,
+a service account can obtain a user's ticket and access an NFS service on that
+user's behalf.
+
+Configure constrained delegation through the service principal API. There is no
+service principal web interface. The service principal fields are:
+
+- **ok_to_auth_as_delegate** allows the service principal to authenticate as an
+  impersonated user. S4U2Self tickets are forwardable only when this field is
+  enabled.
+- **allowed_delegation_targets** is a list of service principal names, such as
+  `nfs/fileserver.example.com`, that the service may access with S4U2Proxy.
+
+The service principal still needs its keytab to authenticate to the KDC. The
+target service must also have a configured service principal and keytab. Keep
+the target list limited to the services the delegating account needs.
+
+S4U2Proxy also evaluates the impersonated user's authentik application and
+target service-principal policies before issuing the delegated ticket.
+
+## PKINIT
+
+Public Key Cryptography for Initial Authentication (PKINIT) allows a client to obtain a Kerberos ticket with an X.509 certificate instead of a password. To enable PKINIT, set both certificate fields on the provider:
+
+- **KDC signing certificate** is the certificate/key pair that the KDC uses to sign PKINIT replies. It must include its private key, the `id-pkinit-KPKdc` Extended Key Usage (EKU), and a Kerberos KDC Subject Alternative Name (SAN) for the provider's realm.
+- **Client CA certificate** is the certificate authority (CA) that validates client certificates. It does not require a private key.
+
+The client certificate must include the `id-pkinit-KPClientAuth` EKU and a Kerberos principal SAN that matches the user's principal. Both the KDC certificate and the client certificate must be signed by a CA that the client trusts as appropriate for the PKINIT exchange.
+
+:::warning
+PKINIT is enabled only when both certificate fields are set. If either field is empty, the outpost leaves PKINIT disabled.
+:::
+
+### Configure a client
+
+Copy the client CA certificate to the client and add it to `/etc/krb5.conf`. Point the realm's KDC entry at the Kerberos outpost:
+
+```ini title="/etc/krb5.conf"
+[libdefaults]
+    default_realm = EXAMPLE.TEST
+    dns_lookup_kdc = false
+    dns_lookup_realm = false
+    pkinit_anchors = FILE:/etc/krb5/EXAMPLE.TEST-ca.pem
+
+[realms]
+    EXAMPLE.TEST = {
+        kdc = kerberos-outpost.example.com:3088
+    }
+```
+
+Use the client certificate and private key with `kinit`:
+
+```shell
+kinit -X X509_user_identity=FILE:/etc/krb5/alice.pem,/etc/krb5/alice.key alice
+```
+
+The principal component in the final argument must match the provider's **Principal username attribute** setting and the principal SAN in the certificate. Use `klist` to verify that the client received a TGT for the provider's realm.
+
+To require RFC 8070 freshness tokens in PKINIT requests, enable **Require PKINIT freshness**.
+This can improve resistance to replay of intercepted PKINIT requests, but clients must support
+freshness tokens.
+
+**Anonymous PKINIT enabled** allows the RFC 8062 anonymous principal
+`WELLKNOWN/ANONYMOUS`. Anonymous authentication does not identify an authentik user and therefore
+does not run user access checks. Keep this disabled unless anonymous tickets are explicitly
+required by your deployment.
+
+## KDC Proxy (KKDCP)
+
+The Kerberos outpost can expose the KDC over HTTPS using Microsoft KDC Proxy (MS-KKDCP).
+Enable **KDC Proxy enabled** and select a **KDC Proxy TLS certificate** with a private key.
+The listener uses internal port `3443`; publish or map it externally to HTTPS port `443`.
+Requests are accepted only at `/KdcProxy`.
+
+The certificate must be trusted by clients and include a private key suitable for a TLS server.
+If KDC Proxy is enabled without a certificate, the outpost logs a warning and does not start this
+listener; other Kerberos transports continue operating.
+
+For MIT Kerberos clients, configure the CA that issued the proxy certificate and the HTTPS KDC URL:
+
+```ini
+[libdefaults]
+    http_anchors = FILE:/etc/krb5/EXAMPLE.TEST-proxy-ca.pem
+
+[realms]
+    EXAMPLE.TEST = {
+        kdc = https://kerberos-outpost.example.com/KdcProxy
+    }
+```
+
+## Realm trusts
+
+Realm trusts allow the provider's local realm to issue and accept tickets for a
+configured remote realm. For a trust between `EXAMPLE.TEST` and `REMOTE.TEST`,
+authentik publishes these directional trust principals:
+
+- `krbtgt/REMOTE.TEST@EXAMPLE.TEST` uses the outgoing key set.
+- `krbtgt/EXAMPLE.TEST@REMOTE.TEST` uses the incoming key set.
+
+Each direction has its own KVNO and keys. Use the corresponding keytab export
+when configuring the peer realm, and rotate outgoing and incoming keys
+independently. authentik generates the keys when the trust is created; there is
+no key-import API.
+
+The optional **Intermediate realms** (`capaths`) list configures the intermediate
+realms allowed for transited-path checking. Values are stored in the order
+required by the Kerberos trust path, from the client realm to the service realm.
+
+### MIT replica propagation
+
+The Kerberos outpost can feed full MIT database dumps to one or more MIT slave
+KDCs through `kprop` and `kpropd`. Configure the following provider settings:
+
+| Setting                 | Description                                                                                                            |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `kprop_enabled`         | Enable replica propagation.                                                                                            |
+| `kprop_targets`         | Replica targets in `host[:port]` form. The default port is `754`.                                                      |
+| `kprop_client_spn`      | Existing service principal used as the kprop client identity. Authorize this principal in each replica's `kpropd.acl`. |
+| `kprop_master_password` | MIT database master password. Use the same password when creating each replica database.                               |
+| `kprop_interval`        | Full-dump propagation interval in seconds. The default is `300`.                                                       |
+
+Create each replica database with the same master password configured above:
+
+```shell
+kdb5_util create -s -P <same password>
+```
+
+Add the configured client principal to the replica's `kpropd.acl`, then run
+`kpropd` on the default port `754` (or configure another port in
+`kprop_targets`). The outpost sends complete database dumps, so every
+configured user, service principal, trust principal, and required synthetic
+principal is refreshed on each push. Failed pushes are logged independently
+for each target and do not stop the Kerberos outpost.
+
+Changing the master password requires coordinated replica recreation or
+compatible MIT database-master-key handling. Full dumps do not provide
+incremental key-rotation semantics.
+
+## Kerberos administration
+
+The outpost can expose the MIT `kadmin` (kadm5) administration protocol on
+internal port `3749` (the conventional external port is `749`). Enable
+`kadmin_enabled` and add MIT `kadm5.acl` lines to `kadmin_acl`, for example
+`admin *`. User principals are managed by authentik: `addprinc -randkey`
+creates service principals with randomly generated keys, while password changes
+for users are applied through authentik's password policies. Service principals
+can be created, deleted, rotated, and have ticket flags updated through kadmin.
+The kadm5 listener serves only the first enabled kadmin provider because MIT
+kadmind is single-realm; additional enabled providers are ignored and a warning
+is logged by the outpost.
+
+For example, a path from `EXAMPLE.TEST` to `REMOTE.TEST` through
+`HUB.TEST` uses `HUB.TEST` as its intermediate realm.
+
+## Deploy the Kerberos outpost
+
+The Kerberos provider requires a Kerberos outpost. The provider must be associated with an application so that the outpost can retrieve its configuration.
+
+1. In the Admin interface, create a Kerberos provider and configure its realm and settings.
+2. Create or select an application and associate the Kerberos provider with it.
+3. Navigate to **Applications** > **Outposts** and click **Create**.
+4. Set **Type** to **Kerberos**, select the application that uses the provider, and choose a deployment integration or manual deployment.
+5. Click **Create**.
+
+authentik generates a service account and token for the outpost. The outpost uses the token to retrieve provider configuration and service principals from authentik.
+
+For a manually deployed outpost, provide the authentik URL and generated token to the Kerberos outpost container and publish port `3088` for both UDP and TCP:
+
+```yaml
+services:
+    authentik_kerberos:
+        image: ghcr.io/goauthentik/kerberos
+        ports:
+            - 3088:3088/tcp
+            - 3088:3088/udp
+            - 443:3443/tcp
+        environment:
+            AUTHENTIK_HOST: https://authentik.company
+            AUTHENTIK_INSECURE: "false"
+            AUTHENTIK_TOKEN: token-generated-by-authentik
+```
+
+The outpost must be able to connect to authentik, and Kerberos clients must be able to connect to the published UDP or TCP port. If you disable one transport in the provider, clients must use the remaining transport.

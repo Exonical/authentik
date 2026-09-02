@@ -23,6 +23,10 @@ from authentik.lib.models import ExpiringModel
 
 password_changed = Signal()
 """Arguments: user: User, password: str"""
+password_validated = Signal()
+"""
+Sent when a user's password was successfully verified in a flow; carries the plaintext password.
+"""
 password_hash_changed = Signal()
 """Arguments: user: User, request: HttpRequest | None"""
 login_failed = Signal()

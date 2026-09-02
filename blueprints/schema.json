@@ -2424,6 +2424,166 @@
                     ],
                     "properties": {
                         "model": {
+                            "const": "authentik_providers_kerberos.kerberosprovider"
+                        },
+                        "id": {
+                            "type": "string"
+                        },
+                        "state": {
+                            "type": "string",
+                            "enum": [
+                                "absent",
+                                "created",
+                                "must_created",
+                                "present"
+                            ],
+                            "default": "present"
+                        },
+                        "conditions": {
+                            "type": "array",
+                            "items": {
+                                "type": "boolean"
+                            }
+                        },
+                        "permissions": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosprovider_permissions"
+                        },
+                        "attrs": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosprovider"
+                        },
+                        "identifiers": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosprovider"
+                        }
+                    }
+                },
+                {
+                    "type": "object",
+                    "required": [
+                        "model",
+                        "identifiers"
+                    ],
+                    "properties": {
+                        "model": {
+                            "const": "authentik_providers_kerberos.kerberosrealmtrust"
+                        },
+                        "id": {
+                            "type": "string"
+                        },
+                        "state": {
+                            "type": "string",
+                            "enum": [
+                                "absent",
+                                "created",
+                                "must_created",
+                                "present"
+                            ],
+                            "default": "present"
+                        },
+                        "conditions": {
+                            "type": "array",
+                            "items": {
+                                "type": "boolean"
+                            }
+                        },
+                        "permissions": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosrealmtrust_permissions"
+                        },
+                        "attrs": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosrealmtrust"
+                        },
+                        "identifiers": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosrealmtrust"
+                        }
+                    }
+                },
+                {
+                    "type": "object",
+                    "required": [
+                        "model",
+                        "identifiers"
+                    ],
+                    "properties": {
+                        "model": {
+                            "const": "authentik_providers_kerberos.kerberosserviceprincipal"
+                        },
+                        "id": {
+                            "type": "string"
+                        },
+                        "state": {
+                            "type": "string",
+                            "enum": [
+                                "absent",
+                                "created",
+                                "must_created",
+                                "present"
+                            ],
+                            "default": "present"
+                        },
+                        "conditions": {
+                            "type": "array",
+                            "items": {
+                                "type": "boolean"
+                            }
+                        },
+                        "permissions": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosserviceprincipal_permissions"
+                        },
+                        "attrs": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosserviceprincipal"
+                        },
+                        "identifiers": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosserviceprincipal"
+                        }
+                    }
+                },
+                {
+                    "type": "object",
+                    "required": [
+                        "model",
+                        "identifiers"
+                    ],
+                    "properties": {
+                        "model": {
+                            "const": "authentik_providers_kerberos.kerberosuserkeys"
+                        },
+                        "id": {
+                            "type": "string"
+                        },
+                        "state": {
+                            "type": "string",
+                            "enum": [
+                                "absent",
+                                "created",
+                                "must_created",
+                                "present"
+                            ],
+                            "default": "present"
+                        },
+                        "conditions": {
+                            "type": "array",
+                            "items": {
+                                "type": "boolean"
+                            }
+                        },
+                        "permissions": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosuserkeys_permissions"
+                        },
+                        "attrs": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosuserkeys"
+                        },
+                        "identifiers": {
+                            "$ref": "#/definitions/model_authentik_providers_kerberos.kerberosuserkeys"
+                        }
+                    }
+                },
+                {
+                    "type": "object",
+                    "required": [
+                        "model",
+                        "identifiers"
+                    ],
+                    "properties": {
+                        "model": {
                             "const": "authentik_providers_ldap.ldapprovider"
                         },
                         "id": {
@@ -6030,6 +6190,22 @@
                             "authentik_providers_google_workspace.view_googleworkspaceprovidermapping",
                             "authentik_providers_google_workspace.view_googleworkspaceproviderpropertymappingsgroup",
                             "authentik_providers_google_workspace.view_googleworkspaceprovideruser",
+                            "authentik_providers_kerberos.add_kerberosprovider",
+                            "authentik_providers_kerberos.add_kerberosrealmtrust",
+                            "authentik_providers_kerberos.add_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.add_kerberosuserkeys",
+                            "authentik_providers_kerberos.change_kerberosprovider",
+                            "authentik_providers_kerberos.change_kerberosrealmtrust",
+                            "authentik_providers_kerberos.change_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.change_kerberosuserkeys",
+                            "authentik_providers_kerberos.delete_kerberosprovider",
+                            "authentik_providers_kerberos.delete_kerberosrealmtrust",
+                            "authentik_providers_kerberos.delete_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.delete_kerberosuserkeys",
+                            "authentik_providers_kerberos.view_kerberosprovider",
+                            "authentik_providers_kerberos.view_kerberosrealmtrust",
+                            "authentik_providers_kerberos.view_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.view_kerberosuserkeys",
                             "authentik_providers_ldap.add_ldapprovider",
                             "authentik_providers_ldap.change_ldapprovider",
                             "authentik_providers_ldap.delete_ldapprovider",
@@ -7424,6 +7600,22 @@
                             "authentik_providers_google_workspace.view_googleworkspaceprovidermapping",
                             "authentik_providers_google_workspace.view_googleworkspaceproviderpropertymappingsgroup",
                             "authentik_providers_google_workspace.view_googleworkspaceprovideruser",
+                            "authentik_providers_kerberos.add_kerberosprovider",
+                            "authentik_providers_kerberos.add_kerberosrealmtrust",
+                            "authentik_providers_kerberos.add_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.add_kerberosuserkeys",
+                            "authentik_providers_kerberos.change_kerberosprovider",
+                            "authentik_providers_kerberos.change_kerberosrealmtrust",
+                            "authentik_providers_kerberos.change_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.change_kerberosuserkeys",
+                            "authentik_providers_kerberos.delete_kerberosprovider",
+                            "authentik_providers_kerberos.delete_kerberosrealmtrust",
+                            "authentik_providers_kerberos.delete_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.delete_kerberosuserkeys",
+                            "authentik_providers_kerberos.view_kerberosprovider",
+                            "authentik_providers_kerberos.view_kerberosrealmtrust",
+                            "authentik_providers_kerberos.view_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.view_kerberosuserkeys",
                             "authentik_providers_ldap.add_ldapprovider",
                             "authentik_providers_ldap.change_ldapprovider",
                             "authentik_providers_ldap.delete_ldapprovider",
@@ -10871,7 +11063,8 @@
                         "proxy",
                         "ldap",
                         "radius",
-                        "rac"
+                        "rac",
+                        "kerberos"
                     ],
                     "title": "Type"
                 },
@@ -11094,6 +11287,7 @@
                         "authentik.providers.proxy",
                         "authentik.providers.rac",
                         "authentik.providers.radius",
+                        "authentik.providers.kerberos",
                         "authentik.providers.saml",
                         "authentik.providers.scim",
                         "authentik.rbac",
@@ -11204,6 +11398,10 @@
                         "authentik_providers_rac.racpropertymapping",
                         "authentik_providers_radius.radiusprovider",
                         "authentik_providers_radius.radiusproviderpropertymapping",
+                        "authentik_providers_kerberos.kerberosprovider",
+                        "authentik_providers_kerberos.kerberosserviceprincipal",
+                        "authentik_providers_kerberos.kerberosrealmtrust",
+                        "authentik_providers_kerberos.kerberosuserkeys",
                         "authentik_providers_saml.samlprovider",
                         "authentik_providers_saml.samlpropertymapping",
                         "authentik_providers_scim.scimprovider",
@@ -12011,6 +12209,472 @@
                             "change_reputationpolicy",
                             "delete_reputationpolicy",
                             "view_reputationpolicy"
+                        ]
+                    },
+                    "user": {
+                        "type": "integer"
+                    },
+                    "role": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "model_authentik_providers_kerberos.kerberosprovider": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "title": "Name"
+                },
+                "authentication_flow": {
+                    "type": "string",
+                    "format": "uuid",
+                    "title": "Authentication flow",
+                    "description": "Flow used for authentication when the associated application is accessed by an un-authenticated user."
+                },
+                "authorization_flow": {
+                    "type": "string",
+                    "format": "uuid",
+                    "title": "Authorization flow",
+                    "description": "Flow used when authorizing this provider."
+                },
+                "invalidation_flow": {
+                    "type": "string",
+                    "format": "uuid",
+                    "title": "Invalidation flow",
+                    "description": "Flow used ending the session from a provider."
+                },
+                "property_mappings": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "title": "Property mappings"
+                },
+                "realm_name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "title": "Realm name"
+                },
+                "default_domain": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "title": "Default domain"
+                },
+                "maximum_ticket_lifetime": {
+                    "type": "string",
+                    "minLength": 1,
+                    "title": "Maximum ticket lifetime"
+                },
+                "maximum_ticket_renew_lifetime": {
+                    "type": "string",
+                    "minLength": 1,
+                    "title": "Maximum ticket renew lifetime"
+                },
+                "default_ticket_lifetime": {
+                    "type": "string",
+                    "minLength": 1,
+                    "title": "Default ticket lifetime"
+                },
+                "default_ticket_renew_lifetime": {
+                    "type": "string",
+                    "minLength": 1,
+                    "title": "Default ticket renew lifetime"
+                },
+                "allowed_enctypes": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer",
+                        "enum": [
+                            17,
+                            18,
+                            19,
+                            20
+                        ],
+                        "title": "Allowed enctypes"
+                    },
+                    "title": "Allowed enctypes"
+                },
+                "require_preauthentication": {
+                    "type": "boolean",
+                    "title": "Require preauthentication"
+                },
+                "spake_enabled": {
+                    "type": "boolean",
+                    "title": "Spake enabled",
+                    "description": "Advertise PA-SPAKE preauthentication (RFC 9588)."
+                },
+                "udp_enabled": {
+                    "type": "boolean",
+                    "title": "Udp enabled"
+                },
+                "tcp_enabled": {
+                    "type": "boolean",
+                    "title": "Tcp enabled"
+                },
+                "kpasswd_enabled": {
+                    "type": "boolean",
+                    "title": "Kpasswd enabled",
+                    "description": "Enable RFC 3244 password changes through the Kerberos outpost."
+                },
+                "forwardable": {
+                    "type": "boolean",
+                    "title": "Forwardable"
+                },
+                "renewable": {
+                    "type": "boolean",
+                    "title": "Renewable"
+                },
+                "proxiable": {
+                    "type": "boolean",
+                    "title": "Proxiable"
+                },
+                "principal_username_attribute": {
+                    "type": "string",
+                    "enum": [
+                        "username",
+                        "email",
+                        "upn"
+                    ],
+                    "title": "Principal username attribute"
+                },
+                "pkinit_certificate": {
+                    "type": "string",
+                    "format": "uuid",
+                    "title": "Pkinit certificate",
+                    "description": "Certificate/key pair the KDC uses to sign PKINIT replies. Requires a private key."
+                },
+                "pkinit_client_ca": {
+                    "type": "string",
+                    "format": "uuid",
+                    "title": "Pkinit client ca",
+                    "description": "CA certificate used to validate PKINIT client certificates."
+                },
+                "pkinit_require_freshness": {
+                    "type": "boolean",
+                    "title": "Pkinit require freshness",
+                    "description": "Require RFC 8070 freshness tokens on PKINIT requests."
+                },
+                "pkinit_indicators": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "title": "Pkinit indicators"
+                    },
+                    "title": "Pkinit indicators",
+                    "description": "Authentication indicators asserted after successful PKINIT."
+                },
+                "spake_indicators": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "title": "Spake indicators"
+                    },
+                    "title": "Spake indicators",
+                    "description": "Indicators asserted after SPAKE preauthentication."
+                },
+                "encrypted_challenge_indicator": {
+                    "type": "string",
+                    "title": "Encrypted challenge indicator",
+                    "description": "Indicator asserted after encrypted-challenge preauthentication."
+                },
+                "otp_enabled": {
+                    "type": "boolean",
+                    "title": "Otp enabled",
+                    "description": "Enable RFC 6560 OTP preauthentication backed by the user's authentik TOTP and static authenticator devices."
+                },
+                "otp_indicators": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "title": "Otp indicators"
+                    },
+                    "title": "Otp indicators",
+                    "description": "Authentication indicators asserted after successful OTP preauthentication."
+                },
+                "anonymous_pkinit_enabled": {
+                    "type": "boolean",
+                    "title": "Anonymous pkinit enabled",
+                    "description": "Allow anonymous PKINIT requests."
+                },
+                "kkdcp_enabled": {
+                    "type": "boolean",
+                    "title": "Kkdcp enabled",
+                    "description": "Enable KDC Proxy over HTTPS (MS-KKDCP)."
+                },
+                "kkdcp_certificate": {
+                    "type": "string",
+                    "format": "uuid",
+                    "title": "Kkdcp certificate",
+                    "description": "Certificate/key pair the KDC Proxy listener uses for TLS."
+                },
+                "pac_enabled": {
+                    "type": "boolean",
+                    "title": "Pac enabled",
+                    "description": "Include an MS-PAC in issued tickets."
+                },
+                "realm_sid": {
+                    "type": "string",
+                    "title": "Realm sid",
+                    "description": "Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3."
+                },
+                "kprop_enabled": {
+                    "type": "boolean",
+                    "title": "Kprop enabled",
+                    "description": "Push full MIT Kerberos database dumps to replica KDCs."
+                },
+                "kprop_targets": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "title": "Kprop targets"
+                },
+                "kprop_client_spn": {
+                    "type": "string",
+                    "title": "Kprop client spn",
+                    "description": "Service principal used to authenticate kprop pushes."
+                },
+                "kprop_master_password": {
+                    "type": "string",
+                    "title": "Kprop master password",
+                    "description": "MIT database master password used to encrypt full kprop dumps."
+                },
+                "kprop_interval": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647,
+                    "title": "Kprop interval",
+                    "description": "Interval in seconds between full kprop pushes."
+                },
+                "kdc_audit_enabled": {
+                    "type": "boolean",
+                    "title": "Kdc audit enabled",
+                    "description": "Emit authentik events for KDC ticket operations."
+                },
+                "kadmin_enabled": {
+                    "type": "boolean",
+                    "title": "Kadmin enabled",
+                    "description": "Serve the kadm5 admin protocol from the outpost."
+                },
+                "kadmin_acl": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "title": "Kadmin acl"
+                }
+            },
+            "required": []
+        },
+        "model_authentik_providers_kerberos.kerberosprovider_permissions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "permission"
+                ],
+                "properties": {
+                    "permission": {
+                        "type": "string",
+                        "enum": [
+                            "add_kerberosprovider",
+                            "change_kerberosprovider",
+                            "delete_kerberosprovider",
+                            "view_kerberosprovider"
+                        ]
+                    },
+                    "user": {
+                        "type": "integer"
+                    },
+                    "role": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "model_authentik_providers_kerberos.kerberosrealmtrust": {
+            "type": "object",
+            "properties": {
+                "provider": {
+                    "type": "integer",
+                    "title": "Provider"
+                },
+                "remote_realm": {
+                    "type": "string",
+                    "minLength": 1,
+                    "title": "Remote realm"
+                },
+                "capaths": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "title": "Capaths"
+                    },
+                    "title": "Capaths",
+                    "description": "Intermediate realms for transited-path checking."
+                }
+            },
+            "required": []
+        },
+        "model_authentik_providers_kerberos.kerberosrealmtrust_permissions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "permission"
+                ],
+                "properties": {
+                    "permission": {
+                        "type": "string",
+                        "enum": [
+                            "add_kerberosrealmtrust",
+                            "change_kerberosrealmtrust",
+                            "delete_kerberosrealmtrust",
+                            "view_kerberosrealmtrust"
+                        ]
+                    },
+                    "user": {
+                        "type": "integer"
+                    },
+                    "role": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "model_authentik_providers_kerberos.kerberosserviceprincipal": {
+            "type": "object",
+            "properties": {
+                "provider": {
+                    "type": "integer",
+                    "title": "Provider"
+                },
+                "spn": {
+                    "type": "string",
+                    "maxLength": 1024,
+                    "minLength": 1,
+                    "title": "Spn"
+                },
+                "service_account": {
+                    "type": "integer",
+                    "title": "Service account",
+                    "description": "Optional authentik user (typically a service account) whose policies are evaluated when this principal acts as a Kerberos client."
+                },
+                "ok_to_auth_as_delegate": {
+                    "type": "boolean",
+                    "title": "Ok to auth as delegate",
+                    "description": "Allow this service principal to authenticate as a user for delegation."
+                },
+                "allowed_delegation_targets": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "title": "Allowed delegation targets"
+                },
+                "required_auth_indicators": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "title": "Required auth indicators"
+                    },
+                    "title": "Required auth indicators",
+                    "description": "Authentication indicators required to obtain tickets for this service."
+                },
+                "ticket_flags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "requires_preauth",
+                            "requires_hwauth",
+                            "disallow_postdated",
+                            "disallow_forwardable",
+                            "disallow_proxiable",
+                            "disallow_renewable",
+                            "disallow_tgt_based",
+                            "disallow_server"
+                        ]
+                    },
+                    "title": "Ticket flags"
+                }
+            },
+            "required": []
+        },
+        "model_authentik_providers_kerberos.kerberosserviceprincipal_permissions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "permission"
+                ],
+                "properties": {
+                    "permission": {
+                        "type": "string",
+                        "enum": [
+                            "add_kerberosserviceprincipal",
+                            "change_kerberosserviceprincipal",
+                            "delete_kerberosserviceprincipal",
+                            "view_kerberosserviceprincipal"
+                        ]
+                    },
+                    "user": {
+                        "type": "integer"
+                    },
+                    "role": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "model_authentik_providers_kerberos.kerberosuserkeys": {
+            "type": "object",
+            "properties": {
+                "user": {
+                    "type": "integer",
+                    "title": "User"
+                },
+                "provider": {
+                    "type": "integer",
+                    "title": "Provider"
+                },
+                "salt": {
+                    "type": "string",
+                    "maxLength": 1024,
+                    "minLength": 1,
+                    "title": "Salt"
+                }
+            },
+            "required": []
+        },
+        "model_authentik_providers_kerberos.kerberosuserkeys_permissions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [
+                    "permission"
+                ],
+                "properties": {
+                    "permission": {
+                        "type": "string",
+                        "enum": [
+                            "add_kerberosuserkeys",
+                            "change_kerberosuserkeys",
+                            "delete_kerberosuserkeys",
+                            "view_kerberosuserkeys"
                         ]
                     },
                     "user": {
@@ -13924,6 +14588,22 @@
                             "authentik_providers_google_workspace.view_googleworkspaceprovidermapping",
                             "authentik_providers_google_workspace.view_googleworkspaceproviderpropertymappingsgroup",
                             "authentik_providers_google_workspace.view_googleworkspaceprovideruser",
+                            "authentik_providers_kerberos.add_kerberosprovider",
+                            "authentik_providers_kerberos.add_kerberosrealmtrust",
+                            "authentik_providers_kerberos.add_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.add_kerberosuserkeys",
+                            "authentik_providers_kerberos.change_kerberosprovider",
+                            "authentik_providers_kerberos.change_kerberosrealmtrust",
+                            "authentik_providers_kerberos.change_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.change_kerberosuserkeys",
+                            "authentik_providers_kerberos.delete_kerberosprovider",
+                            "authentik_providers_kerberos.delete_kerberosrealmtrust",
+                            "authentik_providers_kerberos.delete_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.delete_kerberosuserkeys",
+                            "authentik_providers_kerberos.view_kerberosprovider",
+                            "authentik_providers_kerberos.view_kerberosrealmtrust",
+                            "authentik_providers_kerberos.view_kerberosserviceprincipal",
+                            "authentik_providers_kerberos.view_kerberosuserkeys",
                             "authentik_providers_ldap.add_ldapprovider",
                             "authentik_providers_ldap.change_ldapprovider",
                             "authentik_providers_ldap.delete_ldapprovider",

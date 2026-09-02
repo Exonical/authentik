@@ -1,0 +1,185 @@
+"""Kerberos provider model and signal tests."""
+
+import base64
+
+from django.core.exceptions import ValidationError
+from django.test import TestCase
+
+from authentik.core.signals import password_validated
+from authentik.core.tests.utils import create_test_user
+from authentik.lib.generators import generate_id
+from authentik.providers.kerberos.crypto import string2key
+from authentik.providers.kerberos.models import (
+    KerberosProvider,
+    KerberosRealmTrust,
+    KerberosServicePrincipal,
+    KerberosUserKeys,
+)
+
+
+class KerberosProviderTests(TestCase):
+    """Test Kerberos provider models."""
+
+    def test_advanced_protocol_settings_default_disabled(self):
+        """Advanced protocol features are disabled by default."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name=generate_id(),
+        )
+        self.assertFalse(provider.spake_enabled)
+        self.assertFalse(provider.pkinit_require_freshness)
+        self.assertFalse(provider.anonymous_pkinit_enabled)
+        self.assertFalse(provider.kkdcp_enabled)
+        self.assertIsNone(provider.kkdcp_certificate)
+        self.assertEqual(provider.pkinit_indicators, [])
+        self.assertEqual(provider.spake_indicators, [])
+        self.assertEqual(provider.encrypted_challenge_indicator, "")
+        self.assertFalse(provider.pac_enabled)
+        self.assertEqual(provider.realm_sid, "")
+
+    def test_pac_realm_sid_is_generated_and_stable(self):
+        """PAC-enabled providers receive a stable domain SID."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name=generate_id(),
+            pac_enabled=True,
+        )
+        self.assertRegex(provider.realm_sid, r"^S-1-5-21-\d+-\d+-\d+$")
+        sid = provider.realm_sid
+        provider.name = generate_id()
+        provider.save()
+        provider.refresh_from_db()
+        self.assertEqual(provider.realm_sid, sid)
+
+    def test_pac_realm_sid_validation(self):
+        """PAC domain SIDs must use the three-authority format."""
+        provider = KerberosProvider(
+            name=generate_id(),
+            realm_name=generate_id(),
+            realm_sid="S-1-5-21-1-2-3",
+        )
+        provider.save()
+        self.assertEqual(provider.realm_sid, "S-1-5-21-1-2-3")
+        for value in ["S-1-5-21-1-2", "S-1-5-21-1-2-3-4294967296", "not-a-sid"]:
+            provider.realm_sid = value
+            with self.assertRaises(ValidationError):
+                provider.save()
+
+    def test_service_principal_keys(self):
+        """Service principal keys are generated per allowed enctype."""
+        provider = KerberosProvider.objects.create(name=generate_id(), realm_name=generate_id())
+        principal = KerberosServicePrincipal.objects.create(
+            provider=provider,
+            spn="HTTP/app.example.com",
+        )
+        self.assertEqual(set(principal.keys), {"18", "20"})
+        self.assertEqual(len(base64.b64decode(principal.keys["18"])), 32)
+        self.assertEqual(len(base64.b64decode(principal.keys["20"])), 32)
+        self.assertEqual(principal.required_auth_indicators, [])
+
+    def test_auth_indicator_settings_can_be_set(self):
+        """Authentication indicator settings persist on providers and services."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name=generate_id(),
+            pkinit_indicators=["pkinit"],
+            spake_indicators=["spake", "hardware"],
+            encrypted_challenge_indicator="encrypted",
+        )
+        principal = KerberosServicePrincipal.objects.create(
+            provider=provider,
+            spn="HTTP/app.example.com",
+            required_auth_indicators=["pkinit", "hardware"],
+        )
+        provider.refresh_from_db()
+        principal.refresh_from_db()
+        self.assertEqual(provider.pkinit_indicators, ["pkinit"])
+        self.assertEqual(provider.spake_indicators, ["spake", "hardware"])
+        self.assertEqual(provider.encrypted_challenge_indicator, "encrypted")
+        self.assertEqual(principal.required_auth_indicators, ["pkinit", "hardware"])
+
+    def test_realm_trust_generates_independent_directional_keys(self):
+        """Realm trust keys and KVNOs are independent for each direction."""
+        provider = KerberosProvider.objects.create(name=generate_id(), realm_name="EXAMPLE.TEST")
+        trust = KerberosRealmTrust.objects.create(
+            provider=provider,
+            remote_realm="remote.test",
+            outgoing_kvno=3,
+            incoming_kvno=4,
+        )
+        self.assertEqual(trust.remote_realm, "remote.test")
+        self.assertEqual(trust.capaths, [])
+        self.assertEqual(set(trust.outgoing_keys), {"18", "20"})
+        self.assertEqual(set(trust.incoming_keys), {"18", "20"})
+        self.assertNotEqual(trust.outgoing_keys, trust.incoming_keys)
+        self.assertEqual(trust.outgoing_kvno, 3)
+        self.assertEqual(trust.incoming_kvno, 4)
+
+    def test_realm_trust_requires_remote_realm(self):
+        """Realm trust remote realms cannot be empty."""
+        provider = KerberosProvider.objects.create(name=generate_id(), realm_name="EXAMPLE.TEST")
+        trust = KerberosRealmTrust(provider=provider, remote_realm="")
+        with self.assertRaises(ValidationError):
+            trust.full_clean()
+
+    def test_service_principal_key_lengths_follow_enctypes(self):
+        """AES-128 service keys contain 128 bits."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name=generate_id(),
+            allowed_enctypes=[17, 19],
+        )
+        principal = KerberosServicePrincipal.objects.create(
+            provider=provider,
+            spn="HTTP/app.example.com",
+        )
+        self.assertEqual(len(base64.b64decode(principal.keys["17"])), 16)
+        self.assertEqual(len(base64.b64decode(principal.keys["19"])), 16)
+
+    def test_password_change_updates_keys(self):
+        """Password changes create keys and increment kvno."""
+        provider = KerberosProvider.objects.create(name=generate_id(), realm_name="EXAMPLE.COM")
+        user = create_test_user()
+        keys = KerberosUserKeys.objects.get(provider=provider, user=user)
+        self.assertEqual(keys.kvno, 1)
+        user.set_password("first-password")
+        keys.refresh_from_db()
+        self.assertEqual(keys.kvno, 2)
+        user.set_password("second-password")
+        keys.refresh_from_db()
+        self.assertEqual(keys.kvno, 3)
+
+    def test_password_validation_backfills_keys(self):
+        """Successful password validation creates keys for existing users."""
+        user = create_test_user()
+        provider = KerberosProvider.objects.create(name=generate_id(), realm_name="EXAMPLE.COM")
+        password = "validated-password"
+
+        password_validated.send(sender=self.__class__, user=user, password=password)
+
+        keys = KerberosUserKeys.objects.get(provider=provider, user=user)
+        self.assertEqual(keys.kvno, 1)
+        self.assertEqual(keys.salt, f"{provider.realm_name}{user.username}")
+        self.assertEqual(
+            keys.keys["18"],
+            base64.b64encode(string2key(password, keys.salt, 18)).decode(),
+        )
+        self.assertNotIn(password, keys.salt)
+        self.assertNotIn(password, keys.keys.values())
+
+    def test_password_validation_does_not_modify_existing_keys(self):
+        """Subsequent successful password validation leaves existing keys unchanged."""
+        user = create_test_user()
+        provider = KerberosProvider.objects.create(name=generate_id(), realm_name="EXAMPLE.COM")
+        password = "validated-password"
+        password_validated.send(sender=self.__class__, user=user, password=password)
+        keys = KerberosUserKeys.objects.get(provider=provider, user=user)
+        original_keys = keys.keys
+        original_salt = keys.salt
+
+        password_validated.send(sender=self.__class__, user=user, password="another-password")
+
+        keys.refresh_from_db()
+        self.assertEqual(keys.kvno, 1)
+        self.assertEqual(keys.keys, original_keys)
+        self.assertEqual(keys.salt, original_salt)

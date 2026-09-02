@@ -109,6 +109,7 @@ TENANT_APPS = [
     "authentik.providers.proxy",
     "authentik.providers.rac",
     "authentik.providers.radius",
+    "authentik.providers.kerberos",
     "authentik.providers.saml",
     "authentik.providers.scim",
     "authentik.rbac",
