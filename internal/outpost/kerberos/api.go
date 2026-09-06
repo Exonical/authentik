@@ -246,8 +246,16 @@ func (rs *KerberosServer) Refresh() error {
 			)
 		}
 		if old := rs.getCurrentProvider(provider.Pk); old != nil {
-			store.cache = old.Store.cache
-			store.accessCache = old.Store.accessCache
+			old.Store.cacheMu.Lock()
+			old.Store.accessCacheMu.Lock()
+			for key, value := range old.Store.cache {
+				store.cache[key] = value
+			}
+			for key, value := range old.Store.accessCache {
+				store.accessCache[key] = value
+			}
+			old.Store.accessCacheMu.Unlock()
+			old.Store.cacheMu.Unlock()
 		}
 		providers[provider.Pk] = instance
 	}

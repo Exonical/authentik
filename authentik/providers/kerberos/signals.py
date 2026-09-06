@@ -2,12 +2,19 @@
 
 import base64
 
+from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
 from authentik.core.models import User
 from authentik.core.signals import password_changed, password_validated
+from authentik.outposts.tasks import outpost_send_update
 from authentik.providers.kerberos.crypto import string2key
-from authentik.providers.kerberos.models import KerberosProvider, KerberosUserKeys
+from authentik.providers.kerberos.models import (
+    KerberosProvider,
+    KerberosRealmTrust,
+    KerberosServicePrincipal,
+    KerberosUserKeys,
+)
 
 
 def derive_user_keys(
@@ -55,3 +62,18 @@ def kerberos_backfill_user_keys(sender, user: User, password: str, **_):
             provider=provider,
             defaults={"keys": keys, "salt": salt},
         )
+
+
+def kerberos_provider_objects_changed(sender, instance, **_):
+    """Send an outpost update when provider-scoped Kerberos objects change."""
+    for outpost in instance.provider.outpost_set.all():
+        outpost_send_update.send_with_options(
+            args=(outpost.pk,),
+            rel_obj=outpost,
+            uid=outpost.name,
+        )
+
+
+for model in (KerberosServicePrincipal, KerberosRealmTrust):
+    post_save.connect(kerberos_provider_objects_changed, sender=model, weak=False)
+    post_delete.connect(kerberos_provider_objects_changed, sender=model, weak=False)

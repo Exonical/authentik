@@ -1,8 +1,21 @@
 package kerberos
 
 import (
+	"encoding/base64"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"sync"
 	"testing"
 	"time"
+
+	"github.com/Exonical/go-kerberos/krb5/kdb"
+	"github.com/Exonical/go-kerberos/krb5/principal"
+	log "github.com/sirupsen/logrus"
+
+	"goauthentik.io/internal/outpost/ak"
+	api "goauthentik.io/packages/client-go"
 )
 
 func TestParseDuration(t *testing.T) {
@@ -37,5 +50,126 @@ func TestParseDurationRejectsInvalidExpression(t *testing.T) {
 				t.Fatalf("parseDuration(%q) succeeded", expression)
 			}
 		})
+	}
+}
+
+func TestRefreshCopiesCachesWithoutRacingRequests(t *testing.T) {
+	t.Parallel()
+	apiServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		var response any
+		switch r.URL.Path {
+		case "/api/v3/outposts/kerberos/":
+			response = map[string]any{
+				"pagination": map[string]int{
+					"count": 1, "next": 0, "previous": 0, "current": 1,
+					"total_pages": 1, "start_index": 0, "end_index": 1,
+				},
+				"results": []map[string]any{{
+					"pk":                            1,
+					"name":                          "test",
+					"realm_name":                    testRealm,
+					"maximum_ticket_lifetime":       3600,
+					"maximum_ticket_renew_lifetime": 3600,
+					"allowed_enctypes":              []int{18},
+					"master_key":                    base64.StdEncoding.EncodeToString([]byte("master key")),
+					"application_slug":              "test",
+				}},
+				"autocomplete": map[string]any{},
+			}
+		case "/api/v3/outposts/kerberos/1/service_principals/":
+			response = map[string]any{
+				"pagination": map[string]int{
+					"count": 0, "next": 0, "previous": 0, "current": 1,
+					"total_pages": 1, "start_index": 0, "end_index": 0,
+				},
+				"results":      []any{},
+				"autocomplete": map[string]any{},
+			}
+		case "/api/v3/outposts/kerberos/1/realm_trusts/":
+			response = map[string]any{
+				"pagination": map[string]int{
+					"count": 0, "next": 0, "previous": 0, "current": 1,
+					"total_pages": 1, "start_index": 0, "end_index": 0,
+				},
+				"results":      []any{},
+				"autocomplete": map[string]any{},
+			}
+		default:
+			http.NotFound(w, r)
+			return
+		}
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			t.Errorf("encode response: %v", err)
+		}
+	}))
+	t.Cleanup(apiServer.Close)
+	parsed, err := url.Parse(apiServer.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := api.NewConfiguration()
+	cfg.Host = parsed.Host
+	cfg.Scheme = parsed.Scheme
+	cfg.Servers = api.ServerConfigurations{{URL: "/api/v3"}}
+
+	client, err := principal.Parse("alice@" + testRealm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service, err := principal.Parse("host/example@" + testRealm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	oldStore := &providerStore{
+		realm:    testRealm,
+		services: make(map[string]kdb.PrincipalRecord),
+		trusts:   make(map[string]kdb.PrincipalRecord),
+		cache:    map[string]cachedUserKey{"alice": {expires: time.Now().Add(time.Minute)}},
+		accessCache: map[string]cachedAccessCheck{
+			"username\x00alice\x00host/example": {
+				allowed: true,
+				expires: time.Now().Add(time.Minute),
+			},
+		},
+	}
+	server := &KerberosServer{
+		log: log.NewEntry(log.New()),
+		ac:  &ak.APIController{Client: api.NewAPIClient(cfg)},
+		providers: map[int32]*ProviderInstance{
+			1: {Store: oldStore},
+		},
+	}
+	oldStore.server = server
+
+	var wg sync.WaitGroup
+	errs := make(chan error, 20)
+	for range 2 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for range 100 {
+				if _, _, err := oldStore.Lookup(*client); err != nil {
+					errs <- err
+				}
+				if err := oldStore.Authorize(*client, *service, false); err != nil {
+					errs <- err
+				}
+			}
+		}()
+	}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for range 20 {
+			if err := server.Refresh(); err != nil {
+				errs <- err
+			}
+		}
+	}()
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		t.Error(err)
 	}
 }

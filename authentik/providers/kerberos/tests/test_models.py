@@ -1,6 +1,7 @@
 """Kerberos provider model and signal tests."""
 
 import base64
+from unittest.mock import patch
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase
@@ -8,6 +9,7 @@ from django.test import TestCase
 from authentik.core.signals import password_validated
 from authentik.core.tests.utils import create_test_user
 from authentik.lib.generators import generate_id
+from authentik.outposts.models import Outpost, OutpostType
 from authentik.providers.kerberos.crypto import string2key
 from authentik.providers.kerberos.models import (
     KerberosProvider,
@@ -183,3 +185,29 @@ class KerberosProviderTests(TestCase):
         self.assertEqual(keys.kvno, 1)
         self.assertEqual(keys.keys, original_keys)
         self.assertEqual(keys.salt, original_salt)
+
+    @patch("authentik.providers.kerberos.signals.outpost_send_update.send_with_options")
+    def test_provider_objects_trigger_outpost_update(self, send_with_options):
+        """Provider-scoped Kerberos changes refresh connected outposts."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.COM",
+        )
+        outpost = Outpost.objects.create(name=generate_id(), type=OutpostType.KERBEROS)
+        outpost.providers.add(provider)
+        send_with_options.reset_mock()
+
+        principal = KerberosServicePrincipal.objects.create(provider=provider, spn="host/example")
+        principal.spn = "host/updated"
+        principal.save()
+        principal.delete()
+        trust = KerberosRealmTrust.objects.create(provider=provider, remote_realm="REMOTE.COM")
+        trust.remote_realm = "OTHER.COM"
+        trust.save()
+        trust.delete()
+
+        self.assertEqual(send_with_options.call_count, 6)
+        for call in send_with_options.call_args_list:
+            self.assertEqual(call.kwargs["args"], (outpost.pk,))
+            self.assertEqual(call.kwargs["rel_obj"].pk, outpost.pk)
+            self.assertEqual(call.kwargs["uid"], outpost.name)
