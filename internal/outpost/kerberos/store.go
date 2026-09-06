@@ -163,8 +163,7 @@ func (s *providerStore) validateOTP(name principal.Principal, value string) erro
 	}
 	response, _, err := s.server.ac.Client.OutpostsAPI.
 		OutpostsKerberosOtpCheck(context.Background(), s.providerID).
-		Username(name.Components[0]).
-		Value(value).
+		KerberosOTPCheckRequestRequest(*api.NewKerberosOTPCheckRequestRequest(name.Components[0], value)).
 		Execute()
 	if err != nil || response == nil {
 		logger := log.WithField("username", name.Components[0])

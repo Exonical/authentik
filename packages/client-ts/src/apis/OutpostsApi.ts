@@ -30,6 +30,10 @@ import {
 } from "../models/KerberosCheckAccess";
 import { type KerberosOTPCheck, KerberosOTPCheckFromJSON } from "../models/KerberosOTPCheck";
 import {
+    type KerberosOTPCheckRequestRequest,
+    KerberosOTPCheckRequestRequestToJSON,
+} from "../models/KerberosOTPCheckRequestRequest";
+import {
     type KerberosServicePrincipalAdminRequest,
     KerberosServicePrincipalAdminRequestToJSON,
 } from "../models/KerberosServicePrincipalAdminRequest";
@@ -301,8 +305,7 @@ export interface OutpostsKerberosListRequest {
 
 export interface OutpostsKerberosOtpCheckRequest {
     id: number;
-    username: string;
-    value: string;
+    kerberosOTPCheckRequestRequest: KerberosOTPCheckRequestRequest;
 }
 
 export interface OutpostsKerberosRealmTrustsListRequest {
@@ -1562,31 +1565,18 @@ export class OutpostsApi extends runtime.BaseAPI {
             );
         }
 
-        if (requestParameters["username"] == null) {
+        if (requestParameters["kerberosOTPCheckRequestRequest"] == null) {
             throw new runtime.RequiredError(
-                "username",
-                'Required parameter "username" was null or undefined when calling outpostsKerberosOtpCheck().',
-            );
-        }
-
-        if (requestParameters["value"] == null) {
-            throw new runtime.RequiredError(
-                "value",
-                'Required parameter "value" was null or undefined when calling outpostsKerberosOtpCheck().',
+                "kerberosOTPCheckRequestRequest",
+                'Required parameter "kerberosOTPCheckRequestRequest" was null or undefined when calling outpostsKerberosOtpCheck().',
             );
         }
 
         const queryParameters: any = {};
 
-        if (requestParameters["username"] != null) {
-            queryParameters["username"] = requestParameters["username"];
-        }
-
-        if (requestParameters["value"] != null) {
-            queryParameters["value"] = requestParameters["value"];
-        }
-
         const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters["Content-Type"] = "application/json";
 
         if (this.configuration && this.configuration.accessToken) {
             const token = this.configuration.accessToken;
@@ -1602,9 +1592,12 @@ export class OutpostsApi extends runtime.BaseAPI {
 
         return {
             path: urlPath,
-            method: "GET",
+            method: "POST",
             headers: headerParameters,
             query: queryParameters,
+            body: KerberosOTPCheckRequestRequestToJSON(
+                requestParameters["kerberosOTPCheckRequestRequest"],
+            ),
         };
     }
 

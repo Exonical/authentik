@@ -11090,7 +11090,7 @@ paths:
         '403':
           $ref: '#/components/responses/GenericErrorResponse'
   /outposts/kerberos/{id}/otp_check/:
-    get:
+    post:
       operationId: outposts_kerberos_otp_check
       description: Check a user's authentik TOTP or static authentication token.
       parameters:
@@ -11100,18 +11100,14 @@ paths:
           type: integer
         description: A unique integer value identifying this Kerberos Provider.
         required: true
-      - in: query
-        name: username
-        schema:
-          type: string
-        required: true
-      - in: query
-        name: value
-        schema:
-          type: string
-        required: true
       tags:
       - outposts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KerberosOTPCheckRequestRequest'
+        required: true
       security:
       - authentik: []
       responses:
@@ -44652,6 +44648,20 @@ components:
           type: boolean
       required:
       - allowed
+    KerberosOTPCheckRequestRequest:
+      type: object
+      description: OTP validation request submitted by the KDC outpost.
+      properties:
+        username:
+          type: string
+          minLength: 1
+        value:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - username
+      - value
     KerberosOutpostConfig:
       type: object
       description: Kerberos provider serializer for outposts.

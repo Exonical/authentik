@@ -281,8 +281,15 @@ func TestStoreValidateOTPDoesNotCache(t *testing.T) {
 	requests := 0
 	store := testStore(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests++
-		if r.URL.Query().Get("username") != "alice" || r.URL.Query().Get("value") != "123456" {
-			t.Errorf("unexpected OTP query: %s", r.URL.RawQuery)
+		var body struct {
+			Username string `json:"username"`
+			Value    string `json:"value"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode OTP request: %v", err)
+		}
+		if r.Method != http.MethodPost || body.Username != "alice" || body.Value != "123456" {
+			t.Errorf("unexpected OTP request: method=%s body=%+v", r.Method, body)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]bool{"allowed": true})

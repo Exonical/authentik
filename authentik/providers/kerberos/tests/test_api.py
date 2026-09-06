@@ -218,18 +218,31 @@ class KerberosProviderAPITests(APITestCase):
             kwargs={"pk": provider.pk},
         )
 
-        response = self.client.get(
+        response = self.client.post(
             url, {"username": user.email, "value": TOTP(totp_device.bin_key).token()}
         )
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["allowed"])
-        response = self.client.get(url, {"username": user.email, "value": "static-token"})
+        response = self.client.post(url, {"username": user.email, "value": "static-token"})
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["allowed"])
         self.assertFalse(StaticToken.objects.filter(token="static-token").exists())
-        response = self.client.get(url, {"username": user.email, "value": "static-token"})
+        response = self.client.post(url, {"username": user.email, "value": "static-token"})
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.json()["allowed"])
+
+    def test_kadmin_requires_acl_when_enabled(self):
+        """Kadmin providers must define at least one ACL entry."""
+        serializer = KerberosProviderSerializer(
+            data={
+                "name": generate_id(),
+                "realm_name": "EXAMPLE.COM",
+                "kadmin_enabled": True,
+                "kadmin_acl": [],
+            }
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("kadmin_acl", serializer.errors)
 
     def test_pac_settings_serializer_round_trip(self):
         """PAC settings round-trip through both provider serializers."""

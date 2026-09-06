@@ -140,6 +140,14 @@ const autoCategories = categories.map(([dirName, label]) => {
         ],
     };
 
+    if (dirName === "add-secure-apps") {
+        sidebarCategory.items.unshift({
+            type: "doc",
+            id: "add-secure-apps/providers/kerberos/index",
+            label: "Kerberos provider",
+        });
+    }
+
     // When the section has a root index doc, make the category label link to it
     // (clicking the section navigates to its Overview page). The doc also renders
     // as the first child, labelled "Overview" via its frontmatter.

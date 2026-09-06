@@ -712,20 +712,14 @@ func (a *OutpostsAPIService) OutpostsKerberosListExecute(r ApiOutpostsKerberosLi
 }
 
 type ApiOutpostsKerberosOtpCheckRequest struct {
-	ctx        context.Context
-	ApiService *OutpostsAPIService
-	id         int32
-	username   *string
-	value      *string
+	ctx                            context.Context
+	ApiService                     *OutpostsAPIService
+	id                             int32
+	kerberosOTPCheckRequestRequest *KerberosOTPCheckRequestRequest
 }
 
-func (r ApiOutpostsKerberosOtpCheckRequest) Username(username string) ApiOutpostsKerberosOtpCheckRequest {
-	r.username = &username
-	return r
-}
-
-func (r ApiOutpostsKerberosOtpCheckRequest) Value(value string) ApiOutpostsKerberosOtpCheckRequest {
-	r.value = &value
+func (r ApiOutpostsKerberosOtpCheckRequest) KerberosOTPCheckRequestRequest(kerberosOTPCheckRequestRequest KerberosOTPCheckRequestRequest) ApiOutpostsKerberosOtpCheckRequest {
+	r.kerberosOTPCheckRequestRequest = &kerberosOTPCheckRequestRequest
 	return r
 }
 
@@ -755,7 +749,7 @@ func (a *OutpostsAPIService) OutpostsKerberosOtpCheck(ctx context.Context, id in
 //	@return KerberosOTPCheck
 func (a *OutpostsAPIService) OutpostsKerberosOtpCheckExecute(r ApiOutpostsKerberosOtpCheckRequest) (*KerberosOTPCheck, *http.Response, error) {
 	var (
-		localVarHTTPMethod  = http.MethodGet
+		localVarHTTPMethod  = http.MethodPost
 		localVarPostBody    interface{}
 		formFiles           []formFile
 		localVarReturnValue *KerberosOTPCheck
@@ -772,17 +766,12 @@ func (a *OutpostsAPIService) OutpostsKerberosOtpCheckExecute(r ApiOutpostsKerber
 	localVarHeaderParams := make(map[string]string)
 	localVarQueryParams := url.Values{}
 	localVarFormParams := url.Values{}
-	if r.username == nil {
-		return localVarReturnValue, nil, reportError("username is required and must be specified")
-	}
-	if r.value == nil {
-		return localVarReturnValue, nil, reportError("value is required and must be specified")
+	if r.kerberosOTPCheckRequestRequest == nil {
+		return localVarReturnValue, nil, reportError("kerberosOTPCheckRequestRequest is required and must be specified")
 	}
 
-	parameterAddToHeaderOrQuery(localVarQueryParams, "username", r.username, "form", "")
-	parameterAddToHeaderOrQuery(localVarQueryParams, "value", r.value, "form", "")
 	// to determine the Content-Type header
-	localVarHTTPContentTypes := []string{}
+	localVarHTTPContentTypes := []string{"application/json"}
 
 	// set Content-Type header
 	localVarHTTPContentType := selectHeaderContentType(localVarHTTPContentTypes)
@@ -798,6 +787,8 @@ func (a *OutpostsAPIService) OutpostsKerberosOtpCheckExecute(r ApiOutpostsKerber
 	if localVarHTTPHeaderAccept != "" {
 		localVarHeaderParams["Accept"] = localVarHTTPHeaderAccept
 	}
+	// body params
+	localVarPostBody = r.kerberosOTPCheckRequestRequest
 	req, err := a.client.prepareRequest(r.ctx, localVarPath, localVarHTTPMethod, localVarPostBody, localVarHeaderParams, localVarQueryParams, localVarFormParams, formFiles)
 	if err != nil {
 		return localVarReturnValue, nil, err

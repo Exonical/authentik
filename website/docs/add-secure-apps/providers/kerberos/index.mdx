@@ -2,6 +2,7 @@
 title: Kerberos provider
 sidebar_position: 6
 sidebar_label: "Kerberos Provider"
+sidebar: false
 toc_max_heading_level: 4
 ---
 
@@ -58,6 +59,15 @@ Enter durations using the authentik time delta format, such as `hours=10` or `da
 - `aes256-cts-hmac-sha1-96`
 - `aes128-cts-hmac-sha256-128`
 - `aes256-cts-hmac-sha384-192`
+
+:::warning
+
+User Kerberos keys are derived from passwords. After changing the allowed
+encryption types, users must log in or change their password again to generate
+keys for the newly allowed types. Rotate keys for service principals and realm
+trusts explicitly.
+
+:::
 
 ### Network settings
 
@@ -402,8 +412,8 @@ incremental key-rotation semantics.
 
 The outpost can expose the MIT `kadmin` (kadm5) administration protocol on
 internal port `3749` (the conventional external port is `749`). Enable
-`kadmin_enabled` and add MIT `kadm5.acl` lines to `kadmin_acl`, for example
-`admin *`. User principals are managed by authentik: `addprinc -randkey`
+`kadmin_enabled` and provide at least one MIT `kadm5.acl` line in `kadmin_acl`,
+for example `admin *`. User principals are managed by authentik: `addprinc -randkey`
 creates service principals with randomly generated keys, while password changes
 for users are applied through authentik's password policies. Service principals
 can be created, deleted, rotated, and have ticket flags updated through kadmin.

@@ -50,4 +50,8 @@ def kerberos_backfill_user_keys(sender, user: User, password: str, **_):
         if KerberosUserKeys.objects.filter(user=user, provider=provider).exists():
             continue
         salt, keys = derive_user_keys(provider, user, password)
-        KerberosUserKeys.objects.create(user=user, provider=provider, keys=keys, salt=salt)
+        KerberosUserKeys.objects.get_or_create(
+            user=user,
+            provider=provider,
+            defaults={"keys": keys, "salt": salt},
+        )

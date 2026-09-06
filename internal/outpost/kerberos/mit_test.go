@@ -381,9 +381,13 @@ func startMITKDCWithIdentityPolicyOptionsAudit(
 			return
 		}
 		if r.URL.Path == "/api/v3/outposts/kerberos/1/otp_check/" {
+			var body struct {
+				Value string `json:"value"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&body)
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]bool{
-				"allowed": r.URL.Query().Get("value") == mitTOTP(mitOTPSecret, time.Now()),
+				"allowed": body.Value == mitTOTP(mitOTPSecret, time.Now()),
 			})
 			return
 		}

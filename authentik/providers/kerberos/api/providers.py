@@ -90,6 +90,14 @@ class KerberosProviderSerializer(ProviderSerializer):
 
     def validate(self, attrs: dict) -> dict:
         """Validate the kprop identity against this provider's principals."""
+        kadmin_enabled = attrs.get(
+            "kadmin_enabled", getattr(self.instance, "kadmin_enabled", False)
+        )
+        kadmin_acl = attrs.get("kadmin_acl", getattr(self.instance, "kadmin_acl", []))
+        if kadmin_enabled and not kadmin_acl:
+            raise ValidationError(
+                {"kadmin_acl": _("At least one ACL entry is required when kadmin is enabled.")}
+            )
         enabled = attrs.get("kprop_enabled", getattr(self.instance, "kprop_enabled", False))
         if not enabled:
             return attrs
@@ -551,6 +559,13 @@ class KerberosOTPCheckSerializer(PassiveSerializer):
     allowed = BooleanField()
 
 
+class KerberosOTPCheckRequestSerializer(PassiveSerializer):
+    """OTP validation request submitted by the KDC outpost."""
+
+    username = CharField()
+    value = CharField(write_only=True)
+
+
 class KerberosSetPasswordSerializer(PassiveSerializer):
     """Password change request for the Kerberos outpost."""
 
@@ -934,19 +949,17 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
         return Response(response.data)
 
     @extend_schema(
-        parameters=[
-            OpenApiParameter("username", OpenApiTypes.STR, required=True),
-            OpenApiParameter("value", OpenApiTypes.STR, required=True),
-        ],
+        request=KerberosOTPCheckRequestSerializer,
         responses={200: KerberosOTPCheckSerializer()},
         operation_id="outposts_kerberos_otp_check",
     )
-    @action(detail=True, methods=["GET"])
-    def otp_check(self, request: Request, pk=None) -> Response:
+    @action(detail=True, methods=["POST"])
+    @validate(KerberosOTPCheckRequestSerializer)
+    def otp_check(self, request: Request, pk=None, body=None) -> Response:
         """Check a user's authentik TOTP or static authentication token."""
         provider = self.get_object()
-        username = request.query_params.get("username")
-        value = request.query_params.get("value")
+        username = body.validated_data["username"]
+        value = body.validated_data["value"]
         user = self._resolve_user(provider, username or "")
         allowed = False
         if user is not None and value:

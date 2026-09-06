@@ -16,4 +16,5 @@ class KerberosDockerController(DockerController):
             DeploymentPort(3464, "kpasswd", "tcp", 3464),
             DeploymentPort(3464, "kpasswd", "udp", 3464),
             DeploymentPort(3443, "kkdcp", "tcp", 3443),
+            DeploymentPort(3749, "kadmin", "tcp", 3749),
         ]
