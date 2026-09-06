@@ -71,6 +71,7 @@ trusts explicitly.
 ### Network settings
 
 **UDP enabled** and **TCP enabled** control which transports the outpost accepts for this provider. The outpost deployment exposes port `3088` for both transports, but the provider settings can disable either protocol.
+Protocol listeners are rebound automatically when provider settings refresh, so transport changes do not require an outpost restart.
 
 **SPAKE preauthentication enabled** advertises PA-SPAKE preauthentication (RFC 9588). When
 disabled, clients use the existing encrypted-timestamp preauthentication flow.
@@ -419,6 +420,7 @@ can be created, deleted, rotated, and have ticket flags updated through kadmin.
 The kadm5 listener serves only the first enabled kadmin provider because MIT
 kadmind is single-realm; additional enabled providers are ignored and a warning
 is logged by the outpost.
+The kadmin listener is also rebound automatically when the provider refreshes.
 
 For example, a path from `EXAMPLE.TEST` to `REMOTE.TEST` through
 `HUB.TEST` uses `HUB.TEST` as its intermediate realm.

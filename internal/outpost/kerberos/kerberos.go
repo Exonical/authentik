@@ -30,11 +30,14 @@ type KerberosServer struct {
 
 	providers    map[int32]*ProviderInstance
 	mu           sync.Mutex
+	listenerMu   sync.Mutex
+	started      bool
+	stop         chan struct{}
 	udp          []net.PacketConn
 	tcp          []net.Listener
 	kpasswdUDP   []net.PacketConn
 	kpasswdTCP   []net.Listener
-	kadmin       net.Listener
+	kadmin       []net.Listener
 	kadminServer *kadm5.Server
 	kadminConns  map[net.Conn]struct{}
 	kkdcp        []net.Listener
@@ -52,136 +55,39 @@ func NewServer(ac *ak.APIController) ak.Outpost {
 }
 
 func (rs *KerberosServer) Start() error {
-	var group errgroup.Group
-	hasUDP, hasTCP, hasKpasswdUDP, hasKpasswdTCP, hasKKDCP, hasKadmin := false, false, false, false, false, false
-	rs.mu.Lock()
-	for _, provider := range rs.providers {
-		hasUDP = hasUDP || provider.Config.GetUdpEnabled()
-		hasTCP = hasTCP || provider.Config.GetTcpEnabled()
-		hasKpasswdUDP = hasKpasswdUDP ||
-			(provider.Config.GetKpasswdEnabled() && provider.Config.GetUdpEnabled())
-		hasKpasswdTCP = hasKpasswdTCP ||
-			(provider.Config.GetKpasswdEnabled() && provider.Config.GetTcpEnabled())
-		hasKKDCP = hasKKDCP || provider.Config.GetKkdcpEnabled()
-		hasKadmin = hasKadmin || provider.Config.GetKadminEnabled()
-	}
-	rs.mu.Unlock()
+	hasUDP, hasTCP, hasKpasswdUDP, hasKpasswdTCP, hasKKDCP, hasKadmin := rs.listenerState()
 	if !hasUDP && !hasTCP && !hasKpasswdUDP && !hasKpasswdTCP && !hasKKDCP && !hasKadmin {
 		return errors.New("all kerberos providers have both UDP and TCP disabled")
 	}
-	for _, address := range config.Get().Listen.Kerberos {
-		if hasUDP {
-			udp, err := net.ListenPacket("udp", address)
-			if err != nil {
-				return err
-			}
-			rs.mu.Lock()
-			rs.udp = append(rs.udp, udp)
-			rs.mu.Unlock()
-			group.Go(func() error { return rs.serveUDP(udp) })
-		}
-		if hasTCP {
-			tcp, err := net.Listen("tcp", address)
-			if err != nil {
-				return err
-			}
-			rs.mu.Lock()
-			rs.tcp = append(rs.tcp, tcp)
-			rs.mu.Unlock()
-			group.Go(func() error { return rs.serveTCP(tcp) })
-		}
+	rs.mu.Lock()
+	rs.started = true
+	if rs.stop == nil {
+		rs.stop = make(chan struct{})
 	}
-	if hasKpasswdUDP || hasKpasswdTCP {
-		for _, address := range config.Get().Listen.Kpasswd {
-			if hasKpasswdUDP {
-				udp, err := net.ListenPacket("udp", address)
-				if err != nil {
-					return err
-				}
-				rs.mu.Lock()
-				rs.kpasswdUDP = append(rs.kpasswdUDP, udp)
-				rs.mu.Unlock()
-				group.Go(func() error { return rs.serveKpasswdUDP(udp) })
-			}
-			if hasKpasswdTCP {
-				tcp, err := net.Listen("tcp", address)
-				if err != nil {
-					return err
-				}
-				rs.mu.Lock()
-				rs.kpasswdTCP = append(rs.kpasswdTCP, tcp)
-				rs.mu.Unlock()
-				group.Go(func() error { return rs.serveKpasswdTCP(tcp) })
-			}
-		}
-	}
-	if hasKadmin {
-		for _, address := range config.Get().Listen.Kadmin {
-			listener, err := net.Listen("tcp", address)
-			if err != nil {
-				return err
-			}
-			rs.mu.Lock()
-			rs.kadmin = listener
-			rs.mu.Unlock()
-			group.Go(func() error { return rs.serveKadmin(listener) })
-		}
-	}
-	if hasKKDCP {
-		for _, address := range config.Get().Listen.KKDCP {
-			listener, err := net.Listen("tcp", address)
-			if err != nil {
-				return err
-			}
-			tlsConfig := utils.GetTLSConfig()
-			rs.mu.Lock()
-			for _, provider := range rs.providers {
-				if provider.KKDCPCertificate != nil {
-					tlsConfig.Certificates = append(tlsConfig.Certificates, *provider.KKDCPCertificate)
-				}
-			}
-			rs.mu.Unlock()
-			if len(tlsConfig.Certificates) == 0 {
-				_ = listener.Close()
-				continue
-			}
-			tlsListener := tls.NewListener(listener, tlsConfig)
-			server := &http.Server{
-				Handler: rs.kkdcpHandler(),
-			}
-			rs.mu.Lock()
-			rs.kkdcp = append(rs.kkdcp, tlsListener)
-			rs.kkdcpHTTP = append(rs.kkdcpHTTP, server)
-			rs.mu.Unlock()
-			group.Go(func() error {
-				err := server.Serve(tlsListener)
-				if errors.Is(err, http.ErrServerClosed) {
-					return nil
-				}
-				return err
-			})
-		}
+	stop := rs.stop
+	rs.mu.Unlock()
+	if err := rs.syncListeners(); err != nil {
+		rs.mu.Lock()
+		rs.started = false
+		rs.mu.Unlock()
+		return err
 	}
 	metricsRouter := ak.MetricsRouter()
 	for _, address := range config.Get().Listen.Metrics {
 		address := address
-		group.Go(func() error {
+		go func() {
 			ak.RunMetricsServer(address, metricsRouter)
-			return nil
-		})
+		}()
 	}
-	group.Go(func() error {
+	go func() {
 		ak.RunMetricsUnix(metricsRouter)
-		return nil
-	})
-	err := group.Wait()
-	if errors.Is(err, net.ErrClosed) || errors.Is(err, io.EOF) {
-		return nil
-	}
-	return err
+	}()
+	<-stop
+	return nil
 }
 
 func (rs *KerberosServer) Stop() error {
+	rs.listenerMu.Lock()
 	rs.mu.Lock()
 	providers := make([]*ProviderInstance, 0, len(rs.providers))
 	for _, provider := range rs.providers {
@@ -191,14 +97,27 @@ func (rs *KerberosServer) Stop() error {
 	tcp := append([]net.Listener(nil), rs.tcp...)
 	kpasswdUDP := append([]net.PacketConn(nil), rs.kpasswdUDP...)
 	kpasswdTCP := append([]net.Listener(nil), rs.kpasswdTCP...)
-	kadmin := rs.kadmin
+	kadmin := append([]net.Listener(nil), rs.kadmin...)
 	kadminConns := make([]net.Conn, 0, len(rs.kadminConns))
 	for conn := range rs.kadminConns {
 		kadminConns = append(kadminConns, conn)
 	}
 	kkdcp := append([]net.Listener(nil), rs.kkdcp...)
 	kkdcpHTTP := append([]*http.Server(nil), rs.kkdcpHTTP...)
+	rs.udp = nil
+	rs.tcp = nil
+	rs.kpasswdUDP = nil
+	rs.kpasswdTCP = nil
+	rs.kadmin = nil
+	rs.kkdcp = nil
+	rs.kkdcpHTTP = nil
+	rs.started = false
+	if rs.stop != nil {
+		close(rs.stop)
+		rs.stop = nil
+	}
 	rs.mu.Unlock()
+	rs.listenerMu.Unlock()
 	for _, provider := range providers {
 		provider.stopKprop()
 		provider.stopAudit()
@@ -220,8 +139,9 @@ func (rs *KerberosServer) Stop() error {
 		listener := listener
 		errs.Go(listener.Close)
 	}
-	if kadmin != nil {
-		errs.Go(kadmin.Close)
+	for _, listener := range kadmin {
+		listener := listener
+		errs.Go(listener.Close)
 	}
 	for _, conn := range kadminConns {
 		errs.Go(conn.Close)
@@ -239,6 +159,285 @@ func (rs *KerberosServer) Stop() error {
 		errs.Go(listener.Close)
 	}
 	return errs.Wait()
+}
+
+func (rs *KerberosServer) listenerState() (bool, bool, bool, bool, bool, bool) {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+	hasUDP, hasTCP, hasKpasswdUDP, hasKpasswdTCP, hasKKDCP, hasKadmin := false, false, false, false, false, false
+	for _, provider := range rs.providers {
+		hasUDP = hasUDP || provider.Config.GetUdpEnabled()
+		hasTCP = hasTCP || provider.Config.GetTcpEnabled()
+		hasKpasswdUDP = hasKpasswdUDP ||
+			(provider.Config.GetKpasswdEnabled() && provider.Config.GetUdpEnabled())
+		hasKpasswdTCP = hasKpasswdTCP ||
+			(provider.Config.GetKpasswdEnabled() && provider.Config.GetTcpEnabled())
+		hasKKDCP = hasKKDCP || provider.Config.GetKkdcpEnabled()
+		hasKadmin = hasKadmin || provider.Config.GetKadminEnabled()
+	}
+	return hasUDP, hasTCP, hasKpasswdUDP, hasKpasswdTCP, hasKKDCP, hasKadmin
+}
+
+func (rs *KerberosServer) syncListeners() error {
+	rs.listenerMu.Lock()
+	defer rs.listenerMu.Unlock()
+	rs.mu.Lock()
+	started := rs.started
+	rs.mu.Unlock()
+	if !started {
+		return nil
+	}
+	hasUDP, hasTCP, hasKpasswdUDP, hasKpasswdTCP, hasKKDCP, hasKadmin := rs.listenerState()
+	if err := rs.syncKerberosListeners(hasUDP, hasTCP); err != nil {
+		return err
+	}
+	if err := rs.syncKpasswdListeners(hasKpasswdUDP, hasKpasswdTCP); err != nil {
+		return err
+	}
+	if err := rs.syncKadminListeners(hasKadmin); err != nil {
+		return err
+	}
+	return rs.syncKKDCPListeners(hasKKDCP)
+}
+
+func (rs *KerberosServer) detachedServe(name string, serve func() error) {
+	go func() {
+		if err := serve(); err != nil &&
+			!errors.Is(err, net.ErrClosed) &&
+			!errors.Is(err, io.EOF) &&
+			!errors.Is(err, http.ErrServerClosed) {
+			rs.log.WithError(err).WithField("listener", name).Warn("Kerberos listener stopped")
+		}
+	}()
+}
+
+func (rs *KerberosServer) syncKerberosListeners(hasUDP, hasTCP bool) error {
+	if !hasUDP {
+		rs.mu.Lock()
+		listeners := rs.udp
+		rs.udp = nil
+		rs.mu.Unlock()
+		for _, listener := range listeners {
+			_ = listener.Close()
+		}
+	} else {
+		rs.mu.Lock()
+		bound := len(rs.udp) > 0
+		rs.mu.Unlock()
+		if !bound {
+			listeners := make([]net.PacketConn, 0, len(config.Get().Listen.Kerberos))
+			for _, address := range config.Get().Listen.Kerberos {
+				listener, err := net.ListenPacket("udp", address)
+				if err != nil {
+					for _, boundListener := range listeners {
+						_ = boundListener.Close()
+					}
+					return err
+				}
+				listeners = append(listeners, listener)
+			}
+			rs.mu.Lock()
+			rs.udp = listeners
+			rs.mu.Unlock()
+			for _, listener := range listeners {
+				listener := listener
+				rs.detachedServe("kerberos UDP", func() error { return rs.serveUDP(listener) })
+			}
+		}
+	}
+	if !hasTCP {
+		rs.mu.Lock()
+		listeners := rs.tcp
+		rs.tcp = nil
+		rs.mu.Unlock()
+		for _, listener := range listeners {
+			_ = listener.Close()
+		}
+	} else {
+		rs.mu.Lock()
+		bound := len(rs.tcp) > 0
+		rs.mu.Unlock()
+		if !bound {
+			listeners := make([]net.Listener, 0, len(config.Get().Listen.Kerberos))
+			for _, address := range config.Get().Listen.Kerberos {
+				listener, err := net.Listen("tcp", address)
+				if err != nil {
+					for _, boundListener := range listeners {
+						_ = boundListener.Close()
+					}
+					return err
+				}
+				listeners = append(listeners, listener)
+			}
+			rs.mu.Lock()
+			rs.tcp = listeners
+			rs.mu.Unlock()
+			for _, listener := range listeners {
+				listener := listener
+				rs.detachedServe("kerberos TCP", func() error { return rs.serveTCP(listener) })
+			}
+		}
+	}
+	return nil
+}
+
+func (rs *KerberosServer) syncKpasswdListeners(hasUDP, hasTCP bool) error {
+	if !hasUDP {
+		rs.mu.Lock()
+		listeners := rs.kpasswdUDP
+		rs.kpasswdUDP = nil
+		rs.mu.Unlock()
+		for _, listener := range listeners {
+			_ = listener.Close()
+		}
+	} else {
+		rs.mu.Lock()
+		bound := len(rs.kpasswdUDP) > 0
+		rs.mu.Unlock()
+		if !bound {
+			listeners := make([]net.PacketConn, 0, len(config.Get().Listen.Kpasswd))
+			for _, address := range config.Get().Listen.Kpasswd {
+				listener, err := net.ListenPacket("udp", address)
+				if err != nil {
+					for _, boundListener := range listeners {
+						_ = boundListener.Close()
+					}
+					return err
+				}
+				listeners = append(listeners, listener)
+			}
+			rs.mu.Lock()
+			rs.kpasswdUDP = listeners
+			rs.mu.Unlock()
+			for _, listener := range listeners {
+				listener := listener
+				rs.detachedServe("kpasswd UDP", func() error { return rs.serveKpasswdUDP(listener) })
+			}
+		}
+	}
+	if !hasTCP {
+		rs.mu.Lock()
+		listeners := rs.kpasswdTCP
+		rs.kpasswdTCP = nil
+		rs.mu.Unlock()
+		for _, listener := range listeners {
+			_ = listener.Close()
+		}
+	} else {
+		rs.mu.Lock()
+		bound := len(rs.kpasswdTCP) > 0
+		rs.mu.Unlock()
+		if !bound {
+			listeners := make([]net.Listener, 0, len(config.Get().Listen.Kpasswd))
+			for _, address := range config.Get().Listen.Kpasswd {
+				listener, err := net.Listen("tcp", address)
+				if err != nil {
+					for _, boundListener := range listeners {
+						_ = boundListener.Close()
+					}
+					return err
+				}
+				listeners = append(listeners, listener)
+			}
+			rs.mu.Lock()
+			rs.kpasswdTCP = listeners
+			rs.mu.Unlock()
+			for _, listener := range listeners {
+				listener := listener
+				rs.detachedServe("kpasswd TCP", func() error { return rs.serveKpasswdTCP(listener) })
+			}
+		}
+	}
+	return nil
+}
+
+func (rs *KerberosServer) syncKadminListeners(enabled bool) error {
+	if !enabled {
+		rs.mu.Lock()
+		listeners := rs.kadmin
+		rs.kadmin = nil
+		rs.mu.Unlock()
+		for _, listener := range listeners {
+			_ = listener.Close()
+		}
+		return nil
+	}
+	rs.mu.Lock()
+	bound := len(rs.kadmin) > 0
+	rs.mu.Unlock()
+	if bound {
+		return nil
+	}
+	listeners := make([]net.Listener, 0, len(config.Get().Listen.Kadmin))
+	for _, address := range config.Get().Listen.Kadmin {
+		listener, err := net.Listen("tcp", address)
+		if err != nil {
+			for _, boundListener := range listeners {
+				_ = boundListener.Close()
+			}
+			return err
+		}
+		listeners = append(listeners, listener)
+	}
+	rs.mu.Lock()
+	rs.kadmin = listeners
+	rs.mu.Unlock()
+	for _, listener := range listeners {
+		listener := listener
+		rs.detachedServe("kadmin", func() error { return rs.serveKadmin(listener) })
+	}
+	return nil
+}
+
+func (rs *KerberosServer) syncKKDCPListeners(enabled bool) error {
+	if !enabled {
+		rs.mu.Lock()
+		listeners := rs.kkdcp
+		servers := rs.kkdcpHTTP
+		rs.kkdcp = nil
+		rs.kkdcpHTTP = nil
+		rs.mu.Unlock()
+		for _, server := range servers {
+			_ = server.Close()
+		}
+		for _, listener := range listeners {
+			_ = listener.Close()
+		}
+		return nil
+	}
+	rs.mu.Lock()
+	bound := len(rs.kkdcp) > 0
+	rs.mu.Unlock()
+	if bound {
+		return nil
+	}
+	listeners := make([]net.Listener, 0, len(config.Get().Listen.KKDCP))
+	servers := make([]*http.Server, 0, len(config.Get().Listen.KKDCP))
+	for _, address := range config.Get().Listen.KKDCP {
+		listener, err := net.Listen("tcp", address)
+		if err != nil {
+			for _, boundListener := range listeners {
+				_ = boundListener.Close()
+			}
+			return err
+		}
+		tlsConfig := utils.GetTLSConfig()
+		tlsConfig.GetCertificate = rs.kkdcpCertificate
+		tlsListener := tls.NewListener(listener, tlsConfig)
+		server := &http.Server{Handler: rs.kkdcpHandler()}
+		listeners = append(listeners, tlsListener)
+		servers = append(servers, server)
+	}
+	rs.mu.Lock()
+	rs.kkdcp = listeners
+	rs.kkdcpHTTP = servers
+	rs.mu.Unlock()
+	for index, listener := range listeners {
+		listener := listener
+		server := servers[index]
+		rs.detachedServe("KKDCP", func() error { return server.Serve(listener) })
+	}
+	return nil
 }
 
 type singleConnListener struct {
@@ -366,6 +565,18 @@ func (rs *KerberosServer) handleKKDCP(_ context.Context, data []byte) ([]byte, e
 		return nil, errors.New("KKDCP is disabled for kerberos provider")
 	}
 	return provider.KDC.HandleMessage(data), nil
+}
+
+func (rs *KerberosServer) kkdcpCertificate(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+	for _, provider := range rs.providers {
+		if provider.KKDCPCertificate != nil {
+			certificate := *provider.KKDCPCertificate
+			return &certificate, nil
+		}
+	}
+	return nil, errors.New("no KKDCP TLS certificate is configured")
 }
 
 func (rs *KerberosServer) kkdcpHandler() http.Handler {

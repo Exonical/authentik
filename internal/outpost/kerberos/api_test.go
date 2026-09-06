@@ -3,6 +3,7 @@ package kerberos
 import (
 	"encoding/base64"
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -14,6 +15,7 @@ import (
 	"github.com/Exonical/go-kerberos/krb5/principal"
 	log "github.com/sirupsen/logrus"
 
+	"goauthentik.io/internal/config"
 	"goauthentik.io/internal/outpost/ak"
 	api "goauthentik.io/packages/client-go"
 )
@@ -171,5 +173,51 @@ func TestRefreshCopiesCachesWithoutRacingRequests(t *testing.T) {
 	close(errs)
 	for err := range errs {
 		t.Error(err)
+	}
+}
+
+func TestSyncListenersRebindsProtocolTransports(t *testing.T) {
+	listen := config.Get().Listen
+	t.Cleanup(func() {
+		config.Get().Listen = listen
+	})
+	config.Get().Listen.Kerberos = []string{"127.0.0.1:0"}
+	provider := api.NewKerberosOutpostConfig(1, "test", testRealm, 3600, 3600, "test")
+	provider.SetTcpEnabled(true)
+	provider.SetUdpEnabled(false)
+	server := &KerberosServer{
+		log:         log.NewEntry(log.New()),
+		providers:   map[int32]*ProviderInstance{1: {Config: *provider}},
+		kadminConns: make(map[net.Conn]struct{}),
+		started:     true,
+		stop:        make(chan struct{}),
+	}
+	if err := server.syncListeners(); err != nil {
+		t.Fatal(err)
+	}
+	if len(server.tcp) != 1 || len(server.udp) != 0 {
+		t.Fatalf("initial listeners = tcp %d, udp %d; want tcp 1, udp 0", len(server.tcp), len(server.udp))
+	}
+	tcpAddress := server.tcp[0].Addr().String()
+	conn, err := net.Dial("tcp", tcpAddress)
+	if err != nil {
+		t.Fatalf("dial initial TCP listener: %v", err)
+	}
+	_ = conn.Close()
+
+	server.providers[1].Config.SetTcpEnabled(false)
+	server.providers[1].Config.SetUdpEnabled(true)
+	if err := server.syncListeners(); err != nil {
+		t.Fatal(err)
+	}
+	if len(server.tcp) != 0 || len(server.udp) != 1 {
+		t.Fatalf("rebound listeners = tcp %d, udp %d; want tcp 0, udp 1", len(server.tcp), len(server.udp))
+	}
+	if conn, err := net.DialTimeout("tcp", tcpAddress, time.Second); err == nil {
+		_ = conn.Close()
+		t.Fatal("old TCP listener still accepts connections")
+	}
+	if err := server.Stop(); err != nil {
+		t.Fatal(err)
 	}
 }

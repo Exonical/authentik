@@ -272,6 +272,14 @@ func (rs *KerberosServer) Refresh() error {
 		rs.startKprop(provider)
 		rs.startAudit(provider)
 	}
+	rs.mu.Lock()
+	started := rs.started
+	rs.mu.Unlock()
+	if started {
+		if err := rs.syncListeners(); err != nil {
+			rs.log.WithError(err).Warn("Failed to synchronize Kerberos listeners")
+		}
+	}
 	rs.log.Info("Update kerberos providers")
 	return nil
 }
