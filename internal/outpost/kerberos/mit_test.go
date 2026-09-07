@@ -41,6 +41,7 @@ import (
 	"github.com/Exonical/go-kerberos/krb5/kkdcp"
 	"github.com/Exonical/go-kerberos/krb5/kprop"
 	"github.com/Exonical/go-kerberos/krb5/otp"
+	"github.com/Exonical/go-kerberos/krb5/pac"
 	"github.com/Exonical/go-kerberos/krb5/principal"
 	"github.com/Exonical/go-kerberos/krb5/protocol"
 	"github.com/Exonical/go-kerberos/krb5/types"
@@ -98,7 +99,7 @@ func startMITKDCWithAudit(t *testing.T) *mitHarness {
 	return startMITKDCWithIdentityPolicyOptionsAudit(
 		t, false, false, true, mitUser, mitUser,
 		func(string, string, string) bool { return true },
-		false, false, nil, nil, true,
+		false, false, nil, nil, false, true,
 	)
 }
 
@@ -150,7 +151,7 @@ func startMITKDCWithIdentityPolicyOptions(
 ) *mitHarness {
 	return startMITKDCWithIdentityPolicyOptionsAudit(
 		t, forceTCP, withKpasswd, allowProxy, apiUsername, canonicalUsername,
-		accessCheck, spake, freshness, pkinitIndicators, requiredIndicators, false,
+		accessCheck, spake, freshness, pkinitIndicators, requiredIndicators, false, false,
 	)
 }
 
@@ -160,7 +161,7 @@ func startMITKDCWithIdentityPolicyOptionsAudit(
 	apiUsername, canonicalUsername string,
 	accessCheck func(username, clientSPN, spn string) bool,
 	spake, freshness bool, pkinitIndicators, requiredIndicators []string,
-	auditEnabled bool,
+	pacEnabled, auditEnabled bool,
 ) *mitHarness {
 	t.Helper()
 	tools := []string{"kinit", "kvno", "klist"}
@@ -514,6 +515,16 @@ func startMITKDCWithIdentityPolicyOptionsAudit(
 		PKINITRequireFreshness: freshness,
 		PKINITIndicators:       pkinitIndicators,
 	}
+	if pacEnabled {
+		realmSID, err := pac.ParseSID("S-1-5-21-1-2-3")
+		if err != nil {
+			t.Fatal(err)
+		}
+		store.pacEnabled = true
+		store.realmSID = &realmSID
+		server.EnablePAC = true
+		server.GeneratePACIdentity = store.generatePACIdentity
+	}
 	instance := &ProviderInstance{
 		Config: *api.NewKerberosOutpostConfig(1, "test", mitRealm, 3600, 3600, "test"),
 		Store:  store,
@@ -611,13 +622,13 @@ func startMITKDCWithIdentityPolicyOptionsAudit(
 	if err != nil {
 		t.Fatal(err)
 	}
-	kt := &keytab.Keytab{Entries: []keytab.Entry{{
+	kt := mustKeytab(t, keytab.Entry{
 		Principal: *servicePrincipal,
 		Timestamp: time.Now().Unix(),
 		KVNO:      1,
 		Enctype:   18,
 		Key:       serviceKey,
-	}}}
+	})
 	keytabPath := filepath.Join(dir, "service.keytab")
 	keytabFile, err := os.OpenFile(keytabPath, os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
@@ -1216,8 +1227,18 @@ func TestMITInteropServiceAccountAuthorization(t *testing.T) {
 	unlinked.run(t, "", "kinit", "-f", "-kt", unlinked.keytabPath, mitService)
 }
 
+func startMITKDCForS4U(
+	t *testing.T, allowProxy bool,
+	accessCheck func(username, clientSPN, spn string) bool,
+) *mitHarness {
+	return startMITKDCWithIdentityPolicyOptionsAudit(
+		t, false, false, allowProxy, mitUser, mitUser,
+		accessCheck, false, false, nil, nil, true, false,
+	)
+}
+
 func TestMITInteropS4U(t *testing.T) {
-	h := startMITKDC(t, false)
+	h := startMITKDCForS4U(t, true, func(string, string, string) bool { return true })
 	kinit := h.run(t, "", "kinit", "-f", "-kt", h.keytabPath, mitService)
 	t.Logf("kinit service output:\n%s", kinit)
 	klist := h.run(t, "", "klist")
@@ -1238,7 +1259,7 @@ func TestMITInteropS4U(t *testing.T) {
 		t.Fatalf("kvno S4U2Proxy output unexpected:\n%s", proxy)
 	}
 
-	denied := startMITKDCWithDelegation(t, false, false, false)
+	denied := startMITKDCForS4U(t, false, func(string, string, string) bool { return true })
 	denied.run(t, "", "kinit", "-f", "-kt", denied.keytabPath, mitService)
 	denied.run(t, "", "kvno", "-U", mitUser, mitService)
 	if output, err := denied.runResult(
@@ -1252,8 +1273,7 @@ func TestMITInteropS4U(t *testing.T) {
 		}
 	}
 
-	deniedUser := startMITKDCWithIdentityPolicy(
-		t, false, false, true, mitUser, mitUser,
+	deniedUser := startMITKDCForS4U(t, true,
 		func(username, clientSPN, spn string) bool {
 			return username != mitUser || spn != "HTTP/backend.test"
 		},
@@ -1846,12 +1866,12 @@ func TestMITPeerRealmCrossRealm(t *testing.T) {
 		"-d", database, "-s", "-P", "master-password")
 
 	keytabPath := filepath.Join(dir, "incoming.keytab")
-	kt := &keytab.Keytab{Entries: []keytab.Entry{{
+	kt := mustKeytab(t, keytab.Entry{
 		Principal: mustPrincipal(t, "krbtgt/"+localRealm+"@"+peerRealm),
 		KVNO:      1,
 		Enctype:   crypto.EnctypeAES256SHA1,
 		Key:       trustKey,
-	}}}
+	})
 	keytabFile, err := os.OpenFile(keytabPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
 	if err != nil {
 		t.Fatal(err)
@@ -1872,10 +1892,11 @@ func TestMITPeerRealmCrossRealm(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(parsedKeytab.Entries) != 1 {
-		t.Fatalf("parsed incoming trust keytab entries = %d, want 1", len(parsedKeytab.Entries))
+	parsedEntries := parsedKeytab.Entries()
+	if len(parsedEntries) != 1 {
+		t.Fatalf("parsed incoming trust keytab entries = %d, want 1", len(parsedEntries))
 	}
-	incoming := parsedKeytab.Entries[0]
+	incoming := parsedEntries[0]
 	incomingName := incoming.Principal
 	databaseDump := kdb.NewDatabase(peerRealm)
 	if err := databaseDump.ApplyPrincipal(kdb.PrincipalRecord{
@@ -1967,12 +1988,12 @@ func TestMITKpropInterop(t *testing.T) {
 		harness.store.services[principalKey(record.Name)] = record
 	}
 
-	receiverKeytab := &keytab.Keytab{Entries: []keytab.Entry{{
+	receiverKeytab := mustKeytab(t, keytab.Entry{
 		Principal: mustPrincipal(t, "host/127.0.0.1@"+mitRealm),
 		KVNO:      1,
 		Enctype:   crypto.EnctypeAES256SHA1,
 		Key:       replicaKey,
-	}}}
+	})
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
@@ -2081,6 +2102,17 @@ func mustPrincipal(t *testing.T, value string) principal.Principal {
 		t.Fatal(err)
 	}
 	return *parsed
+}
+
+func mustKeytab(t *testing.T, entries ...keytab.Entry) *keytab.Keytab {
+	t.Helper()
+	kt := &keytab.Keytab{}
+	for _, entry := range entries {
+		if err := kt.AddEntry(entry); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return kt
 }
 
 func runCrossRealmCommand(t *testing.T, env []string, command string, args ...string) string {

@@ -14,8 +14,8 @@ import (
 	"github.com/Exonical/go-kerberos/krb5/ap"
 	"github.com/Exonical/go-kerberos/krb5/asn1"
 	"github.com/Exonical/go-kerberos/krb5/crypto"
-	krberrors "github.com/Exonical/go-kerberos/krb5/errors"
 	"github.com/Exonical/go-kerberos/krb5/keytab"
+	krberrors "github.com/Exonical/go-kerberos/krb5/krberr"
 	"github.com/Exonical/go-kerberos/krb5/principal"
 	"github.com/Exonical/go-kerberos/krb5/protocol"
 	"github.com/Exonical/go-kerberos/krb5/transport"
@@ -144,17 +144,19 @@ func (rs *KerberosServer) handleKpasswd(data []byte, udp bool) ([]byte, error) {
 		return nil, err
 	}
 	if !ok {
-		return kpasswdError("kadmin/changepw", realm, krberrors.KDCErrEtypeNosp), nil
+		return kpasswdError("kadmin/changepw", realm, krberrors.KDCErrEtypeNosupp), nil
 	}
 	kt := &keytab.Keytab{}
 	for enctype, value := range record.Keys {
-		kt.Entries = append(kt.Entries, keytab.Entry{
+		if err := kt.AddEntry(keytab.Entry{
 			Principal: record.Name,
 			Timestamp: time.Now().Unix(),
 			KVNO:      uint32(value.KVNO),
 			Enctype:   enctype,
 			Key:       append([]byte(nil), value.Key...),
-		})
+		}); err != nil {
+			return nil, err
+		}
 	}
 	now := time.Now().UTC()
 	verified, err := ap.VerifyAPReq(kt, request.apReqDER, now, 5*time.Minute)

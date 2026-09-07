@@ -12,6 +12,7 @@ import (
 	"github.com/Exonical/go-kerberos/krb5/client"
 	"github.com/Exonical/go-kerberos/krb5/crypto"
 	"github.com/Exonical/go-kerberos/krb5/kdc"
+	"github.com/Exonical/go-kerberos/krb5/pac"
 	"github.com/Exonical/go-kerberos/krb5/principal"
 	"github.com/Exonical/go-kerberos/krb5/types"
 )
@@ -122,6 +123,14 @@ func newS4UTestServerWithAccessCheck(
 		},
 		CheckAllowedToDelegate: store.checkAllowedToDelegate,
 	}
+	realmSID, err := pac.ParseSID("S-1-5-21-1-2-3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.pacEnabled = true
+	store.realmSID = &realmSID
+	server.EnablePAC = true
+	server.GeneratePACIdentity = store.generatePACIdentity
 	kclient := &client.Client{
 		Now: func() time.Time { return now },
 		Exchange: func(_ context.Context, _ string, payload []byte) ([]byte, error) {

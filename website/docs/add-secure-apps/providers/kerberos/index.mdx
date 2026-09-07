@@ -344,6 +344,11 @@ the target list limited to the services the delegating account needs.
 S4U2Proxy also evaluates the impersonated user's authentik application and
 target service-principal policies before issuing the delegated ticket.
 
+:::info
+S4U2Proxy verifies the PAC of the S4U2Self evidence ticket, so constrained
+delegation requires **Include MS-PAC in tickets** to be enabled on the provider.
+:::
+
 ## PKINIT
 
 Public Key Cryptography for Initial Authentication (PKINIT) allows a client to obtain a Kerberos ticket with an X.509 certificate instead of a password. To enable PKINIT, set both certificate fields on the provider:
