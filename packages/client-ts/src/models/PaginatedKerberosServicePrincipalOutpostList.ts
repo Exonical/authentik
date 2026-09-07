@@ -28,20 +28,14 @@ import { PaginationFromJSON, PaginationToJSON } from "./Pagination";
 export interface PaginatedKerberosServicePrincipalOutpostList {
     /**
      *
-     * @type {Pagination}
-     * @memberof PaginatedKerberosServicePrincipalOutpostList
      */
     pagination: Pagination;
     /**
      *
-     * @type {Array<KerberosServicePrincipalOutpost>}
-     * @memberof PaginatedKerberosServicePrincipalOutpostList
      */
     results: Array<KerberosServicePrincipalOutpost>;
     /**
      *
-     * @type {{ [key: string]: any; }}
-     * @memberof PaginatedKerberosServicePrincipalOutpostList
      */
     autocomplete: { [key: string]: any };
 }

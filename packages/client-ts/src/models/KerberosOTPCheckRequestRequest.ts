@@ -20,14 +20,10 @@
 export interface KerberosOTPCheckRequestRequest {
     /**
      *
-     * @type {string}
-     * @memberof KerberosOTPCheckRequestRequest
      */
     username: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosOTPCheckRequestRequest
      */
     value: string;
 }

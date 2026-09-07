@@ -20,38 +20,26 @@
 export interface KerberosRealmTrustOutpost {
     /**
      *
-     * @type {string}
-     * @memberof KerberosRealmTrustOutpost
      */
     remoteRealm: string;
     /**
      *
-     * @type {Array<string>}
-     * @memberof KerberosRealmTrustOutpost
      */
     capaths: Array<string>;
     /**
      *
-     * @type {number}
-     * @memberof KerberosRealmTrustOutpost
      */
     outgoingKvno: number;
     /**
      *
-     * @type {{ [key: string]: any; }}
-     * @memberof KerberosRealmTrustOutpost
      */
     readonly outgoingKeys: { [key: string]: any };
     /**
      *
-     * @type {number}
-     * @memberof KerberosRealmTrustOutpost
      */
     incomingKvno: number;
     /**
      *
-     * @type {{ [key: string]: any; }}
-     * @memberof KerberosRealmTrustOutpost
      */
     readonly incomingKeys: { [key: string]: any };
 }

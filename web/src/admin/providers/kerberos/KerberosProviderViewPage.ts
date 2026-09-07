@@ -69,6 +69,18 @@ const descriptionLabels: Record<string, string> = {
     "kerberos.tcp-enabled.term": msg("TCP enabled", {
         id: "kerberos.tcp-enabled.term",
     }),
+    "kerberos.max-udp-workers.term": msg("Maximum UDP workers", {
+        id: "kerberos.max-udp-workers.term",
+    }),
+    "kerberos.max-tcp-connections.term": msg("Maximum TCP connections", {
+        id: "kerberos.max-tcp-connections.term",
+    }),
+    "kerberos.tcp-idle-timeout.term": msg("TCP idle timeout", {
+        id: "kerberos.tcp-idle-timeout.term",
+    }),
+    "kerberos.max-datagram-reply-size.term": msg("Maximum UDP reply size", {
+        id: "kerberos.max-datagram-reply-size.term",
+    }),
     "kerberos.kpasswd-enabled.term": msg("Password changes enabled", {
         id: "kerberos.kpasswd-enabled.term",
     }),
@@ -302,6 +314,26 @@ export class KerberosProviderViewPage extends AKElement {
                                                 "TCP enabled",
                                                 this.provider.tcpEnabled,
                                                 "kerberos.tcp-enabled.term",
+                                            )}
+                                            ${this.renderDescription(
+                                                "Maximum UDP workers",
+                                                String(this.provider.maxUdpWorkers ?? 0),
+                                                "kerberos.max-udp-workers.term",
+                                            )}
+                                            ${this.renderDescription(
+                                                "Maximum TCP connections",
+                                                String(this.provider.maxTcpConnections ?? 0),
+                                                "kerberos.max-tcp-connections.term",
+                                            )}
+                                            ${this.renderDescription(
+                                                "TCP idle timeout",
+                                                `${this.provider.tcpIdleTimeout ?? 0} seconds`,
+                                                "kerberos.tcp-idle-timeout.term",
+                                            )}
+                                            ${this.renderDescription(
+                                                "Maximum UDP reply size",
+                                                `${this.provider.maxDatagramReplySize ?? 0} bytes`,
+                                                "kerberos.max-datagram-reply-size.term",
                                             )}
                                             ${this.renderBoolean(
                                                 "Password changes enabled",

@@ -35,6 +35,14 @@ type KerberosOutpostConfig struct {
 	SpakeEnabled *bool `json:"spake_enabled,omitempty"`
 	UdpEnabled   *bool `json:"udp_enabled,omitempty"`
 	TcpEnabled   *bool `json:"tcp_enabled,omitempty"`
+	// Maximum concurrent UDP request handlers; 0 uses the built-in default of 1024.
+	MaxUdpWorkers *int32 `json:"max_udp_workers,omitempty"`
+	// Maximum concurrent KDC TCP connections; 0 uses the built-in default of 45.
+	MaxTcpConnections *int32 `json:"max_tcp_connections,omitempty"`
+	// KDC TCP idle timeout in seconds; 0 uses the built-in default of 60 seconds.
+	TcpIdleTimeout *int32 `json:"tcp_idle_timeout,omitempty"`
+	// Maximum UDP reply size in bytes; 0 uses the built-in default of 65536 bytes.
+	MaxDatagramReplySize *int32 `json:"max_datagram_reply_size,omitempty"`
 	// Enable RFC 3244 password changes through the Kerberos outpost.
 	KpasswdEnabled             *bool                           `json:"kpasswd_enabled,omitempty"`
 	Forwardable                *bool                           `json:"forwardable,omitempty"`
@@ -485,6 +493,134 @@ func (o *KerberosOutpostConfig) HasTcpEnabled() bool {
 // SetTcpEnabled gets a reference to the given bool and assigns it to the TcpEnabled field.
 func (o *KerberosOutpostConfig) SetTcpEnabled(v bool) {
 	o.TcpEnabled = &v
+}
+
+// GetMaxUdpWorkers returns the MaxUdpWorkers field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetMaxUdpWorkers() int32 {
+	if o == nil || IsNil(o.MaxUdpWorkers) {
+		var ret int32
+		return ret
+	}
+	return *o.MaxUdpWorkers
+}
+
+// GetMaxUdpWorkersOk returns a tuple with the MaxUdpWorkers field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetMaxUdpWorkersOk() (*int32, bool) {
+	if o == nil || IsNil(o.MaxUdpWorkers) {
+		return nil, false
+	}
+	return o.MaxUdpWorkers, true
+}
+
+// HasMaxUdpWorkers returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasMaxUdpWorkers() bool {
+	if o != nil && !IsNil(o.MaxUdpWorkers) {
+		return true
+	}
+
+	return false
+}
+
+// SetMaxUdpWorkers gets a reference to the given int32 and assigns it to the MaxUdpWorkers field.
+func (o *KerberosOutpostConfig) SetMaxUdpWorkers(v int32) {
+	o.MaxUdpWorkers = &v
+}
+
+// GetMaxTcpConnections returns the MaxTcpConnections field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetMaxTcpConnections() int32 {
+	if o == nil || IsNil(o.MaxTcpConnections) {
+		var ret int32
+		return ret
+	}
+	return *o.MaxTcpConnections
+}
+
+// GetMaxTcpConnectionsOk returns a tuple with the MaxTcpConnections field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetMaxTcpConnectionsOk() (*int32, bool) {
+	if o == nil || IsNil(o.MaxTcpConnections) {
+		return nil, false
+	}
+	return o.MaxTcpConnections, true
+}
+
+// HasMaxTcpConnections returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasMaxTcpConnections() bool {
+	if o != nil && !IsNil(o.MaxTcpConnections) {
+		return true
+	}
+
+	return false
+}
+
+// SetMaxTcpConnections gets a reference to the given int32 and assigns it to the MaxTcpConnections field.
+func (o *KerberosOutpostConfig) SetMaxTcpConnections(v int32) {
+	o.MaxTcpConnections = &v
+}
+
+// GetTcpIdleTimeout returns the TcpIdleTimeout field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetTcpIdleTimeout() int32 {
+	if o == nil || IsNil(o.TcpIdleTimeout) {
+		var ret int32
+		return ret
+	}
+	return *o.TcpIdleTimeout
+}
+
+// GetTcpIdleTimeoutOk returns a tuple with the TcpIdleTimeout field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetTcpIdleTimeoutOk() (*int32, bool) {
+	if o == nil || IsNil(o.TcpIdleTimeout) {
+		return nil, false
+	}
+	return o.TcpIdleTimeout, true
+}
+
+// HasTcpIdleTimeout returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasTcpIdleTimeout() bool {
+	if o != nil && !IsNil(o.TcpIdleTimeout) {
+		return true
+	}
+
+	return false
+}
+
+// SetTcpIdleTimeout gets a reference to the given int32 and assigns it to the TcpIdleTimeout field.
+func (o *KerberosOutpostConfig) SetTcpIdleTimeout(v int32) {
+	o.TcpIdleTimeout = &v
+}
+
+// GetMaxDatagramReplySize returns the MaxDatagramReplySize field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetMaxDatagramReplySize() int32 {
+	if o == nil || IsNil(o.MaxDatagramReplySize) {
+		var ret int32
+		return ret
+	}
+	return *o.MaxDatagramReplySize
+}
+
+// GetMaxDatagramReplySizeOk returns a tuple with the MaxDatagramReplySize field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetMaxDatagramReplySizeOk() (*int32, bool) {
+	if o == nil || IsNil(o.MaxDatagramReplySize) {
+		return nil, false
+	}
+	return o.MaxDatagramReplySize, true
+}
+
+// HasMaxDatagramReplySize returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasMaxDatagramReplySize() bool {
+	if o != nil && !IsNil(o.MaxDatagramReplySize) {
+		return true
+	}
+
+	return false
+}
+
+// SetMaxDatagramReplySize gets a reference to the given int32 and assigns it to the MaxDatagramReplySize field.
+func (o *KerberosOutpostConfig) SetMaxDatagramReplySize(v int32) {
+	o.MaxDatagramReplySize = &v
 }
 
 // GetKpasswdEnabled returns the KpasswdEnabled field value if set, zero value otherwise.
@@ -1447,6 +1583,18 @@ func (o KerberosOutpostConfig) ToMap() (map[string]interface{}, error) {
 	if !IsNil(o.TcpEnabled) {
 		toSerialize["tcp_enabled"] = o.TcpEnabled
 	}
+	if !IsNil(o.MaxUdpWorkers) {
+		toSerialize["max_udp_workers"] = o.MaxUdpWorkers
+	}
+	if !IsNil(o.MaxTcpConnections) {
+		toSerialize["max_tcp_connections"] = o.MaxTcpConnections
+	}
+	if !IsNil(o.TcpIdleTimeout) {
+		toSerialize["tcp_idle_timeout"] = o.TcpIdleTimeout
+	}
+	if !IsNil(o.MaxDatagramReplySize) {
+		toSerialize["max_datagram_reply_size"] = o.MaxDatagramReplySize
+	}
 	if !IsNil(o.KpasswdEnabled) {
 		toSerialize["kpasswd_enabled"] = o.KpasswdEnabled
 	}
@@ -1590,6 +1738,10 @@ func (o *KerberosOutpostConfig) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "spake_enabled")
 		delete(additionalProperties, "udp_enabled")
 		delete(additionalProperties, "tcp_enabled")
+		delete(additionalProperties, "max_udp_workers")
+		delete(additionalProperties, "max_tcp_connections")
+		delete(additionalProperties, "tcp_idle_timeout")
+		delete(additionalProperties, "max_datagram_reply_size")
 		delete(additionalProperties, "kpasswd_enabled")
 		delete(additionalProperties, "forwardable")
 		delete(additionalProperties, "renewable")

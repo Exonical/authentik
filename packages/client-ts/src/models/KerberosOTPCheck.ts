@@ -20,8 +20,6 @@
 export interface KerberosOTPCheck {
     /**
      *
-     * @type {boolean}
-     * @memberof KerberosOTPCheck
      */
     allowed: boolean;
 }

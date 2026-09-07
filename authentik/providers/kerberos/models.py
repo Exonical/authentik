@@ -108,6 +108,24 @@ class KerberosProvider(OutpostModel, Provider):
     )
     udp_enabled = models.BooleanField(default=True)
     tcp_enabled = models.BooleanField(default=True)
+    max_udp_workers = models.PositiveIntegerField(
+        default=0,
+        help_text=_("Maximum concurrent UDP request handlers; 0 uses the built-in default of 1024."),
+    )
+    max_tcp_connections = models.PositiveIntegerField(
+        default=0,
+        help_text=_("Maximum concurrent KDC TCP connections; 0 uses the built-in default of 45."),
+    )
+    tcp_idle_timeout = models.PositiveIntegerField(
+        default=0,
+        help_text=_("KDC TCP idle timeout in seconds; 0 uses the built-in default of 60 seconds."),
+    )
+    max_datagram_reply_size = models.PositiveIntegerField(
+        default=0,
+        help_text=_(
+            "Maximum UDP reply size in bytes; 0 uses the built-in default of 65536 bytes."
+        ),
+    )
     kpasswd_enabled = models.BooleanField(
         default=True,
         help_text=_("Enable RFC 3244 password changes through the Kerberos outpost."),

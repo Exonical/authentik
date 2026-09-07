@@ -575,119 +575,263 @@ export interface ProvidersGoogleWorkspaceUsersUsedByListRequest {
 }
 
 export interface ProvidersKerberosCreateRequest {
+    /**
+     *
+     */
     kerberosProviderRequest: KerberosProviderRequest;
 }
 
 export interface ProvidersKerberosDestroyRequest {
+    /**
+     * A unique integer value identifying this Kerberos Provider.
+     */
     id: number;
 }
 
 export interface ProvidersKerberosListRequest {
+    /**
+     *
+     */
     applicationIsnull?: boolean;
+    /**
+     *
+     */
     nameIexact?: string;
+    /**
+     * Which field to use when ordering the results.
+     */
     ordering?: string;
+    /**
+     * A page number within the paginated result set.
+     */
     page?: number;
+    /**
+     * Number of results to return per page.
+     */
     pageSize?: number;
+    /**
+     *
+     */
     realmNameIexact?: string;
+    /**
+     * A search term.
+     */
     search?: string;
 }
 
 export interface ProvidersKerberosPartialUpdateRequest {
+    /**
+     * A unique integer value identifying this Kerberos Provider.
+     */
     id: number;
+    /**
+     *
+     */
     patchedKerberosProviderRequest?: PatchedKerberosProviderRequest;
 }
 
 export interface ProvidersKerberosRealmTrustsCreateRequest {
+    /**
+     *
+     */
     kerberosRealmTrustRequest: KerberosRealmTrustRequest;
 }
 
 export interface ProvidersKerberosRealmTrustsDestroyRequest {
+    /**
+     * A UUID string identifying this Kerberos Realm Trust.
+     */
     uuid: string;
 }
 
 export interface ProvidersKerberosRealmTrustsKeytabRetrieveRequest {
+    /**
+     * A UUID string identifying this Kerberos Realm Trust.
+     */
     uuid: string;
+    /**
+     *
+     */
     direction?: DirectionEnum;
 }
 
 export interface ProvidersKerberosRealmTrustsListRequest {
+    /**
+     * Which field to use when ordering the results.
+     */
     ordering?: string;
+    /**
+     * A page number within the paginated result set.
+     */
     page?: number;
+    /**
+     * Number of results to return per page.
+     */
     pageSize?: number;
+    /**
+     *
+     */
     provider?: number;
+    /**
+     *
+     */
     remoteRealmIexact?: string;
+    /**
+     * A search term.
+     */
     search?: string;
 }
 
 export interface ProvidersKerberosRealmTrustsPartialUpdateRequest {
+    /**
+     * A UUID string identifying this Kerberos Realm Trust.
+     */
     uuid: string;
+    /**
+     *
+     */
     patchedKerberosRealmTrustRequest?: PatchedKerberosRealmTrustRequest;
 }
 
 export interface ProvidersKerberosRealmTrustsRetrieveRequest {
+    /**
+     * A UUID string identifying this Kerberos Realm Trust.
+     */
     uuid: string;
 }
 
 export interface ProvidersKerberosRealmTrustsRotateCreateRequest {
+    /**
+     * A UUID string identifying this Kerberos Realm Trust.
+     */
     uuid: string;
+    /**
+     *
+     */
     direction?: DirectionEnum;
 }
 
 export interface ProvidersKerberosRealmTrustsUpdateRequest {
+    /**
+     * A UUID string identifying this Kerberos Realm Trust.
+     */
     uuid: string;
+    /**
+     *
+     */
     kerberosRealmTrustRequest: KerberosRealmTrustRequest;
 }
 
 export interface ProvidersKerberosRetrieveRequest {
+    /**
+     * A unique integer value identifying this Kerberos Provider.
+     */
     id: number;
 }
 
 export interface ProvidersKerberosServicePrincipalsCreateRequest {
+    /**
+     *
+     */
     kerberosServicePrincipalRequest: KerberosServicePrincipalRequest;
 }
 
 export interface ProvidersKerberosServicePrincipalsDestroyRequest {
+    /**
+     * A UUID string identifying this Kerberos Service Principal.
+     */
     uuid: string;
 }
 
 export interface ProvidersKerberosServicePrincipalsKeytabRetrieveRequest {
+    /**
+     * A UUID string identifying this Kerberos Service Principal.
+     */
     uuid: string;
 }
 
 export interface ProvidersKerberosServicePrincipalsListRequest {
+    /**
+     * Which field to use when ordering the results.
+     */
     ordering?: string;
+    /**
+     * A page number within the paginated result set.
+     */
     page?: number;
+    /**
+     * Number of results to return per page.
+     */
     pageSize?: number;
+    /**
+     *
+     */
     provider?: number;
+    /**
+     * A search term.
+     */
     search?: string;
+    /**
+     *
+     */
     spnIexact?: string;
 }
 
 export interface ProvidersKerberosServicePrincipalsPartialUpdateRequest {
+    /**
+     * A UUID string identifying this Kerberos Service Principal.
+     */
     uuid: string;
+    /**
+     *
+     */
     patchedKerberosServicePrincipalRequest?: PatchedKerberosServicePrincipalRequest;
 }
 
 export interface ProvidersKerberosServicePrincipalsRetrieveRequest {
+    /**
+     * A UUID string identifying this Kerberos Service Principal.
+     */
     uuid: string;
 }
 
 export interface ProvidersKerberosServicePrincipalsRotateCreateRequest {
+    /**
+     * A UUID string identifying this Kerberos Service Principal.
+     */
     uuid: string;
+    /**
+     *
+     */
     kerberosServicePrincipalRequest: KerberosServicePrincipalRequest;
 }
 
 export interface ProvidersKerberosServicePrincipalsUpdateRequest {
+    /**
+     * A UUID string identifying this Kerberos Service Principal.
+     */
     uuid: string;
+    /**
+     *
+     */
     kerberosServicePrincipalRequest: KerberosServicePrincipalRequest;
 }
 
 export interface ProvidersKerberosUpdateRequest {
+    /**
+     * A unique integer value identifying this Kerberos Provider.
+     */
     id: number;
+    /**
+     *
+     */
     kerberosProviderRequest: KerberosProviderRequest;
 }
 
 export interface ProvidersKerberosUsedByListRequest {
+    /**
+     * A unique integer value identifying this Kerberos Provider.
+     */
     id: number;
 }
 

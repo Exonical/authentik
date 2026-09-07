@@ -76,6 +76,10 @@ func TestRefreshCopiesCachesWithoutRacingRequests(t *testing.T) {
 					"allowed_enctypes":              []int{18},
 					"master_key":                    base64.StdEncoding.EncodeToString([]byte("master key")),
 					"application_slug":              "test",
+					"max_udp_workers":               7,
+					"max_tcp_connections":           11,
+					"tcp_idle_timeout":              13,
+					"max_datagram_reply_size":       1400,
 				}},
 				"autocomplete": map[string]any{},
 			}
@@ -173,6 +177,19 @@ func TestRefreshCopiesCachesWithoutRacingRequests(t *testing.T) {
 	close(errs)
 	for err := range errs {
 		t.Error(err)
+	}
+	instance := server.providers[1]
+	if instance.KDC.MaxUDPWorkers != 7 ||
+		instance.KDC.MaxTCPConnections != 11 ||
+		instance.KDC.TCPIdleTimeout != 13*time.Second ||
+		instance.KDC.MaxDatagramReplySize != 1400 {
+		t.Fatalf(
+			"transport tuning = UDP %d, TCP %d, timeout %s, datagram %d",
+			instance.KDC.MaxUDPWorkers,
+			instance.KDC.MaxTCPConnections,
+			instance.KDC.TCPIdleTimeout,
+			instance.KDC.MaxDatagramReplySize,
+		)
 	}
 }
 

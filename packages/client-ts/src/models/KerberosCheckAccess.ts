@@ -23,8 +23,6 @@ import { PolicyTestResultFromJSON, PolicyTestResultToJSON } from "./PolicyTestRe
 export interface KerberosCheckAccess {
     /**
      *
-     * @type {PolicyTestResult}
-     * @memberof KerberosCheckAccess
      */
     access: PolicyTestResult;
 }

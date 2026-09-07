@@ -20,8 +20,6 @@
 export interface KerberosServicePrincipalAdminRequest {
     /**
      *
-     * @type {string}
-     * @memberof KerberosServicePrincipalAdminRequest
      */
     spn: string;
 }

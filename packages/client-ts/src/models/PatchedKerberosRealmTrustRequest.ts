@@ -20,20 +20,14 @@
 export interface PatchedKerberosRealmTrustRequest {
     /**
      *
-     * @type {number}
-     * @memberof PatchedKerberosRealmTrustRequest
      */
     provider?: number;
     /**
      *
-     * @type {string}
-     * @memberof PatchedKerberosRealmTrustRequest
      */
     remoteRealm?: string;
     /**
      * Intermediate realms for transited-path checking.
-     * @type {Array<string>}
-     * @memberof PatchedKerberosRealmTrustRequest
      */
     capaths?: Array<string>;
 }

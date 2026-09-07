@@ -12,6 +12,8 @@
  * Do not edit the class manually.
  */
 
+import { parseDateTime } from "../runtime";
+
 /**
  * User key data consumed by the KDC outpost.
  * @export
@@ -20,98 +22,66 @@
 export interface KerberosUserKeyOutpost {
     /**
      *
-     * @type {string}
-     * @memberof KerberosUserKeyOutpost
      */
     username: string;
     /**
      *
-     * @type {boolean}
-     * @memberof KerberosUserKeyOutpost
      */
     enabled: boolean;
     /**
      *
-     * @type {string}
-     * @memberof KerberosUserKeyOutpost
      */
     readonly principal: string;
     /**
      *
-     * @type {number}
-     * @memberof KerberosUserKeyOutpost
      */
     kvno: number;
     /**
      *
-     * @type {string}
-     * @memberof KerberosUserKeyOutpost
      */
     salt: string;
     /**
      *
-     * @type {{ [key: string]: any; }}
-     * @memberof KerberosUserKeyOutpost
      */
     readonly keys: { [key: string]: any };
     /**
      *
-     * @type {number}
-     * @memberof KerberosUserKeyOutpost
      */
     readonly maxTicketLifetime: number | null;
     /**
      *
-     * @type {number}
-     * @memberof KerberosUserKeyOutpost
      */
     readonly maxRenewLifetime: number | null;
     /**
      *
-     * @type {boolean}
-     * @memberof KerberosUserKeyOutpost
      */
     readonly requiresPasswordChange: boolean;
     /**
      *
-     * @type {number}
-     * @memberof KerberosUserKeyOutpost
      */
     readonly pacUserId: number;
     /**
      *
-     * @type {number}
-     * @memberof KerberosUserKeyOutpost
      */
     readonly pacPrimaryGroupId: number;
     /**
      *
-     * @type {Array<number>}
-     * @memberof KerberosUserKeyOutpost
      */
     readonly pacGroupIds: Array<number>;
     /**
      *
-     * @type {string}
-     * @memberof KerberosUserKeyOutpost
      */
     pacName: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosUserKeyOutpost
      */
     readonly pacUpn: string;
     /**
      *
-     * @type {Date}
-     * @memberof KerberosUserKeyOutpost
      */
     readonly passwordExpiration: Date | null;
     /**
      *
-     * @type {Array<string>}
-     * @memberof KerberosUserKeyOutpost
      */
     readonly flags: Array<string>;
 }
@@ -220,7 +190,7 @@ export function KerberosUserKeyOutpostFromJSONTyped(
         pacName: json["pac_name"],
         pacUpn: json["pac_upn"],
         passwordExpiration:
-            json["password_expiration"] == null ? null : new Date(json["password_expiration"]),
+            json["password_expiration"] == null ? null : parseDateTime(json["password_expiration"]),
         flags: json["flags"],
     };
 }

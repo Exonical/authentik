@@ -284,84 +284,213 @@ export interface OutpostsInstancesUsedByListRequest {
 }
 
 export interface OutpostsKerberosAccessCheckRequest {
+    /**
+     * A unique integer value identifying this Kerberos Provider.
+     */
     id: number;
+    /**
+     *
+     */
     clientSpn?: string;
+    /**
+     *
+     */
     spn?: string;
+    /**
+     *
+     */
     username?: string;
 }
 
 export interface OutpostsKerberosAuditEventCreateRequest {
+    /**
+     * A unique integer value identifying this Kerberos Provider.
+     */
     id: number;
+    /**
+     *
+     */
     kerberosAuditEventRequest: KerberosAuditEventRequest;
 }
 
 export interface OutpostsKerberosListRequest {
+    /**
+     *
+     */
     name?: string;
+    /**
+     * Which field to use when ordering the results.
+     */
     ordering?: string;
+    /**
+     * A page number within the paginated result set.
+     */
     page?: number;
+    /**
+     * Number of results to return per page.
+     */
     pageSize?: number;
+    /**
+     * A search term.
+     */
     search?: string;
 }
 
 export interface OutpostsKerberosOtpCheckRequest {
+    /**
+     * A unique integer value identifying this Kerberos Provider.
+     */
     id: number;
+    /**
+     *
+     */
     kerberosOTPCheckRequestRequest: KerberosOTPCheckRequestRequest;
 }
 
 export interface OutpostsKerberosRealmTrustsListRequest {
+    /**
+     * A unique integer value identifying this Kerberos Provider.
+     */
     id: number;
+    /**
+     *
+     */
     name?: string;
+    /**
+     * Which field to use when ordering the results.
+     */
     ordering?: string;
+    /**
+     * A page number within the paginated result set.
+     */
     page?: number;
+    /**
+     * Number of results to return per page.
+     */
     pageSize?: number;
+    /**
+     * A search term.
+     */
     search?: string;
 }
 
 export interface OutpostsKerberosServicePrincipalCreateRequest {
+    /**
+     * A unique integer value identifying this Kerberos Provider.
+     */
     id: number;
+    /**
+     *
+     */
     kerberosServicePrincipalAdminRequest: KerberosServicePrincipalAdminRequest;
 }
 
 export interface OutpostsKerberosServicePrincipalDeleteRequest {
+    /**
+     * A unique integer value identifying this Kerberos Provider.
+     */
     id: number;
+    /**
+     *
+     */
     kerberosServicePrincipalAdminRequest: KerberosServicePrincipalAdminRequest;
 }
 
 export interface OutpostsKerberosServicePrincipalRotateRequest {
+    /**
+     * A unique integer value identifying this Kerberos Provider.
+     */
     id: number;
+    /**
+     *
+     */
     kerberosServicePrincipalAdminRequest: KerberosServicePrincipalAdminRequest;
 }
 
 export interface OutpostsKerberosServicePrincipalUpdateRequest {
+    /**
+     * A unique integer value identifying this Kerberos Provider.
+     */
     id: number;
+    /**
+     *
+     */
     kerberosServicePrincipalUpdateRequest: KerberosServicePrincipalUpdateRequest;
 }
 
 export interface OutpostsKerberosServicePrincipalsListRequest {
+    /**
+     * A unique integer value identifying this Kerberos Provider.
+     */
     id: number;
+    /**
+     *
+     */
     name?: string;
+    /**
+     * Which field to use when ordering the results.
+     */
     ordering?: string;
+    /**
+     * A page number within the paginated result set.
+     */
     page?: number;
+    /**
+     * Number of results to return per page.
+     */
     pageSize?: number;
+    /**
+     * A search term.
+     */
     search?: string;
 }
 
 export interface OutpostsKerberosSetPasswordCreateRequest {
+    /**
+     * A unique integer value identifying this Kerberos Provider.
+     */
     id: number;
+    /**
+     *
+     */
     kerberosSetPasswordRequest: KerberosSetPasswordRequest;
 }
 
 export interface OutpostsKerberosUserKeyRetrieveRequest {
+    /**
+     * A unique integer value identifying this Kerberos Provider.
+     */
     id: number;
+    /**
+     *
+     */
     username: string;
 }
 
 export interface OutpostsKerberosUserKeysListRequest {
+    /**
+     * A unique integer value identifying this Kerberos Provider.
+     */
     id: number;
+    /**
+     *
+     */
     name?: string;
+    /**
+     * Which field to use when ordering the results.
+     */
     ordering?: string;
+    /**
+     * A page number within the paginated result set.
+     */
     page?: number;
+    /**
+     * Number of results to return per page.
+     */
     pageSize?: number;
+    /**
+     * A search term.
+     */
     search?: string;
 }
 

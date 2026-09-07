@@ -25,20 +25,14 @@ import { PaginationFromJSON, PaginationToJSON } from "./Pagination";
 export interface PaginatedKerberosRealmTrustList {
     /**
      *
-     * @type {Pagination}
-     * @memberof PaginatedKerberosRealmTrustList
      */
     pagination: Pagination;
     /**
      *
-     * @type {Array<KerberosRealmTrust>}
-     * @memberof PaginatedKerberosRealmTrustList
      */
     results: Array<KerberosRealmTrust>;
     /**
      *
-     * @type {{ [key: string]: any; }}
-     * @memberof PaginatedKerberosRealmTrustList
      */
     autocomplete: { [key: string]: any };
 }

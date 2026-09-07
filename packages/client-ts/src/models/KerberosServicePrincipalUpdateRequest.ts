@@ -23,14 +23,10 @@ import { TicketFlagsEnumFromJSON, TicketFlagsEnumToJSON } from "./TicketFlagsEnu
 export interface KerberosServicePrincipalUpdateRequest {
     /**
      *
-     * @type {string}
-     * @memberof KerberosServicePrincipalUpdateRequest
      */
     spn: string;
     /**
      *
-     * @type {Array<TicketFlagsEnum>}
-     * @memberof KerberosServicePrincipalUpdateRequest
      */
     ticketFlags: Array<TicketFlagsEnum>;
 }

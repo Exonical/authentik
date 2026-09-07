@@ -73,6 +73,19 @@ trusts explicitly.
 **UDP enabled** and **TCP enabled** control which transports the outpost accepts for this provider. The outpost deployment exposes port `3088` for both transports, but the provider settings can disable either protocol.
 Protocol listeners are rebound automatically when provider settings refresh, so transport changes do not require an outpost restart.
 
+### Transport tuning
+
+The following settings tune the KDC transport limits for high-load deployments.
+Leave each value at `0` to use the built-in default:
+
+- **Maximum UDP workers**: concurrent UDP request handlers (default `1024`).
+- **Maximum TCP connections**: concurrent KDC TCP connections (default `45`).
+- **TCP idle timeout**: TCP read/write timeout in seconds (default `60`).
+- **Maximum UDP reply size**: UDP reply limit in bytes (default `65536`).
+
+These settings affect the KDC protocol listeners only. The kpasswd listener does
+not use these limits.
+
 **SPAKE preauthentication enabled** advertises PA-SPAKE preauthentication (RFC 9588). When
 disabled, clients use the existing encrypted-timestamp preauthentication flow.
 
@@ -265,6 +278,47 @@ Export a service principal as a MIT keytab with a `GET` request to:
 ```
 
 The response contains the keytab as a base64-encoded `keytab` value. Decode that value and install the resulting file on the service host. After rotating keys, replace the service's keytab and restart or reload the service as required.
+
+### Fetching keytabs at boot (Warewulf / provisioned nodes)
+
+Instead of baking a keytab into every node overlay, a node can fetch its keytab at
+boot with a scoped authentik API token. Create a service account user, create an
+app password or API token for it, and grant it the object-level
+`authentik_providers_kerberos.view_kerberosserviceprincipal` permission on only
+that node's service principal. Assign the object permission through the Admin
+interface RBAC page or the API. The keytab action calls `get_object()`, so the
+service account must have view permission on the specific service-principal object.
+
+Store the token in `/etc/authentik/keytab-token` and use a boot script like this:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+AUTHENTIK_URL="https://authentik.example.test"
+TOKEN="$(cat /etc/authentik/keytab-token)"
+SPN="host/$(hostname -f)"
+
+UUID=$(curl -fsS -H "Authorization: Bearer ${TOKEN}" \
+  "${AUTHENTIK_URL}/api/v3/providers/kerberos_service_principals/?spn__iexact=${SPN}" \
+  | jq -r '.results[0].uuid // empty')
+if [ -z "${UUID}" ]; then
+  echo "No service principal found for ${SPN}" >&2
+  exit 1
+fi
+
+umask 077
+curl -fsS -H "Authorization: Bearer ${TOKEN}" \
+  "${AUTHENTIK_URL}/api/v3/providers/kerberos_service_principals/${UUID}/keytab/" \
+  | jq -r '.keytab' | base64 -d > /etc/krb5.keytab.tmp
+mv /etc/krb5.keytab.tmp /etc/krb5.keytab
+```
+
+Run the script from a systemd unit ordered before `rpc-gssd.service` and
+`slurmd.service`, or from a Warewulf `wwinit` script. Deliver the token file in
+the per-node overlay instead of the keytab. When keys rotate, the overlay does
+not need to be rebuilt: the node fetches the current keytab on its next boot.
+See [Constrained delegation (S4U)](#constrained-delegation-s4u) for the related
+service-principal and delegated-service setup.
 
 ## Constrained delegation (S4U)
 

@@ -41,6 +41,18 @@ pub struct KerberosOutpostConfig {
     pub udp_enabled: Option<bool>,
     #[serde(rename = "tcp_enabled", skip_serializing_if = "Option::is_none")]
     pub tcp_enabled: Option<bool>,
+    /// Maximum concurrent UDP request handlers; 0 uses the built-in default of 1024.
+    #[serde(rename = "max_udp_workers", skip_serializing_if = "Option::is_none")]
+    pub max_udp_workers: Option<u32>,
+    /// Maximum concurrent KDC TCP connections; 0 uses the built-in default of 45.
+    #[serde(rename = "max_tcp_connections", skip_serializing_if = "Option::is_none")]
+    pub max_tcp_connections: Option<u32>,
+    /// KDC TCP idle timeout in seconds; 0 uses the built-in default of 60 seconds.
+    #[serde(rename = "tcp_idle_timeout", skip_serializing_if = "Option::is_none")]
+    pub tcp_idle_timeout: Option<u32>,
+    /// Maximum UDP reply size in bytes; 0 uses the built-in default of 65536 bytes.
+    #[serde(rename = "max_datagram_reply_size", skip_serializing_if = "Option::is_none")]
+    pub max_datagram_reply_size: Option<u32>,
     /// Enable RFC 3244 password changes through the Kerberos outpost.
     #[serde(rename = "kpasswd_enabled", skip_serializing_if = "Option::is_none")]
     pub kpasswd_enabled: Option<bool>,
@@ -136,6 +148,10 @@ impl KerberosOutpostConfig {
             spake_enabled: None,
             udp_enabled: None,
             tcp_enabled: None,
+            max_udp_workers: None,
+            max_tcp_connections: None,
+            tcp_idle_timeout: None,
+            max_datagram_reply_size: None,
             kpasswd_enabled: None,
             forwardable: None,
             renewable: None,

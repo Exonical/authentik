@@ -20,50 +20,34 @@
 export interface KerberosRealmTrust {
     /**
      *
-     * @type {string}
-     * @memberof KerberosRealmTrust
      */
     readonly uuid: string;
     /**
      *
-     * @type {number}
-     * @memberof KerberosRealmTrust
      */
     provider: number;
     /**
      *
-     * @type {string}
-     * @memberof KerberosRealmTrust
      */
     remoteRealm: string;
     /**
      * Intermediate realms for transited-path checking.
-     * @type {Array<string>}
-     * @memberof KerberosRealmTrust
      */
     capaths?: Array<string>;
     /**
      *
-     * @type {number}
-     * @memberof KerberosRealmTrust
      */
     readonly outgoingKvno: number;
     /**
      *
-     * @type {{ [key: string]: any; }}
-     * @memberof KerberosRealmTrust
      */
     readonly outgoingKeys: { [key: string]: any };
     /**
      *
-     * @type {number}
-     * @memberof KerberosRealmTrust
      */
     readonly incomingKvno: number;
     /**
      *
-     * @type {{ [key: string]: any; }}
-     * @memberof KerberosRealmTrust
      */
     readonly incomingKeys: { [key: string]: any };
 }

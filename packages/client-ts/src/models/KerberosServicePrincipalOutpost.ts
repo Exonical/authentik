@@ -20,44 +20,30 @@
 export interface KerberosServicePrincipalOutpost {
     /**
      *
-     * @type {string}
-     * @memberof KerberosServicePrincipalOutpost
      */
     spn: string;
     /**
      *
-     * @type {number}
-     * @memberof KerberosServicePrincipalOutpost
      */
     kvno: number;
     /**
      *
-     * @type {{ [key: string]: any; }}
-     * @memberof KerberosServicePrincipalOutpost
      */
     readonly keys: { [key: string]: any };
     /**
      *
-     * @type {boolean}
-     * @memberof KerberosServicePrincipalOutpost
      */
     okToAuthAsDelegate: boolean;
     /**
      *
-     * @type {Array<string>}
-     * @memberof KerberosServicePrincipalOutpost
      */
     allowedDelegationTargets: Array<string>;
     /**
      *
-     * @type {Array<string>}
-     * @memberof KerberosServicePrincipalOutpost
      */
     requiredAuthIndicators: Array<string>;
     /**
      *
-     * @type {Array<string>}
-     * @memberof KerberosServicePrincipalOutpost
      */
     ticketFlags: Array<string>;
 }

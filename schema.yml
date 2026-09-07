@@ -44704,6 +44704,30 @@ components:
           type: boolean
         tcp_enabled:
           type: boolean
+        max_udp_workers:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Maximum concurrent UDP request handlers; 0 uses the built-in
+            default of 1024.
+        max_tcp_connections:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Maximum concurrent KDC TCP connections; 0 uses the built-in
+            default of 45.
+        tcp_idle_timeout:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: KDC TCP idle timeout in seconds; 0 uses the built-in default
+            of 60 seconds.
+        max_datagram_reply_size:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Maximum UDP reply size in bytes; 0 uses the built-in default
+            of 65536 bytes.
         kpasswd_enabled:
           type: boolean
           description: Enable RFC 3244 password changes through the Kerberos outpost.
@@ -44916,6 +44940,30 @@ components:
           type: boolean
         tcp_enabled:
           type: boolean
+        max_udp_workers:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Maximum concurrent UDP request handlers; 0 uses the built-in
+            default of 1024.
+        max_tcp_connections:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Maximum concurrent KDC TCP connections; 0 uses the built-in
+            default of 45.
+        tcp_idle_timeout:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: KDC TCP idle timeout in seconds; 0 uses the built-in default
+            of 60 seconds.
+        max_datagram_reply_size:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Maximum UDP reply size in bytes; 0 uses the built-in default
+            of 65536 bytes.
         kpasswd_enabled:
           type: boolean
           description: Enable RFC 3244 password changes through the Kerberos outpost.
@@ -45092,6 +45140,30 @@ components:
           type: boolean
         tcp_enabled:
           type: boolean
+        max_udp_workers:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Maximum concurrent UDP request handlers; 0 uses the built-in
+            default of 1024.
+        max_tcp_connections:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Maximum concurrent KDC TCP connections; 0 uses the built-in
+            default of 45.
+        tcp_idle_timeout:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: KDC TCP idle timeout in seconds; 0 uses the built-in default
+            of 60 seconds.
+        max_datagram_reply_size:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Maximum UDP reply size in bytes; 0 uses the built-in default
+            of 65536 bytes.
         kpasswd_enabled:
           type: boolean
           description: Enable RFC 3244 password changes through the Kerberos outpost.
@@ -53816,6 +53888,30 @@ components:
           type: boolean
         tcp_enabled:
           type: boolean
+        max_udp_workers:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Maximum concurrent UDP request handlers; 0 uses the built-in
+            default of 1024.
+        max_tcp_connections:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Maximum concurrent KDC TCP connections; 0 uses the built-in
+            default of 45.
+        tcp_idle_timeout:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: KDC TCP idle timeout in seconds; 0 uses the built-in default
+            of 60 seconds.
+        max_datagram_reply_size:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Maximum UDP reply size in bytes; 0 uses the built-in default
+            of 65536 bytes.
         kpasswd_enabled:
           type: boolean
           description: Enable RFC 3244 password changes through the Kerberos outpost.

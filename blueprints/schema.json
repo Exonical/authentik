@@ -12316,6 +12316,34 @@
                     "type": "boolean",
                     "title": "Tcp enabled"
                 },
+                "max_udp_workers": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647,
+                    "title": "Max udp workers",
+                    "description": "Maximum concurrent UDP request handlers; 0 uses the built-in default of 1024."
+                },
+                "max_tcp_connections": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647,
+                    "title": "Max tcp connections",
+                    "description": "Maximum concurrent KDC TCP connections; 0 uses the built-in default of 45."
+                },
+                "tcp_idle_timeout": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647,
+                    "title": "Tcp idle timeout",
+                    "description": "KDC TCP idle timeout in seconds; 0 uses the built-in default of 60 seconds."
+                },
+                "max_datagram_reply_size": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647,
+                    "title": "Max datagram reply size",
+                    "description": "Maximum UDP reply size in bytes; 0 uses the built-in default of 65536 bytes."
+                },
                 "kpasswd_enabled": {
                     "type": "boolean",
                     "title": "Kpasswd enabled",

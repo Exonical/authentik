@@ -17,11 +17,10 @@ pub struct KerberosServicePrincipalAdminRequest {
     #[serde(rename = "spn")]
     pub spn: String,
 }
+
 impl KerberosServicePrincipalAdminRequest {
     /// Service principal management request for the kadm5 outpost.
     pub fn new(spn: String) -> KerberosServicePrincipalAdminRequest {
-        KerberosServicePrincipalAdminRequest {
-            spn,
-        }
+        KerberosServicePrincipalAdminRequest { spn }
     }
 }

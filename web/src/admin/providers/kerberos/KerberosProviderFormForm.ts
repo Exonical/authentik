@@ -352,6 +352,82 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                     })}
                     ?checked=${provider.kkdcpEnabled ?? false}
                 ></ak-switch-input>
+                <ak-form-element-horizontal
+                    label=${msg("Maximum UDP workers", {
+                        id: "kerberos.max-udp-workers.label",
+                    })}
+                    name="maxUdpWorkers"
+                    .errorMessages=${errors?.maxUdpWorkers}
+                >
+                    <ak-text-input
+                        name="maxUdpWorkers"
+                        value="${provider.maxUdpWorkers ?? 0}"
+                        type="number"
+                        min="0"
+                    ></ak-text-input>
+                    <p class="pf-c-form__helper-text">
+                        ${msg("Concurrent UDP request handlers; 0 uses the built-in default of 1024.", {
+                            id: "kerberos.max-udp-workers.help",
+                        })}
+                    </p>
+                </ak-form-element-horizontal>
+                <ak-form-element-horizontal
+                    label=${msg("Maximum TCP connections", {
+                        id: "kerberos.max-tcp-connections.label",
+                    })}
+                    name="maxTcpConnections"
+                    .errorMessages=${errors?.maxTcpConnections}
+                >
+                    <ak-text-input
+                        name="maxTcpConnections"
+                        value="${provider.maxTcpConnections ?? 0}"
+                        type="number"
+                        min="0"
+                    ></ak-text-input>
+                    <p class="pf-c-form__helper-text">
+                        ${msg("Concurrent KDC TCP connections; 0 uses the built-in default of 45.", {
+                            id: "kerberos.max-tcp-connections.help",
+                        })}
+                    </p>
+                </ak-form-element-horizontal>
+                <ak-form-element-horizontal
+                    label=${msg("TCP idle timeout", {
+                        id: "kerberos.tcp-idle-timeout.label",
+                    })}
+                    name="tcpIdleTimeout"
+                    .errorMessages=${errors?.tcpIdleTimeout}
+                >
+                    <ak-text-input
+                        name="tcpIdleTimeout"
+                        value="${provider.tcpIdleTimeout ?? 0}"
+                        type="number"
+                        min="0"
+                    ></ak-text-input>
+                    <p class="pf-c-form__helper-text">
+                        ${msg("TCP read/write timeout in seconds; 0 uses the built-in default of 60 seconds.", {
+                            id: "kerberos.tcp-idle-timeout.help",
+                        })}
+                    </p>
+                </ak-form-element-horizontal>
+                <ak-form-element-horizontal
+                    label=${msg("Maximum UDP reply size", {
+                        id: "kerberos.max-datagram-reply-size.label",
+                    })}
+                    name="maxDatagramReplySize"
+                    .errorMessages=${errors?.maxDatagramReplySize}
+                >
+                    <ak-text-input
+                        name="maxDatagramReplySize"
+                        value="${provider.maxDatagramReplySize ?? 0}"
+                        type="number"
+                        min="0"
+                    ></ak-text-input>
+                    <p class="pf-c-form__helper-text">
+                        ${msg("UDP reply size in bytes; 0 uses the built-in default of 65536 bytes.", {
+                            id: "kerberos.max-datagram-reply-size.help",
+                        })}
+                    </p>
+                </ak-form-element-horizontal>
             </div>
         </ak-form-group>
 

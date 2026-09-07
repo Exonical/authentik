@@ -28,314 +28,226 @@ import {
 export interface KerberosProvider {
     /**
      *
-     * @type {number}
-     * @memberof KerberosProvider
      */
     readonly pk: number;
     /**
      *
-     * @type {string}
-     * @memberof KerberosProvider
      */
     name: string;
     /**
      * Flow used for authentication when the associated application is accessed by an un-authenticated user.
-     * @type {string}
-     * @memberof KerberosProvider
      */
     authenticationFlow?: string | null;
     /**
      * Flow used when authorizing this provider.
-     * @type {string}
-     * @memberof KerberosProvider
      */
     authorizationFlow?: string | null;
     /**
      * Flow used ending the session from a provider.
-     * @type {string}
-     * @memberof KerberosProvider
      */
     invalidationFlow?: string | null;
     /**
      *
-     * @type {Array<string>}
-     * @memberof KerberosProvider
      */
     propertyMappings?: Array<string>;
     /**
      * Get object component so that we know how to edit the object
-     * @type {string}
-     * @memberof KerberosProvider
      */
     readonly component: string;
     /**
      * Internal application name, used in URLs.
-     * @type {string}
-     * @memberof KerberosProvider
      */
     readonly assignedApplicationSlug: string | null;
     /**
      * Application's display Name.
-     * @type {string}
-     * @memberof KerberosProvider
      */
     readonly assignedApplicationName: string | null;
     /**
      * Internal application name, used in URLs.
-     * @type {string}
-     * @memberof KerberosProvider
      */
     readonly assignedBackchannelApplicationSlug: string | null;
     /**
      * Application's display Name.
-     * @type {string}
-     * @memberof KerberosProvider
      */
     readonly assignedBackchannelApplicationName: string | null;
     /**
      * Return object's verbose_name
-     * @type {string}
-     * @memberof KerberosProvider
      */
     readonly verboseName: string;
     /**
      * Return object's plural verbose_name
-     * @type {string}
-     * @memberof KerberosProvider
      */
     readonly verboseNamePlural: string;
     /**
      * Return internal model name
-     * @type {string}
-     * @memberof KerberosProvider
      */
     readonly metaModelName: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosProvider
      */
     realmName: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosProvider
      */
     defaultDomain?: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosProvider
      */
     maximumTicketLifetime?: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosProvider
      */
     maximumTicketRenewLifetime?: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosProvider
      */
     defaultTicketLifetime?: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosProvider
      */
     defaultTicketRenewLifetime?: string;
     /**
      *
-     * @type {Array<AllowedEnctypesEnum>}
-     * @memberof KerberosProvider
      */
     allowedEnctypes?: Array<AllowedEnctypesEnum>;
     /**
      *
-     * @type {boolean}
-     * @memberof KerberosProvider
      */
     requirePreauthentication?: boolean;
     /**
      * Advertise PA-SPAKE preauthentication (RFC 9588).
-     * @type {boolean}
-     * @memberof KerberosProvider
      */
     spakeEnabled?: boolean;
     /**
      *
-     * @type {boolean}
-     * @memberof KerberosProvider
      */
     udpEnabled?: boolean;
     /**
      *
-     * @type {boolean}
-     * @memberof KerberosProvider
      */
     tcpEnabled?: boolean;
     /**
+     * Maximum concurrent UDP request handlers; 0 uses the built-in default of 1024.
+     */
+    maxUdpWorkers?: number;
+    /**
+     * Maximum concurrent KDC TCP connections; 0 uses the built-in default of 45.
+     */
+    maxTcpConnections?: number;
+    /**
+     * KDC TCP idle timeout in seconds; 0 uses the built-in default of 60 seconds.
+     */
+    tcpIdleTimeout?: number;
+    /**
+     * Maximum UDP reply size in bytes; 0 uses the built-in default of 65536 bytes.
+     */
+    maxDatagramReplySize?: number;
+    /**
      * Enable RFC 3244 password changes through the Kerberos outpost.
-     * @type {boolean}
-     * @memberof KerberosProvider
      */
     kpasswdEnabled?: boolean;
     /**
      *
-     * @type {boolean}
-     * @memberof KerberosProvider
      */
     forwardable?: boolean;
     /**
      *
-     * @type {boolean}
-     * @memberof KerberosProvider
      */
     renewable?: boolean;
     /**
      *
-     * @type {boolean}
-     * @memberof KerberosProvider
      */
     proxiable?: boolean;
     /**
      *
-     * @type {PrincipalUsernameAttributeEnum}
-     * @memberof KerberosProvider
      */
     principalUsernameAttribute?: PrincipalUsernameAttributeEnum;
     /**
      * Certificate/key pair the KDC uses to sign PKINIT replies. Requires a private key.
-     * @type {string}
-     * @memberof KerberosProvider
      */
     pkinitCertificate?: string | null;
     /**
      * CA certificate used to validate PKINIT client certificates.
-     * @type {string}
-     * @memberof KerberosProvider
      */
     pkinitClientCa?: string | null;
     /**
      * Require RFC 8070 freshness tokens on PKINIT requests.
-     * @type {boolean}
-     * @memberof KerberosProvider
      */
     pkinitRequireFreshness?: boolean;
     /**
      * Authentication indicators asserted after successful PKINIT.
-     * @type {Array<string>}
-     * @memberof KerberosProvider
      */
     pkinitIndicators?: Array<string>;
     /**
      * Indicators asserted after SPAKE preauthentication.
-     * @type {Array<string>}
-     * @memberof KerberosProvider
      */
     spakeIndicators?: Array<string>;
     /**
      * Indicator asserted after encrypted-challenge preauthentication.
-     * @type {string}
-     * @memberof KerberosProvider
      */
     encryptedChallengeIndicator?: string;
     /**
      * Enable RFC 6560 OTP preauthentication backed by the user's authentik TOTP and static authenticator devices.
-     * @type {boolean}
-     * @memberof KerberosProvider
      */
     otpEnabled?: boolean;
     /**
      * Authentication indicators asserted after successful OTP preauthentication.
-     * @type {Array<string>}
-     * @memberof KerberosProvider
      */
     otpIndicators?: Array<string>;
     /**
      * Allow anonymous PKINIT requests.
-     * @type {boolean}
-     * @memberof KerberosProvider
      */
     anonymousPkinitEnabled?: boolean;
     /**
      * Enable KDC Proxy over HTTPS (MS-KKDCP).
-     * @type {boolean}
-     * @memberof KerberosProvider
      */
     kkdcpEnabled?: boolean;
     /**
      * Certificate/key pair the KDC Proxy listener uses for TLS.
-     * @type {string}
-     * @memberof KerberosProvider
      */
     kkdcpCertificate?: string | null;
     /**
      * Include an MS-PAC in issued tickets.
-     * @type {boolean}
-     * @memberof KerberosProvider
      */
     pacEnabled?: boolean;
     /**
      * Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.
-     * @type {string}
-     * @memberof KerberosProvider
      */
     realmSid?: string;
     /**
      * Push full MIT Kerberos database dumps to replica KDCs.
-     * @type {boolean}
-     * @memberof KerberosProvider
      */
     kpropEnabled?: boolean;
     /**
      *
-     * @type {Array<string>}
-     * @memberof KerberosProvider
      */
     kpropTargets?: Array<string>;
     /**
      * Service principal used to authenticate kprop pushes.
-     * @type {string}
-     * @memberof KerberosProvider
      */
     kpropClientSpn?: string;
     /**
      * Interval in seconds between full kprop pushes.
-     * @type {number}
-     * @memberof KerberosProvider
      */
     kpropInterval?: number;
     /**
      * Emit authentik events for KDC ticket operations.
-     * @type {boolean}
-     * @memberof KerberosProvider
      */
     kdcAuditEnabled?: boolean;
     /**
      * Serve the kadm5 admin protocol from the outpost.
-     * @type {boolean}
-     * @memberof KerberosProvider
      */
     kadminEnabled?: boolean;
     /**
      *
-     * @type {Array<string>}
-     * @memberof KerberosProvider
      */
     kadminAcl?: Array<string>;
     /**
      *
-     * @type {string}
-     * @memberof KerberosProvider
      */
     readonly masterKey: string;
     /**
      *
-     * @type {Array<string>}
-     * @memberof KerberosProvider
      */
     readonly outpostSet: Array<string>;
 }
@@ -486,6 +398,12 @@ export function KerberosProviderFromJSONTyped(
         spakeEnabled: json["spake_enabled"] == null ? undefined : json["spake_enabled"],
         udpEnabled: json["udp_enabled"] == null ? undefined : json["udp_enabled"],
         tcpEnabled: json["tcp_enabled"] == null ? undefined : json["tcp_enabled"],
+        maxUdpWorkers: json["max_udp_workers"] == null ? undefined : json["max_udp_workers"],
+        maxTcpConnections:
+            json["max_tcp_connections"] == null ? undefined : json["max_tcp_connections"],
+        tcpIdleTimeout: json["tcp_idle_timeout"] == null ? undefined : json["tcp_idle_timeout"],
+        maxDatagramReplySize:
+            json["max_datagram_reply_size"] == null ? undefined : json["max_datagram_reply_size"],
         kpasswdEnabled: json["kpasswd_enabled"] == null ? undefined : json["kpasswd_enabled"],
         forwardable: json["forwardable"] == null ? undefined : json["forwardable"],
         renewable: json["renewable"] == null ? undefined : json["renewable"],
@@ -584,6 +502,10 @@ export function KerberosProviderToJSONTyped(
         spake_enabled: value["spakeEnabled"],
         udp_enabled: value["udpEnabled"],
         tcp_enabled: value["tcpEnabled"],
+        max_udp_workers: value["maxUdpWorkers"],
+        max_tcp_connections: value["maxTcpConnections"],
+        tcp_idle_timeout: value["tcpIdleTimeout"],
+        max_datagram_reply_size: value["maxDatagramReplySize"],
         kpasswd_enabled: value["kpasswdEnabled"],
         forwardable: value["forwardable"],
         renewable: value["renewable"],

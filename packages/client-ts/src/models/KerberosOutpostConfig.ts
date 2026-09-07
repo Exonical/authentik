@@ -28,248 +28,182 @@ import {
 export interface KerberosOutpostConfig {
     /**
      *
-     * @type {number}
-     * @memberof KerberosOutpostConfig
      */
     readonly pk: number;
     /**
      *
-     * @type {string}
-     * @memberof KerberosOutpostConfig
      */
     name: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosOutpostConfig
      */
     realmName: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosOutpostConfig
      */
     defaultDomain?: string;
     /**
      *
-     * @type {number}
-     * @memberof KerberosOutpostConfig
      */
     readonly maximumTicketLifetime: number;
     /**
      *
-     * @type {number}
-     * @memberof KerberosOutpostConfig
      */
     readonly maximumTicketRenewLifetime: number;
     /**
      *
-     * @type {string}
-     * @memberof KerberosOutpostConfig
      */
     defaultTicketLifetime?: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosOutpostConfig
      */
     defaultTicketRenewLifetime?: string;
     /**
      *
-     * @type {Array<AllowedEnctypesEnum>}
-     * @memberof KerberosOutpostConfig
      */
     allowedEnctypes?: Array<AllowedEnctypesEnum>;
     /**
      *
-     * @type {boolean}
-     * @memberof KerberosOutpostConfig
      */
     requirePreauthentication?: boolean;
     /**
      * Advertise PA-SPAKE preauthentication (RFC 9588).
-     * @type {boolean}
-     * @memberof KerberosOutpostConfig
      */
     spakeEnabled?: boolean;
     /**
      *
-     * @type {boolean}
-     * @memberof KerberosOutpostConfig
      */
     udpEnabled?: boolean;
     /**
      *
-     * @type {boolean}
-     * @memberof KerberosOutpostConfig
      */
     tcpEnabled?: boolean;
     /**
+     * Maximum concurrent UDP request handlers; 0 uses the built-in default of 1024.
+     */
+    maxUdpWorkers?: number;
+    /**
+     * Maximum concurrent KDC TCP connections; 0 uses the built-in default of 45.
+     */
+    maxTcpConnections?: number;
+    /**
+     * KDC TCP idle timeout in seconds; 0 uses the built-in default of 60 seconds.
+     */
+    tcpIdleTimeout?: number;
+    /**
+     * Maximum UDP reply size in bytes; 0 uses the built-in default of 65536 bytes.
+     */
+    maxDatagramReplySize?: number;
+    /**
      * Enable RFC 3244 password changes through the Kerberos outpost.
-     * @type {boolean}
-     * @memberof KerberosOutpostConfig
      */
     kpasswdEnabled?: boolean;
     /**
      *
-     * @type {boolean}
-     * @memberof KerberosOutpostConfig
      */
     forwardable?: boolean;
     /**
      *
-     * @type {boolean}
-     * @memberof KerberosOutpostConfig
      */
     renewable?: boolean;
     /**
      *
-     * @type {boolean}
-     * @memberof KerberosOutpostConfig
      */
     proxiable?: boolean;
     /**
      *
-     * @type {PrincipalUsernameAttributeEnum}
-     * @memberof KerberosOutpostConfig
      */
     principalUsernameAttribute?: PrincipalUsernameAttributeEnum;
     /**
      * Certificate/key pair the KDC uses to sign PKINIT replies. Requires a private key.
-     * @type {string}
-     * @memberof KerberosOutpostConfig
      */
     pkinitCertificate?: string | null;
     /**
      * CA certificate used to validate PKINIT client certificates.
-     * @type {string}
-     * @memberof KerberosOutpostConfig
      */
     pkinitClientCa?: string | null;
     /**
      * Require RFC 8070 freshness tokens on PKINIT requests.
-     * @type {boolean}
-     * @memberof KerberosOutpostConfig
      */
     pkinitRequireFreshness?: boolean;
     /**
      * Authentication indicators asserted after successful PKINIT.
-     * @type {Array<string>}
-     * @memberof KerberosOutpostConfig
      */
     pkinitIndicators?: Array<string>;
     /**
      * Indicators asserted after SPAKE preauthentication.
-     * @type {Array<string>}
-     * @memberof KerberosOutpostConfig
      */
     spakeIndicators?: Array<string>;
     /**
      * Indicator asserted after encrypted-challenge preauthentication.
-     * @type {string}
-     * @memberof KerberosOutpostConfig
      */
     encryptedChallengeIndicator?: string;
     /**
      * Enable RFC 6560 OTP preauthentication backed by the user's authentik TOTP and static authenticator devices.
-     * @type {boolean}
-     * @memberof KerberosOutpostConfig
      */
     otpEnabled?: boolean;
     /**
      * Authentication indicators asserted after successful OTP preauthentication.
-     * @type {Array<string>}
-     * @memberof KerberosOutpostConfig
      */
     otpIndicators?: Array<string>;
     /**
      * Allow anonymous PKINIT requests.
-     * @type {boolean}
-     * @memberof KerberosOutpostConfig
      */
     anonymousPkinitEnabled?: boolean;
     /**
      * Enable KDC Proxy over HTTPS (MS-KKDCP).
-     * @type {boolean}
-     * @memberof KerberosOutpostConfig
      */
     kkdcpEnabled?: boolean;
     /**
      * Certificate/key pair the KDC Proxy listener uses for TLS.
-     * @type {string}
-     * @memberof KerberosOutpostConfig
      */
     kkdcpCertificate?: string | null;
     /**
      * Include an MS-PAC in issued tickets.
-     * @type {boolean}
-     * @memberof KerberosOutpostConfig
      */
     pacEnabled?: boolean;
     /**
      * Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.
-     * @type {string}
-     * @memberof KerberosOutpostConfig
      */
     realmSid?: string;
     /**
      * Push full MIT Kerberos database dumps to replica KDCs.
-     * @type {boolean}
-     * @memberof KerberosOutpostConfig
      */
     kpropEnabled?: boolean;
     /**
      *
-     * @type {Array<string>}
-     * @memberof KerberosOutpostConfig
      */
     kpropTargets?: Array<string>;
     /**
      * Service principal used to authenticate kprop pushes.
-     * @type {string}
-     * @memberof KerberosOutpostConfig
      */
     kpropClientSpn?: string;
     /**
      * MIT database master password used to encrypt full kprop dumps.
-     * @type {string}
-     * @memberof KerberosOutpostConfig
      */
     kpropMasterPassword?: string;
     /**
      * Interval in seconds between full kprop pushes.
-     * @type {number}
-     * @memberof KerberosOutpostConfig
      */
     kpropInterval?: number;
     /**
      * Emit authentik events for KDC ticket operations.
-     * @type {boolean}
-     * @memberof KerberosOutpostConfig
      */
     kdcAuditEnabled?: boolean;
     /**
      * Serve the kadm5 admin protocol from the outpost.
-     * @type {boolean}
-     * @memberof KerberosOutpostConfig
      */
     kadminEnabled?: boolean;
     /**
      *
-     * @type {Array<string>}
-     * @memberof KerberosOutpostConfig
      */
     kadminAcl?: Array<string>;
     /**
      *
-     * @type {string}
-     * @memberof KerberosOutpostConfig
      */
     masterKey?: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosOutpostConfig
      */
     applicationSlug: string;
 }
@@ -346,6 +280,12 @@ export function KerberosOutpostConfigFromJSONTyped(
         spakeEnabled: json["spake_enabled"] == null ? undefined : json["spake_enabled"],
         udpEnabled: json["udp_enabled"] == null ? undefined : json["udp_enabled"],
         tcpEnabled: json["tcp_enabled"] == null ? undefined : json["tcp_enabled"],
+        maxUdpWorkers: json["max_udp_workers"] == null ? undefined : json["max_udp_workers"],
+        maxTcpConnections:
+            json["max_tcp_connections"] == null ? undefined : json["max_tcp_connections"],
+        tcpIdleTimeout: json["tcp_idle_timeout"] == null ? undefined : json["tcp_idle_timeout"],
+        maxDatagramReplySize:
+            json["max_datagram_reply_size"] == null ? undefined : json["max_datagram_reply_size"],
         kpasswdEnabled: json["kpasswd_enabled"] == null ? undefined : json["kpasswd_enabled"],
         forwardable: json["forwardable"] == null ? undefined : json["forwardable"],
         renewable: json["renewable"] == null ? undefined : json["renewable"],
@@ -430,6 +370,10 @@ export function KerberosOutpostConfigToJSONTyped(
         spake_enabled: value["spakeEnabled"],
         udp_enabled: value["udpEnabled"],
         tcp_enabled: value["tcpEnabled"],
+        max_udp_workers: value["maxUdpWorkers"],
+        max_tcp_connections: value["maxTcpConnections"],
+        tcp_idle_timeout: value["tcpIdleTimeout"],
+        max_datagram_reply_size: value["maxDatagramReplySize"],
         kpasswd_enabled: value["kpasswdEnabled"],
         forwardable: value["forwardable"],
         renewable: value["renewable"],

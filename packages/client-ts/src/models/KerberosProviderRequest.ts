@@ -28,254 +28,186 @@ import {
 export interface KerberosProviderRequest {
     /**
      *
-     * @type {string}
-     * @memberof KerberosProviderRequest
      */
     name: string;
     /**
      * Flow used for authentication when the associated application is accessed by an un-authenticated user.
-     * @type {string}
-     * @memberof KerberosProviderRequest
      */
     authenticationFlow?: string | null;
     /**
      * Flow used when authorizing this provider.
-     * @type {string}
-     * @memberof KerberosProviderRequest
      */
     authorizationFlow?: string | null;
     /**
      * Flow used ending the session from a provider.
-     * @type {string}
-     * @memberof KerberosProviderRequest
      */
     invalidationFlow?: string | null;
     /**
      *
-     * @type {Array<string>}
-     * @memberof KerberosProviderRequest
      */
     propertyMappings?: Array<string>;
     /**
      *
-     * @type {string}
-     * @memberof KerberosProviderRequest
      */
     realmName: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosProviderRequest
      */
     defaultDomain?: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosProviderRequest
      */
     maximumTicketLifetime?: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosProviderRequest
      */
     maximumTicketRenewLifetime?: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosProviderRequest
      */
     defaultTicketLifetime?: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosProviderRequest
      */
     defaultTicketRenewLifetime?: string;
     /**
      *
-     * @type {Array<AllowedEnctypesEnum>}
-     * @memberof KerberosProviderRequest
      */
     allowedEnctypes?: Array<AllowedEnctypesEnum>;
     /**
      *
-     * @type {boolean}
-     * @memberof KerberosProviderRequest
      */
     requirePreauthentication?: boolean;
     /**
      * Advertise PA-SPAKE preauthentication (RFC 9588).
-     * @type {boolean}
-     * @memberof KerberosProviderRequest
      */
     spakeEnabled?: boolean;
     /**
      *
-     * @type {boolean}
-     * @memberof KerberosProviderRequest
      */
     udpEnabled?: boolean;
     /**
      *
-     * @type {boolean}
-     * @memberof KerberosProviderRequest
      */
     tcpEnabled?: boolean;
     /**
+     * Maximum concurrent UDP request handlers; 0 uses the built-in default of 1024.
+     */
+    maxUdpWorkers?: number;
+    /**
+     * Maximum concurrent KDC TCP connections; 0 uses the built-in default of 45.
+     */
+    maxTcpConnections?: number;
+    /**
+     * KDC TCP idle timeout in seconds; 0 uses the built-in default of 60 seconds.
+     */
+    tcpIdleTimeout?: number;
+    /**
+     * Maximum UDP reply size in bytes; 0 uses the built-in default of 65536 bytes.
+     */
+    maxDatagramReplySize?: number;
+    /**
      * Enable RFC 3244 password changes through the Kerberos outpost.
-     * @type {boolean}
-     * @memberof KerberosProviderRequest
      */
     kpasswdEnabled?: boolean;
     /**
      *
-     * @type {boolean}
-     * @memberof KerberosProviderRequest
      */
     forwardable?: boolean;
     /**
      *
-     * @type {boolean}
-     * @memberof KerberosProviderRequest
      */
     renewable?: boolean;
     /**
      *
-     * @type {boolean}
-     * @memberof KerberosProviderRequest
      */
     proxiable?: boolean;
     /**
      *
-     * @type {PrincipalUsernameAttributeEnum}
-     * @memberof KerberosProviderRequest
      */
     principalUsernameAttribute?: PrincipalUsernameAttributeEnum;
     /**
      * Certificate/key pair the KDC uses to sign PKINIT replies. Requires a private key.
-     * @type {string}
-     * @memberof KerberosProviderRequest
      */
     pkinitCertificate?: string | null;
     /**
      * CA certificate used to validate PKINIT client certificates.
-     * @type {string}
-     * @memberof KerberosProviderRequest
      */
     pkinitClientCa?: string | null;
     /**
      * Require RFC 8070 freshness tokens on PKINIT requests.
-     * @type {boolean}
-     * @memberof KerberosProviderRequest
      */
     pkinitRequireFreshness?: boolean;
     /**
      * Authentication indicators asserted after successful PKINIT.
-     * @type {Array<string>}
-     * @memberof KerberosProviderRequest
      */
     pkinitIndicators?: Array<string>;
     /**
      * Indicators asserted after SPAKE preauthentication.
-     * @type {Array<string>}
-     * @memberof KerberosProviderRequest
      */
     spakeIndicators?: Array<string>;
     /**
      * Indicator asserted after encrypted-challenge preauthentication.
-     * @type {string}
-     * @memberof KerberosProviderRequest
      */
     encryptedChallengeIndicator?: string;
     /**
      * Enable RFC 6560 OTP preauthentication backed by the user's authentik TOTP and static authenticator devices.
-     * @type {boolean}
-     * @memberof KerberosProviderRequest
      */
     otpEnabled?: boolean;
     /**
      * Authentication indicators asserted after successful OTP preauthentication.
-     * @type {Array<string>}
-     * @memberof KerberosProviderRequest
      */
     otpIndicators?: Array<string>;
     /**
      * Allow anonymous PKINIT requests.
-     * @type {boolean}
-     * @memberof KerberosProviderRequest
      */
     anonymousPkinitEnabled?: boolean;
     /**
      * Enable KDC Proxy over HTTPS (MS-KKDCP).
-     * @type {boolean}
-     * @memberof KerberosProviderRequest
      */
     kkdcpEnabled?: boolean;
     /**
      * Certificate/key pair the KDC Proxy listener uses for TLS.
-     * @type {string}
-     * @memberof KerberosProviderRequest
      */
     kkdcpCertificate?: string | null;
     /**
      * Include an MS-PAC in issued tickets.
-     * @type {boolean}
-     * @memberof KerberosProviderRequest
      */
     pacEnabled?: boolean;
     /**
      * Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.
-     * @type {string}
-     * @memberof KerberosProviderRequest
      */
     realmSid?: string;
     /**
      * Push full MIT Kerberos database dumps to replica KDCs.
-     * @type {boolean}
-     * @memberof KerberosProviderRequest
      */
     kpropEnabled?: boolean;
     /**
      *
-     * @type {Array<string>}
-     * @memberof KerberosProviderRequest
      */
     kpropTargets?: Array<string>;
     /**
      * Service principal used to authenticate kprop pushes.
-     * @type {string}
-     * @memberof KerberosProviderRequest
      */
     kpropClientSpn?: string;
     /**
      * MIT database master password used to encrypt full kprop dumps.
-     * @type {string}
-     * @memberof KerberosProviderRequest
      */
     kpropMasterPassword?: string;
     /**
      * Interval in seconds between full kprop pushes.
-     * @type {number}
-     * @memberof KerberosProviderRequest
      */
     kpropInterval?: number;
     /**
      * Emit authentik events for KDC ticket operations.
-     * @type {boolean}
-     * @memberof KerberosProviderRequest
      */
     kdcAuditEnabled?: boolean;
     /**
      * Serve the kadm5 admin protocol from the outpost.
-     * @type {boolean}
-     * @memberof KerberosProviderRequest
      */
     kadminEnabled?: boolean;
     /**
      *
-     * @type {Array<string>}
-     * @memberof KerberosProviderRequest
      */
     kadminAcl?: Array<string>;
 }
@@ -352,6 +284,12 @@ export function KerberosProviderRequestFromJSONTyped(
         spakeEnabled: json["spake_enabled"] == null ? undefined : json["spake_enabled"],
         udpEnabled: json["udp_enabled"] == null ? undefined : json["udp_enabled"],
         tcpEnabled: json["tcp_enabled"] == null ? undefined : json["tcp_enabled"],
+        maxUdpWorkers: json["max_udp_workers"] == null ? undefined : json["max_udp_workers"],
+        maxTcpConnections:
+            json["max_tcp_connections"] == null ? undefined : json["max_tcp_connections"],
+        tcpIdleTimeout: json["tcp_idle_timeout"] == null ? undefined : json["tcp_idle_timeout"],
+        maxDatagramReplySize:
+            json["max_datagram_reply_size"] == null ? undefined : json["max_datagram_reply_size"],
         kpasswdEnabled: json["kpasswd_enabled"] == null ? undefined : json["kpasswd_enabled"],
         forwardable: json["forwardable"] == null ? undefined : json["forwardable"],
         renewable: json["renewable"] == null ? undefined : json["renewable"],
@@ -437,6 +375,10 @@ export function KerberosProviderRequestToJSONTyped(
         spake_enabled: value["spakeEnabled"],
         udp_enabled: value["udpEnabled"],
         tcp_enabled: value["tcpEnabled"],
+        max_udp_workers: value["maxUdpWorkers"],
+        max_tcp_connections: value["maxTcpConnections"],
+        tcp_idle_timeout: value["tcpIdleTimeout"],
+        max_datagram_reply_size: value["maxDatagramReplySize"],
         kpasswd_enabled: value["kpasswdEnabled"],
         forwardable: value["forwardable"],
         renewable: value["renewable"],

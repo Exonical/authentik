@@ -23,74 +23,50 @@ import { EventEnumFromJSON, EventEnumToJSON } from "./EventEnum";
 export interface KerberosAuditEventRequest {
     /**
      *
-     * @type {EventEnum}
-     * @memberof KerberosAuditEventRequest
      */
     event: EventEnum;
     /**
      *
-     * @type {boolean}
-     * @memberof KerberosAuditEventRequest
      */
     success: boolean;
     /**
      *
-     * @type {string}
-     * @memberof KerberosAuditEventRequest
      */
     client: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosAuditEventRequest
      */
     service: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosAuditEventRequest
      */
     status: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosAuditEventRequest
      */
     preauthType: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosAuditEventRequest
      */
     remoteAddr: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosAuditEventRequest
      */
     s4u2selfUser: string;
     /**
      *
-     * @type {Array<string>}
-     * @memberof KerberosAuditEventRequest
      */
     authIndicators: Array<string>;
     /**
      *
-     * @type {number}
-     * @memberof KerberosAuditEventRequest
      */
     errorCode: number;
     /**
      *
-     * @type {string}
-     * @memberof KerberosAuditEventRequest
      */
     requestId: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosAuditEventRequest
      */
     ticketId: string;
 }

@@ -19,12 +19,13 @@ pub struct KerberosServicePrincipalUpdateRequest {
     #[serde(rename = "ticket_flags")]
     pub ticket_flags: Vec<models::TicketFlagsEnum>,
 }
+
 impl KerberosServicePrincipalUpdateRequest {
     /// Service principal ticket flag update request for the kadm5 outpost.
-    pub fn new(spn: String, ticket_flags: Vec<models::TicketFlagsEnum>) -> KerberosServicePrincipalUpdateRequest {
-        KerberosServicePrincipalUpdateRequest {
-            spn,
-            ticket_flags,
-        }
+    pub fn new(
+        spn: String,
+        ticket_flags: Vec<models::TicketFlagsEnum>,
+    ) -> KerberosServicePrincipalUpdateRequest {
+        KerberosServicePrincipalUpdateRequest { spn, ticket_flags }
     }
 }

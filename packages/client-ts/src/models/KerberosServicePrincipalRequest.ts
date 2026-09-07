@@ -23,44 +23,30 @@ import { TicketFlagsEnumFromJSON, TicketFlagsEnumToJSON } from "./TicketFlagsEnu
 export interface KerberosServicePrincipalRequest {
     /**
      *
-     * @type {number}
-     * @memberof KerberosServicePrincipalRequest
      */
     provider: number;
     /**
      *
-     * @type {string}
-     * @memberof KerberosServicePrincipalRequest
      */
     spn: string;
     /**
      * Optional authentik user (typically a service account) whose policies are evaluated when this principal acts as a Kerberos client.
-     * @type {number}
-     * @memberof KerberosServicePrincipalRequest
      */
     serviceAccount?: number | null;
     /**
      * Allow this service principal to authenticate as a user for delegation.
-     * @type {boolean}
-     * @memberof KerberosServicePrincipalRequest
      */
     okToAuthAsDelegate?: boolean;
     /**
      *
-     * @type {Array<string>}
-     * @memberof KerberosServicePrincipalRequest
      */
     allowedDelegationTargets?: Array<string>;
     /**
      * Authentication indicators required to obtain tickets for this service.
-     * @type {Array<string>}
-     * @memberof KerberosServicePrincipalRequest
      */
     requiredAuthIndicators?: Array<string>;
     /**
      *
-     * @type {Array<TicketFlagsEnum>}
-     * @memberof KerberosServicePrincipalRequest
      */
     ticketFlags?: Array<TicketFlagsEnum>;
 }

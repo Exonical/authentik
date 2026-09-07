@@ -20,14 +20,10 @@
 export interface KerberosSetPasswordRequest {
     /**
      *
-     * @type {string}
-     * @memberof KerberosSetPasswordRequest
      */
     username: string;
     /**
      *
-     * @type {string}
-     * @memberof KerberosSetPasswordRequest
      */
     password: string;
 }

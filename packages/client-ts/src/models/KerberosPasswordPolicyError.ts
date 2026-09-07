@@ -20,8 +20,6 @@
 export interface KerberosPasswordPolicyError {
     /**
      *
-     * @type {Array<string>}
-     * @memberof KerberosPasswordPolicyError
      */
     messages: Array<string>;
 }
