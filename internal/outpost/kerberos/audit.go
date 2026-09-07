@@ -79,6 +79,10 @@ func auditRequest(record auditRecord) api.KerberosAuditEventRequest {
 	if record.state.S4U2SelfUser != nil {
 		s4u2selfUser = auditPrincipal(*record.state.S4U2SelfUser)
 	}
+	indicators := record.state.AuthIndicators
+	if indicators == nil {
+		indicators = []string{}
+	}
 	return *api.NewKerberosAuditEventRequest(
 		api.EventEnum(record.event),
 		record.success,
@@ -88,7 +92,7 @@ func auditRequest(record auditRecord) api.KerberosAuditEventRequest {
 		record.state.PreauthType,
 		record.state.RemoteAddr,
 		s4u2selfUser,
-		record.state.AuthIndicators,
+		indicators,
 		record.state.ErrorCode,
 		record.state.RequestID,
 		ticketID,

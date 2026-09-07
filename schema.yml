@@ -44592,19 +44592,15 @@ components:
           type: boolean
         client:
           type: string
-          minLength: 1
         service:
           type: string
           minLength: 1
         status:
           type: string
-          minLength: 1
         preauth_type:
           type: string
-          minLength: 1
         remote_addr:
           type: string
-          minLength: 1
         s4u2self_user:
           type: string
         auth_indicators:
@@ -44616,7 +44612,6 @@ components:
           type: integer
         request_id:
           type: string
-          minLength: 1
         ticket_id:
           type: string
       required:

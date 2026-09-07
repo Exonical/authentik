@@ -120,6 +120,46 @@ class KerberosProviderAPITests(APITestCase):
         self.assertEqual(event.context["success"], True)
         self.assertEqual(event.context["request_id"], "request-id")
 
+    def test_outpost_audit_event_accepts_blank_optional_fields(self):
+        """KDC audit events accept fields absent from some request paths."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.COM",
+        )
+        application = Application.objects.create(
+            name=generate_id(),
+            slug=generate_id(),
+            provider=provider,
+        )
+        self.client.force_login(create_test_admin_user())
+        response = self.client.post(
+            reverse(
+                "authentik_api:kerberosprovideroutpost-audit-event",
+                kwargs={"pk": provider.pk},
+            ),
+            {
+                "event": "tgs_req",
+                "success": False,
+                "client": "",
+                "service": "host/node.example.com",
+                "status": "",
+                "preauth_type": "",
+                "remote_addr": "",
+                "s4u2self_user": "",
+                "auth_indicators": [],
+                "error_code": 0,
+                "request_id": "",
+                "ticket_id": "",
+            },
+        )
+        self.assertEqual(response.status_code, 204)
+        event = Event.objects.get(action="custom_kerberos_kdc", app=application.slug)
+        self.assertEqual(event.context["status"], "")
+        self.assertEqual(event.context["client"], "")
+        self.assertIn("preauth_type", event.context)
+        self.assertEqual(event.context["remote_addr"], "")
+        self.assertEqual(event.context["request_id"], "")
+
     def test_realm_trust_serializer_round_trip(self):
         """Realm trust settings round-trip through the serializer."""
         provider = KerberosProvider.objects.create(

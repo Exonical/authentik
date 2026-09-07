@@ -588,15 +588,15 @@ class KerberosAuditEventSerializer(PassiveSerializer):
 
     event = ChoiceField(choices=["as_req", "tgs_req", "s4u2self", "s4u2proxy", "u2u"])
     success = BooleanField()
-    client = CharField()
+    client = CharField(allow_blank=True)
     service = CharField()
-    status = CharField()
-    preauth_type = CharField()
-    remote_addr = CharField()
+    status = CharField(allow_blank=True)
+    preauth_type = CharField(allow_blank=True)
+    remote_addr = CharField(allow_blank=True)
     s4u2self_user = CharField(allow_blank=True)
     auth_indicators = ListField(child=CharField())
     error_code = IntegerField()
-    request_id = CharField()
+    request_id = CharField(allow_blank=True)
     ticket_id = CharField(allow_blank=True)
 
 

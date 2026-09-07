@@ -1,6 +1,7 @@
 package kerberos
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -51,6 +52,17 @@ func TestAuditRequest(t *testing.T) {
 		strings.Join(request.AuthIndicators, ",") != "password" ||
 		request.RemoteAddr != "127.0.0.1:88" {
 		t.Fatalf("audit request fields were not mapped: %+v", request)
+	}
+}
+
+func TestAuditRequestNormalizesNilAuthIndicators(t *testing.T) {
+	request := auditRequest(auditRecord{state: kdc.AuditState{}})
+	body, err := json.Marshal(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(body) == "" || !strings.Contains(string(body), `"auth_indicators":[]`) {
+		t.Fatalf("request body = %s, want auth_indicators as an empty list", body)
 	}
 }
 
