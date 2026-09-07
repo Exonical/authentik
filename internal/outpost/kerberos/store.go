@@ -228,16 +228,6 @@ func (s *providerStore) syntheticRecord(
 	return kdb.PrincipalRecord{Name: name, Keys: keys, KVNO: 1, Flags: flags}, len(keys) > 0, nil
 }
 
-func (s *providerStore) masterEnctype() int32 {
-	var selected int32
-	for enctype := range s.allowed {
-		if enctype > selected {
-			selected = enctype
-		}
-	}
-	return selected
-}
-
 func (s *providerStore) authorizeIpropReplica(name principal.Principal) bool {
 	for _, configured := range s.ipropAllowedReplicas {
 		parsed, err := principal.Parse(configured)

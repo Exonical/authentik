@@ -313,8 +313,20 @@ func (instance *ProviderInstance) configureIprop() error {
 		}
 	}
 	server := iprop.NewServer(mirror, serviceKeytab)
-	server.MasterEnctype = instance.Store.masterEnctype()
-	server.MasterKey = append([]byte(nil), instance.Store.masterKey...)
+	if password := instance.Config.GetKpropMasterPassword(); password != "" {
+		etype, err := crypto.NewRegistry().Get(crypto.EnctypeAES256SHA1)
+		if err != nil {
+			return fmt.Errorf("get iprop master enctype: %w", err)
+		}
+		masterKey, err := etype.StringToKey(
+			[]byte(password), []byte(instance.Store.realm+"KM"), nil,
+		)
+		if err != nil {
+			return fmt.Errorf("derive iprop master key: %w", err)
+		}
+		server.MasterEnctype = crypto.EnctypeAES256SHA1
+		server.MasterKey = masterKey
+	}
 	server.Authorize = instance.Store.authorizeIpropReplica
 	server.ErrorLog = func(err error) {
 		instance.log.WithError(err).Warn("iprop server error")
