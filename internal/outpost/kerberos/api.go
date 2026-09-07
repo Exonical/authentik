@@ -14,9 +14,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Exonical/go-kerberos/krb5/iprop"
 	"github.com/Exonical/go-kerberos/krb5/kadm5"
 	"github.com/Exonical/go-kerberos/krb5/kdb"
 	"github.com/Exonical/go-kerberos/krb5/kdc"
+	"github.com/Exonical/go-kerberos/krb5/keytab"
 	"github.com/Exonical/go-kerberos/krb5/otp"
 	"github.com/Exonical/go-kerberos/krb5/pac"
 	"github.com/Exonical/go-kerberos/krb5/principal"
@@ -92,6 +94,14 @@ func (rs *KerberosServer) Refresh() error {
 			pacEnabled:             provider.GetPacEnabled(),
 			realmSID:               realmSID,
 			otpEnabled:             provider.GetOtpEnabled(),
+			ipropAllowedReplicas:   append([]string(nil), provider.GetIpropAllowedReplicas()...),
+		}
+		if provider.GetIpropEnabled() {
+			ipropSPN, err := parseIpropSPN(provider.GetIpropSpn(), provider.RealmName)
+			if err != nil {
+				return fmt.Errorf("parse provider %d iprop SPN: %w", provider.Pk, err)
+			}
+			store.ipropSPN = ipropSPN.String()
 		}
 		for _, enctype := range provider.AllowedEnctypes {
 			store.allowed[int32(enctype)] = true
@@ -133,6 +143,7 @@ func (rs *KerberosServer) Refresh() error {
 			KKDCPCertificate: kkdcpCertificate,
 			log:              log.WithField("logger", "authentik.outpost.kerberos").WithField("provider", provider.Name),
 		}
+		configureKDCTrace(instance.KDC, provider.GetTraceEnabled(), instance.log)
 		if provider.GetKdcAuditEnabled() {
 			instance.KDC.AuditModules = []kdc.AuditModule{
 				kdc.NewFuncAuditModule("authentik", instance.auditCallback),
@@ -227,6 +238,11 @@ func (rs *KerberosServer) Refresh() error {
 				trust.GetCapaths(),
 			)
 		}
+		if provider.GetIpropEnabled() {
+			if err := instance.configureIprop(); err != nil {
+				return fmt.Errorf("configure provider %d iprop: %w", provider.Pk, err)
+			}
+		}
 		if provider.GetKadminEnabled() && kadminServer == nil {
 			serviceKeytab, keytabErr := instance.kadminKeytab()
 			if keytabErr != nil {
@@ -286,6 +302,15 @@ func (rs *KerberosServer) Refresh() error {
 	}
 	rs.log.Info("Update kerberos providers")
 	return nil
+}
+
+func configureKDCTrace(server *kdc.Server, enabled bool, logger *log.Entry) {
+	server.Trace = nil
+	if enabled {
+		server.Trace = func(message string) {
+			logger.WithField("component", "kdc").Info(message)
+		}
+	}
 }
 
 func parseKadminACL(lines []string, realm string) (*kadm5.ACL, error) {
@@ -407,6 +432,10 @@ type ProviderInstance struct {
 	Config           api.KerberosOutpostConfig
 	Store            *providerStore
 	KDC              *kdc.Server
+	Iprop            *iprop.Server
+	IpropDatabase    *kdb.Database
+	IpropKeytab      *keytab.Keytab
+	ipropMirrorMu    sync.Mutex
 	KKDCPCertificate *tls.Certificate
 	log              *log.Entry
 	kpropCancel      context.CancelFunc
@@ -446,6 +475,26 @@ type providerStore struct {
 	pacEnabled             bool
 	realmSID               *pac.SID
 	otpEnabled             bool
+	ipropSPN               string
+	ipropAllowedReplicas   []string
+}
+
+func parseIpropSPN(value, realm string) (*principal.Principal, error) {
+	if value == "" {
+		return nil, errors.New("iprop SPN is empty")
+	}
+	if !strings.Contains(value, "@") {
+		value += "@" + realm
+	}
+	parsed, err := principal.Parse(value)
+	if err != nil {
+		return nil, err
+	}
+	if len(parsed.Components) != 2 || parsed.Components[0] != "kiprop" ||
+		parsed.Realm != realm {
+		return nil, fmt.Errorf("iprop SPN %q is not a local kiprop principal", value)
+	}
+	return parsed, nil
 }
 
 func (s *providerStore) allowedEnctypes() []int32 {

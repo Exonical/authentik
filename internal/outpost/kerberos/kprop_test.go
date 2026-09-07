@@ -75,3 +75,47 @@ func TestKpropSnapshotContainsExpectedPrincipals(t *testing.T) {
 		}
 	}
 }
+
+func TestIpropReplicaAuthorizationAndModifierComparison(t *testing.T) {
+	store := &providerStore{
+		realm:                testRealm,
+		ipropAllowedReplicas: []string{"host/replica.example.test", "host/other@OTHER.TEST"},
+	}
+	allowed, err := principal.Parse("host/replica.example.test@" + testRealm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !store.authorizeIpropReplica(*allowed) {
+		t.Fatal("replica without realm was not authorized")
+	}
+	denied, err := principal.Parse("host/nope.example.test@" + testRealm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if store.authorizeIpropReplica(*denied) {
+		t.Fatal("unconfigured replica was authorized")
+	}
+	left := kdb.PrincipalRecord{
+		Name: *allowed,
+		TLData: []kdb.TLData{
+			{Type: 2, Data: []byte("old")},
+			{Type: 8, Data: []byte("same")},
+		},
+	}
+	right := kdb.PrincipalRecord{
+		Name: allowedCopy(*allowed),
+		TLData: []kdb.TLData{
+			{Type: 2, Data: []byte("old")},
+			{Type: 8, Data: []byte("same")},
+		},
+	}
+	right.TLData[0].Data = []byte("new")
+	if !equalIpropRecord(left, right) {
+		t.Fatal("modifier TLData changed the iprop record")
+	}
+}
+
+func allowedCopy(value principal.Principal) principal.Principal {
+	value.Components = append([]string(nil), value.Components...)
+	return value
+}

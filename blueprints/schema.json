@@ -12483,6 +12483,36 @@
                     "title": "Kprop interval",
                     "description": "Interval in seconds between full kprop pushes."
                 },
+                "iprop_enabled": {
+                    "type": "boolean",
+                    "title": "Iprop enabled",
+                    "description": "Serve MIT incremental propagation requests."
+                },
+                "iprop_spn": {
+                    "type": "string",
+                    "title": "Iprop spn",
+                    "description": "Kiprop service principal used by incremental propagation replicas."
+                },
+                "iprop_allowed_replicas": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "minLength": 1
+                    },
+                    "title": "Iprop allowed replicas"
+                },
+                "iprop_ulog_size": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647,
+                    "title": "Iprop ulog size",
+                    "description": "Maximum number of incremental propagation updates to retain."
+                },
+                "trace_enabled": {
+                    "type": "boolean",
+                    "title": "Trace enabled",
+                    "description": "Emit KRB5_TRACE-style KDC protocol messages to the outpost log."
+                },
                 "kdc_audit_enabled": {
                     "type": "boolean",
                     "title": "Kdc audit enabled",

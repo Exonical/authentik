@@ -12,13 +12,36 @@ import (
 	"time"
 
 	"github.com/Exonical/go-kerberos/krb5/kdb"
+	"github.com/Exonical/go-kerberos/krb5/kdc"
 	"github.com/Exonical/go-kerberos/krb5/principal"
 	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus/hooks/test"
 
 	"goauthentik.io/internal/config"
 	"goauthentik.io/internal/outpost/ak"
 	api "goauthentik.io/packages/client-go"
 )
+
+func TestConfigureKDCTrace(t *testing.T) {
+	logger, hook := test.NewNullLogger()
+	server := &kdc.Server{}
+	configureKDCTrace(server, true, log.NewEntry(logger))
+	server.Trace("trace enabled")
+	if len(hook.AllEntries()) != 1 {
+		t.Fatalf("enabled trace entries = %d, want 1", len(hook.AllEntries()))
+	}
+	if hook.LastEntry().Data["component"] != "kdc" {
+		t.Fatalf("trace component = %v, want kdc", hook.LastEntry().Data["component"])
+	}
+	hook.Reset()
+	configureKDCTrace(server, false, log.NewEntry(logger))
+	if server.Trace != nil {
+		t.Fatal("trace callback remains configured when disabled")
+	}
+	if len(hook.AllEntries()) != 0 {
+		t.Fatalf("disabled trace entries = %d, want 0", len(hook.AllEntries()))
+	}
+}
 
 func TestParseDuration(t *testing.T) {
 	tests := []struct {
@@ -80,6 +103,7 @@ func TestRefreshCopiesCachesWithoutRacingRequests(t *testing.T) {
 					"max_tcp_connections":           11,
 					"tcp_idle_timeout":              13,
 					"max_datagram_reply_size":       1400,
+					"trace_enabled":                 true,
 				}},
 				"autocomplete": map[string]any{},
 			}
@@ -190,6 +214,9 @@ func TestRefreshCopiesCachesWithoutRacingRequests(t *testing.T) {
 			instance.KDC.TCPIdleTimeout,
 			instance.KDC.MaxDatagramReplySize,
 		)
+	}
+	if instance.KDC.Trace == nil {
+		t.Fatal("trace callback was not configured")
 	}
 }
 

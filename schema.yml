@@ -44806,6 +44806,26 @@ components:
           maximum: 2147483647
           minimum: 0
           description: Interval in seconds between full kprop pushes.
+        iprop_enabled:
+          type: boolean
+          description: Serve MIT incremental propagation requests.
+        iprop_spn:
+          type: string
+          description: Kiprop service principal used by incremental propagation replicas.
+        iprop_allowed_replicas:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        iprop_ulog_size:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Maximum number of incremental propagation updates to retain.
+        trace_enabled:
+          type: boolean
+          description: Emit KRB5_TRACE-style KDC protocol messages to the outpost
+            log.
         kdc_audit_enabled:
           type: boolean
           description: Emit authentik events for KDC ticket operations.
@@ -45039,6 +45059,26 @@ components:
           maximum: 2147483647
           minimum: 0
           description: Interval in seconds between full kprop pushes.
+        iprop_enabled:
+          type: boolean
+          description: Serve MIT incremental propagation requests.
+        iprop_spn:
+          type: string
+          description: Kiprop service principal used by incremental propagation replicas.
+        iprop_allowed_replicas:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        iprop_ulog_size:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Maximum number of incremental propagation updates to retain.
+        trace_enabled:
+          type: boolean
+          description: Emit KRB5_TRACE-style KDC protocol messages to the outpost
+            log.
         kdc_audit_enabled:
           type: boolean
           description: Emit authentik events for KDC ticket operations.
@@ -45246,6 +45286,26 @@ components:
           maximum: 2147483647
           minimum: 0
           description: Interval in seconds between full kprop pushes.
+        iprop_enabled:
+          type: boolean
+          description: Serve MIT incremental propagation requests.
+        iprop_spn:
+          type: string
+          description: Kiprop service principal used by incremental propagation replicas.
+        iprop_allowed_replicas:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        iprop_ulog_size:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Maximum number of incremental propagation updates to retain.
+        trace_enabled:
+          type: boolean
+          description: Emit KRB5_TRACE-style KDC protocol messages to the outpost
+            log.
         kdc_audit_enabled:
           type: boolean
           description: Emit authentik events for KDC ticket operations.
@@ -53994,6 +54054,26 @@ components:
           maximum: 2147483647
           minimum: 0
           description: Interval in seconds between full kprop pushes.
+        iprop_enabled:
+          type: boolean
+          description: Serve MIT incremental propagation requests.
+        iprop_spn:
+          type: string
+          description: Kiprop service principal used by incremental propagation replicas.
+        iprop_allowed_replicas:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        iprop_ulog_size:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Maximum number of incremental propagation updates to retain.
+        trace_enabled:
+          type: boolean
+          description: Emit KRB5_TRACE-style KDC protocol messages to the outpost
+            log.
         kdc_audit_enabled:
           type: boolean
           description: Emit authentik events for KDC ticket operations.

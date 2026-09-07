@@ -237,6 +237,28 @@ class KerberosProvider(OutpostModel, Provider):
         default=300,
         help_text=_("Interval in seconds between full kprop pushes."),
     )
+    iprop_enabled = models.BooleanField(
+        default=False,
+        help_text=_("Serve MIT incremental propagation requests."),
+    )
+    iprop_spn = models.TextField(
+        blank=True,
+        default="",
+        help_text=_("Kiprop service principal used by incremental propagation replicas."),
+    )
+    iprop_allowed_replicas = models.JSONField(
+        default=list,
+        blank=True,
+        help_text=_("Replica principals authorized to use incremental propagation."),
+    )
+    iprop_ulog_size = models.PositiveIntegerField(
+        default=1000,
+        help_text=_("Maximum number of incremental propagation updates to retain."),
+    )
+    trace_enabled = models.BooleanField(
+        default=False,
+        help_text=_("Emit KRB5_TRACE-style KDC protocol messages to the outpost log."),
+    )
     kdc_audit_enabled = models.BooleanField(
         default=False,
         help_text=_("Emit authentik events for KDC ticket operations."),

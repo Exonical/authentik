@@ -284,6 +284,59 @@ class KerberosProviderAPITests(APITestCase):
         self.assertFalse(serializer.is_valid())
         self.assertIn("kadmin_acl", serializer.errors)
 
+    def test_iprop_settings_serializer_round_trip(self):
+        """Iprop settings round-trip through both provider serializers."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.COM",
+            iprop_enabled=True,
+            iprop_spn="kiprop/kdc.example.com",
+            iprop_allowed_replicas=["host/replica.example.com", "host/other@EXAMPLE.COM"],
+            iprop_ulog_size=250,
+            trace_enabled=True,
+        )
+        serializer = KerberosProviderSerializer(provider)
+        self.assertTrue(serializer.data["iprop_enabled"])
+        self.assertEqual(serializer.data["iprop_spn"], "kiprop/kdc.example.com")
+        self.assertEqual(
+            serializer.data["iprop_allowed_replicas"],
+            ["host/replica.example.com", "host/other@EXAMPLE.COM"],
+        )
+        self.assertEqual(serializer.data["iprop_ulog_size"], 250)
+        self.assertTrue(serializer.data["trace_enabled"])
+        Application.objects.create(name=generate_id(), slug=generate_id(), provider=provider)
+        outpost_data = KerberosOutpostConfigSerializer(provider).data
+        self.assertTrue(outpost_data["iprop_enabled"])
+        self.assertEqual(outpost_data["iprop_spn"], "kiprop/kdc.example.com")
+        self.assertEqual(outpost_data["iprop_ulog_size"], 250)
+        self.assertTrue(outpost_data["trace_enabled"])
+
+    def test_iprop_requires_valid_service_principal(self):
+        """Enabled iprop rejects missing and malformed kiprop service principals."""
+        for value in ("", "host/kdc.example.com", "kiprop/", "kiprop/a/b", "kiprop/kdc@EXAMPLE.COM"):
+            serializer = KerberosProviderSerializer(
+                data={
+                    "name": generate_id(),
+                    "realm_name": "EXAMPLE.COM",
+                    "iprop_enabled": True,
+                    "iprop_spn": value,
+                }
+            )
+            self.assertFalse(serializer.is_valid(), value)
+            self.assertIn("iprop_spn", serializer.errors, value)
+
+    def test_iprop_rejects_malformed_replica_list(self):
+        """Iprop replicas must be non-empty principal strings."""
+        serializer = KerberosProviderSerializer(
+            data={
+                "name": generate_id(),
+                "realm_name": "EXAMPLE.COM",
+                "iprop_allowed_replicas": ["host/replica", ""],
+            }
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("iprop_allowed_replicas", serializer.errors)
+
     def test_pac_settings_serializer_round_trip(self):
         """PAC settings round-trip through both provider serializers."""
         provider = KerberosProvider.objects.create(

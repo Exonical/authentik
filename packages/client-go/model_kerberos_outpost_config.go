@@ -84,6 +84,15 @@ type KerberosOutpostConfig struct {
 	KpropMasterPassword *string `json:"kprop_master_password,omitempty"`
 	// Interval in seconds between full kprop pushes.
 	KpropInterval *int32 `json:"kprop_interval,omitempty"`
+	// Serve MIT incremental propagation requests.
+	IpropEnabled *bool `json:"iprop_enabled,omitempty"`
+	// Kiprop service principal used by incremental propagation replicas.
+	IpropSpn             *string  `json:"iprop_spn,omitempty"`
+	IpropAllowedReplicas []string `json:"iprop_allowed_replicas,omitempty"`
+	// Maximum number of incremental propagation updates to retain.
+	IpropUlogSize *int32 `json:"iprop_ulog_size,omitempty"`
+	// Emit KRB5_TRACE-style KDC protocol messages to the outpost log.
+	TraceEnabled *bool `json:"trace_enabled,omitempty"`
 	// Emit authentik events for KDC ticket operations.
 	KdcAuditEnabled *bool `json:"kdc_audit_enabled,omitempty"`
 	// Serve the kadm5 admin protocol from the outpost.
@@ -1392,6 +1401,166 @@ func (o *KerberosOutpostConfig) SetKpropInterval(v int32) {
 	o.KpropInterval = &v
 }
 
+// GetIpropEnabled returns the IpropEnabled field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetIpropEnabled() bool {
+	if o == nil || IsNil(o.IpropEnabled) {
+		var ret bool
+		return ret
+	}
+	return *o.IpropEnabled
+}
+
+// GetIpropEnabledOk returns a tuple with the IpropEnabled field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetIpropEnabledOk() (*bool, bool) {
+	if o == nil || IsNil(o.IpropEnabled) {
+		return nil, false
+	}
+	return o.IpropEnabled, true
+}
+
+// HasIpropEnabled returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasIpropEnabled() bool {
+	if o != nil && !IsNil(o.IpropEnabled) {
+		return true
+	}
+
+	return false
+}
+
+// SetIpropEnabled gets a reference to the given bool and assigns it to the IpropEnabled field.
+func (o *KerberosOutpostConfig) SetIpropEnabled(v bool) {
+	o.IpropEnabled = &v
+}
+
+// GetIpropSpn returns the IpropSpn field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetIpropSpn() string {
+	if o == nil || IsNil(o.IpropSpn) {
+		var ret string
+		return ret
+	}
+	return *o.IpropSpn
+}
+
+// GetIpropSpnOk returns a tuple with the IpropSpn field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetIpropSpnOk() (*string, bool) {
+	if o == nil || IsNil(o.IpropSpn) {
+		return nil, false
+	}
+	return o.IpropSpn, true
+}
+
+// HasIpropSpn returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasIpropSpn() bool {
+	if o != nil && !IsNil(o.IpropSpn) {
+		return true
+	}
+
+	return false
+}
+
+// SetIpropSpn gets a reference to the given string and assigns it to the IpropSpn field.
+func (o *KerberosOutpostConfig) SetIpropSpn(v string) {
+	o.IpropSpn = &v
+}
+
+// GetIpropAllowedReplicas returns the IpropAllowedReplicas field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetIpropAllowedReplicas() []string {
+	if o == nil || IsNil(o.IpropAllowedReplicas) {
+		var ret []string
+		return ret
+	}
+	return o.IpropAllowedReplicas
+}
+
+// GetIpropAllowedReplicasOk returns a tuple with the IpropAllowedReplicas field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetIpropAllowedReplicasOk() ([]string, bool) {
+	if o == nil || IsNil(o.IpropAllowedReplicas) {
+		return nil, false
+	}
+	return o.IpropAllowedReplicas, true
+}
+
+// HasIpropAllowedReplicas returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasIpropAllowedReplicas() bool {
+	if o != nil && !IsNil(o.IpropAllowedReplicas) {
+		return true
+	}
+
+	return false
+}
+
+// SetIpropAllowedReplicas gets a reference to the given []string and assigns it to the IpropAllowedReplicas field.
+func (o *KerberosOutpostConfig) SetIpropAllowedReplicas(v []string) {
+	o.IpropAllowedReplicas = v
+}
+
+// GetIpropUlogSize returns the IpropUlogSize field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetIpropUlogSize() int32 {
+	if o == nil || IsNil(o.IpropUlogSize) {
+		var ret int32
+		return ret
+	}
+	return *o.IpropUlogSize
+}
+
+// GetIpropUlogSizeOk returns a tuple with the IpropUlogSize field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetIpropUlogSizeOk() (*int32, bool) {
+	if o == nil || IsNil(o.IpropUlogSize) {
+		return nil, false
+	}
+	return o.IpropUlogSize, true
+}
+
+// HasIpropUlogSize returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasIpropUlogSize() bool {
+	if o != nil && !IsNil(o.IpropUlogSize) {
+		return true
+	}
+
+	return false
+}
+
+// SetIpropUlogSize gets a reference to the given int32 and assigns it to the IpropUlogSize field.
+func (o *KerberosOutpostConfig) SetIpropUlogSize(v int32) {
+	o.IpropUlogSize = &v
+}
+
+// GetTraceEnabled returns the TraceEnabled field value if set, zero value otherwise.
+func (o *KerberosOutpostConfig) GetTraceEnabled() bool {
+	if o == nil || IsNil(o.TraceEnabled) {
+		var ret bool
+		return ret
+	}
+	return *o.TraceEnabled
+}
+
+// GetTraceEnabledOk returns a tuple with the TraceEnabled field value if set, nil otherwise
+// and a boolean to check if the value has been set.
+func (o *KerberosOutpostConfig) GetTraceEnabledOk() (*bool, bool) {
+	if o == nil || IsNil(o.TraceEnabled) {
+		return nil, false
+	}
+	return o.TraceEnabled, true
+}
+
+// HasTraceEnabled returns a boolean if a field has been set.
+func (o *KerberosOutpostConfig) HasTraceEnabled() bool {
+	if o != nil && !IsNil(o.TraceEnabled) {
+		return true
+	}
+
+	return false
+}
+
+// SetTraceEnabled gets a reference to the given bool and assigns it to the TraceEnabled field.
+func (o *KerberosOutpostConfig) SetTraceEnabled(v bool) {
+	o.TraceEnabled = &v
+}
+
 // GetKdcAuditEnabled returns the KdcAuditEnabled field value if set, zero value otherwise.
 func (o *KerberosOutpostConfig) GetKdcAuditEnabled() bool {
 	if o == nil || IsNil(o.KdcAuditEnabled) {
@@ -1664,6 +1833,21 @@ func (o KerberosOutpostConfig) ToMap() (map[string]interface{}, error) {
 	if !IsNil(o.KpropInterval) {
 		toSerialize["kprop_interval"] = o.KpropInterval
 	}
+	if !IsNil(o.IpropEnabled) {
+		toSerialize["iprop_enabled"] = o.IpropEnabled
+	}
+	if !IsNil(o.IpropSpn) {
+		toSerialize["iprop_spn"] = o.IpropSpn
+	}
+	if !IsNil(o.IpropAllowedReplicas) {
+		toSerialize["iprop_allowed_replicas"] = o.IpropAllowedReplicas
+	}
+	if !IsNil(o.IpropUlogSize) {
+		toSerialize["iprop_ulog_size"] = o.IpropUlogSize
+	}
+	if !IsNil(o.TraceEnabled) {
+		toSerialize["trace_enabled"] = o.TraceEnabled
+	}
 	if !IsNil(o.KdcAuditEnabled) {
 		toSerialize["kdc_audit_enabled"] = o.KdcAuditEnabled
 	}
@@ -1765,6 +1949,11 @@ func (o *KerberosOutpostConfig) UnmarshalJSON(data []byte) (err error) {
 		delete(additionalProperties, "kprop_client_spn")
 		delete(additionalProperties, "kprop_master_password")
 		delete(additionalProperties, "kprop_interval")
+		delete(additionalProperties, "iprop_enabled")
+		delete(additionalProperties, "iprop_spn")
+		delete(additionalProperties, "iprop_allowed_replicas")
+		delete(additionalProperties, "iprop_ulog_size")
+		delete(additionalProperties, "trace_enabled")
 		delete(additionalProperties, "kdc_audit_enabled")
 		delete(additionalProperties, "kadmin_enabled")
 		delete(additionalProperties, "kadmin_acl")

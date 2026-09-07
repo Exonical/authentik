@@ -40,6 +40,9 @@ func (s *providerStore) Lookup(name principal.Principal) (kdb.PrincipalRecord, b
 	if len(name.Components) == 2 && name.Components[0] == "kadmin" && name.Components[1] == "admin" {
 		return s.syntheticRecord(name, "kadmin-admin")
 	}
+	if s.ipropSPN != "" && name.String() == s.ipropSPN {
+		return s.syntheticRecord(name, "kiprop")
+	}
 	if len(name.Components) > 1 {
 		s.servicesMu.RLock()
 		defer s.servicesMu.RUnlock()
@@ -223,6 +226,36 @@ func (s *providerStore) syntheticRecord(
 		flags = kdb.PWChangeService
 	}
 	return kdb.PrincipalRecord{Name: name, Keys: keys, KVNO: 1, Flags: flags}, len(keys) > 0, nil
+}
+
+func (s *providerStore) masterEnctype() int32 {
+	var selected int32
+	for enctype := range s.allowed {
+		if enctype > selected {
+			selected = enctype
+		}
+	}
+	return selected
+}
+
+func (s *providerStore) authorizeIpropReplica(name principal.Principal) bool {
+	for _, configured := range s.ipropAllowedReplicas {
+		parsed, err := principal.Parse(configured)
+		if err != nil {
+			if !strings.Contains(configured, "@") {
+				parsed, err = principal.Parse(configured + "@" + s.realm)
+			}
+		}
+		if err != nil {
+			continue
+		}
+		if parsed.String() == name.String() ||
+			parsed.Realm == s.realm && strings.Join(parsed.Components, "/") ==
+				strings.Join(name.Components, "/") {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *providerStore) invalidateUserKey(username string) {

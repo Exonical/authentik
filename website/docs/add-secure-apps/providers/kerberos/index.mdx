@@ -467,6 +467,38 @@ Changing the master password requires coordinated replica recreation or
 compatible MIT database-master-key handling. Full dumps do not provide
 incremental key-rotation semantics.
 
+### Incremental replication (iprop)
+
+The Kerberos outpost can also serve MIT incremental propagation requests. The
+outpost listens on internal TCP port `3754`; map this port to MIT's conventional
+external kiprop port `754` when publishing it to replicas. Configure:
+
+| Setting                  | Description                                                                                                                                            |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `iprop_enabled`          | Enable the iprop master listener.                                                                                                                      |
+| `iprop_spn`              | The local kiprop service principal, such as `kiprop/kdc.example.com`. The corresponding service keys are derived from the provider master key.         |
+| `iprop_allowed_replicas` | Replica principals authorized to request updates. Entries may omit the realm, which defaults to the provider realm. An empty list denies all replicas. |
+| `iprop_ulog_size`        | Number of incremental update-log entries to retain. Replicas that fall outside this window require a full resynchronization.                           |
+
+Configure each replica's `krb5.conf` with the outpost as the master and use
+the configured `kiprop/<host>` service principal. MIT `gokpropd`-compatible
+replicas can authenticate with a host principal listed in
+`iprop_allowed_replicas`. Updates are generated when the outpost refreshes its
+provider snapshot, using the same `kprop_interval` as full-dump propagation.
+The update granularity therefore follows that interval and the provider
+refresh cadence.
+
+Full-dump `kprop` remains useful for bootstrapping replicas and recovery. The
+upstream Go iprop server currently reports a full-resync cursor but does not
+expose a callback for initiating the replica's kprop transfer, so automatic
+MIT-style full-dump transfer after a `FullResync` request is not wired. Use
+the existing kprop configuration for full dumps when a replica needs to be
+reseeded.
+
+Enable the provider's `trace_enabled` setting to emit KRB5_TRACE-style KDC
+protocol messages in the outpost log. Leave it disabled to avoid protocol
+trace output.
+
 ## Kerberos administration
 
 The outpost can expose the MIT `kadmin` (kadm5) administration protocol on

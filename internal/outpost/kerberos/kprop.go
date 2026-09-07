@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -13,8 +14,10 @@ import (
 	"github.com/Exonical/go-kerberos/krb5/client"
 	"github.com/Exonical/go-kerberos/krb5/config"
 	"github.com/Exonical/go-kerberos/krb5/crypto"
+	"github.com/Exonical/go-kerberos/krb5/iprop"
 	"github.com/Exonical/go-kerberos/krb5/kdb"
 	"github.com/Exonical/go-kerberos/krb5/kdb/mitdump"
+	"github.com/Exonical/go-kerberos/krb5/keytab"
 	"github.com/Exonical/go-kerberos/krb5/kprop"
 	"github.com/Exonical/go-kerberos/krb5/preauth"
 	"github.com/Exonical/go-kerberos/krb5/principal"
@@ -24,7 +27,7 @@ import (
 )
 
 func (rs *KerberosServer) startKprop(instance *ProviderInstance) {
-	if !instance.kpropConfigured() {
+	if !instance.kpropConfigured() && !instance.ipropConfigured() {
 		return
 	}
 	ctx, cancel := context.WithCancel(context.Background())
@@ -32,7 +35,12 @@ func (rs *KerberosServer) startKprop(instance *ProviderInstance) {
 	instance.kpropDone = make(chan struct{})
 	go func() {
 		defer close(instance.kpropDone)
-		instance.pushKprop(ctx)
+		if instance.kpropConfigured() {
+			instance.pushKprop(ctx)
+		}
+		if err := instance.syncIprop(ctx); err != nil {
+			instance.log.WithError(err).Warn("Failed to synchronize iprop database")
+		}
 		ticker := time.NewTicker(time.Duration(instance.Config.GetKpropInterval()) * time.Second)
 		defer ticker.Stop()
 		for {
@@ -40,7 +48,12 @@ func (rs *KerberosServer) startKprop(instance *ProviderInstance) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				instance.pushKprop(ctx)
+				if instance.kpropConfigured() {
+					instance.pushKprop(ctx)
+				}
+				if err := instance.syncIprop(ctx); err != nil {
+					instance.log.WithError(err).Warn("Failed to synchronize iprop database")
+				}
 			}
 		}
 	}()
@@ -62,6 +75,11 @@ func (instance *ProviderInstance) kpropConfigured() bool {
 		len(targets) > 0 &&
 		instance.Config.GetKpropClientSpn() != "" &&
 		instance.Config.GetKpropMasterPassword() != "" &&
+		instance.Config.GetKpropInterval() > 0
+}
+
+func (instance *ProviderInstance) ipropConfigured() bool {
+	return instance.Config.GetIpropEnabled() && instance.Iprop != nil &&
 		instance.Config.GetKpropInterval() > 0
 }
 
@@ -90,12 +108,34 @@ func (instance *ProviderInstance) pushKprop(ctx context.Context) {
 }
 
 func (instance *ProviderInstance) snapshotDump(ctx context.Context) ([]byte, error) {
+	records, err := instance.snapshotRecords(ctx)
+	if err != nil {
+		return nil, err
+	}
 	db := kdb.NewDatabase(instance.Store.realm)
-	add := func(record kdb.PrincipalRecord) error {
+	for _, record := range records {
 		if len(record.Keys) == 0 {
-			return nil
+			continue
 		}
-		return db.ApplyPrincipal(record, false)
+		if err := db.ApplyPrincipal(record, false); err != nil {
+			return nil, err
+		}
+	}
+	dump, err := mitdump.DumpWithMasterPassword(db, instance.Config.GetKpropMasterPassword())
+	if err != nil {
+		return nil, fmt.Errorf("serialize MIT dump: %w", err)
+	}
+	return dump, nil
+}
+
+func (instance *ProviderInstance) snapshotRecords(
+	ctx context.Context,
+) (map[string]kdb.PrincipalRecord, error) {
+	records := make(map[string]kdb.PrincipalRecord)
+	add := func(record kdb.PrincipalRecord) {
+		if len(record.Keys) > 0 {
+			records[record.Name.String()] = record
+		}
 	}
 	localTGT, found, err := instance.Store.krbtgtRecord(principal.Principal{
 		Realm: instance.Store.realm, NameType: principal.NTSrvInstance,
@@ -107,9 +147,7 @@ func (instance *ProviderInstance) snapshotDump(ctx context.Context) ([]byte, err
 	if !found {
 		return nil, fmt.Errorf("build local krbtgt: no keys")
 	}
-	if err := add(localTGT); err != nil {
-		return nil, err
-	}
+	add(localTGT)
 	changepw, found, err := instance.Store.changepwRecord(principal.Principal{
 		Realm: instance.Store.realm, NameType: principal.NTSrvInstance,
 		Components: []string{"kadmin", "changepw"},
@@ -118,9 +156,7 @@ func (instance *ProviderInstance) snapshotDump(ctx context.Context) ([]byte, err
 		return nil, fmt.Errorf("build changepw: %w", err)
 	}
 	if found {
-		if err := add(changepw); err != nil {
-			return nil, err
-		}
+		add(changepw)
 	}
 	instance.Store.servicesMu.RLock()
 	services := make([]kdb.PrincipalRecord, 0, len(instance.Store.services))
@@ -129,14 +165,23 @@ func (instance *ProviderInstance) snapshotDump(ctx context.Context) ([]byte, err
 	}
 	instance.Store.servicesMu.RUnlock()
 	for _, record := range services {
-		if err := add(record); err != nil {
-			return nil, fmt.Errorf("add service principal: %w", err)
+		add(record)
+	}
+	if instance.Store.ipropSPN != "" {
+		name, parseErr := principal.Parse(instance.Store.ipropSPN)
+		if parseErr != nil {
+			return nil, fmt.Errorf("parse iprop SPN: %w", parseErr)
+		}
+		record, found, lookupErr := instance.Store.syntheticRecord(*name, "kiprop")
+		if lookupErr != nil {
+			return nil, lookupErr
+		}
+		if found {
+			add(record)
 		}
 	}
 	for _, record := range instance.Store.trusts {
-		if err := add(record); err != nil {
-			return nil, fmt.Errorf("add realm trust: %w", err)
-		}
+		add(record)
 	}
 	users, err := ak.Paginator(
 		instance.Store.server.ac.Client.OutpostsAPI.OutpostsKerberosUserKeysList(
@@ -158,15 +203,126 @@ func (instance *ProviderInstance) snapshotDump(ctx context.Context) ([]byte, err
 		if err != nil {
 			return nil, fmt.Errorf("build user %q: %w", user.GetUsername(), err)
 		}
-		if err := add(record); err != nil {
-			return nil, fmt.Errorf("add user %q: %w", user.GetUsername(), err)
+		add(record)
+	}
+	return records, nil
+}
+
+func (instance *ProviderInstance) syncIprop(ctx context.Context) error {
+	if !instance.ipropConfigured() {
+		return nil
+	}
+	records, err := instance.snapshotRecords(ctx)
+	if err != nil {
+		return err
+	}
+	instance.ipropMirrorMu.Lock()
+	defer instance.ipropMirrorMu.Unlock()
+	mirror := instance.IpropDatabase
+	if mirror == nil {
+		return fmt.Errorf("iprop mirror is not initialized")
+	}
+	existing := mirror.ListPrincipals()
+	initial := len(existing) == 0
+	for name, record := range records {
+		parsed, parseErr := principal.Parse(name)
+		if parseErr != nil {
+			return parseErr
+		}
+		current, found, lookupErr := mirror.Lookup(*parsed)
+		if lookupErr != nil {
+			return lookupErr
+		}
+		if found && equalIpropRecord(current, record) {
+			continue
+		}
+		if !found {
+			if err := mirror.ImportPrincipal(record); err != nil {
+				return err
+			}
+			if initial {
+				continue
+			}
+		}
+		if err := mirror.UpdatePrincipal(record); err != nil {
+			return err
 		}
 	}
-	dump, err := mitdump.DumpWithMasterPassword(db, instance.Config.GetKpropMasterPassword())
-	if err != nil {
-		return nil, fmt.Errorf("serialize MIT dump: %w", err)
+	for _, name := range existing {
+		if _, found := records[name]; found {
+			continue
+		}
+		parsed, parseErr := principal.Parse(name)
+		if parseErr != nil {
+			return parseErr
+		}
+		if err := mirror.DeletePrincipal(*parsed); err != nil &&
+			err != kdb.ErrPrincipalNotFound {
+			return err
+		}
 	}
-	return dump, nil
+	return nil
+}
+
+func equalIpropRecord(left, right kdb.PrincipalRecord) bool {
+	left.TLData = withoutModifierTLData(left.TLData)
+	right.TLData = withoutModifierTLData(right.TLData)
+	return reflect.DeepEqual(left, right)
+}
+
+func withoutModifierTLData(values []kdb.TLData) []kdb.TLData {
+	filtered := make([]kdb.TLData, 0, len(values))
+	for _, value := range values {
+		if value.Type != 2 {
+			filtered = append(filtered, value)
+		}
+	}
+	return filtered
+}
+
+func (instance *ProviderInstance) configureIprop() error {
+	mirror := kdb.NewDatabase(instance.Store.realm)
+	mirror.ConfigureUpdateLog(int(instance.Config.GetIpropUlogSize()))
+	if old := instance.Store.server.getCurrentProvider(instance.Store.providerID); old != nil &&
+		old.IpropDatabase != nil {
+		mirror = old.IpropDatabase
+		if old.Config.GetIpropUlogSize() != instance.Config.GetIpropUlogSize() {
+			mirror.ConfigureUpdateLog(int(instance.Config.GetIpropUlogSize()))
+		}
+	}
+	name, err := parseIpropSPN(instance.Config.GetIpropSpn(), instance.Store.realm)
+	if err != nil {
+		return err
+	}
+	record, found, err := instance.Store.syntheticRecord(*name, "kiprop")
+	if err != nil {
+		return err
+	}
+	if !found {
+		return fmt.Errorf("iprop SPN has no usable keys")
+	}
+	serviceKeytab := &keytab.Keytab{}
+	for enctype, value := range record.Keys {
+		if err := serviceKeytab.AddEntry(keytab.Entry{
+			Principal: record.Name,
+			KVNO:      uint32(value.KVNO),
+			Enctype:   enctype,
+			Key:       append([]byte(nil), value.Key...),
+		}); err != nil {
+			return err
+		}
+	}
+	server := iprop.NewServer(mirror, serviceKeytab)
+	server.MasterEnctype = instance.Store.masterEnctype()
+	server.MasterKey = append([]byte(nil), instance.Store.masterKey...)
+	server.Authorize = instance.Store.authorizeIpropReplica
+	server.ErrorLog = func(err error) {
+		instance.log.WithError(err).Warn("iprop server error")
+	}
+	instance.IpropDatabase = mirror
+	instance.IpropKeytab = serviceKeytab
+	instance.Iprop = server
+	return nil
 }
 
 func (instance *ProviderInstance) pushKpropTarget(

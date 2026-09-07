@@ -433,6 +433,71 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
 
         <ak-form-group
             open
+            label=${msg("Incremental propagation", { id: "kerberos.iprop.label" })}
+        >
+            <div class="pf-c-form">
+                <ak-switch-input
+                    name="ipropEnabled"
+                    label=${msg("Enable MIT incremental propagation", {
+                        id: "kerberos.iprop-enabled.label",
+                    })}
+                    ?checked=${provider.ipropEnabled ?? false}
+                ></ak-switch-input>
+                <ak-text-input
+                    name="ipropSpn"
+                    value=${ifDefined(provider.ipropSpn)}
+                    label=${msg("Kiprop service principal", {
+                        id: "kerberos.iprop-spn.label",
+                    })}
+                    placeholder="kiprop/kdc.example.com"
+                    input-hint="code"
+                    .errorMessages=${errors?.ipropSpn}
+                ></ak-text-input>
+                <ak-form-element-horizontal
+                    label=${msg("Allowed replicas", { id: "kerberos.iprop-allowed-replicas.label" })}
+                    name="ipropAllowedReplicas"
+                    .errorMessages=${errors?.ipropAllowedReplicas}
+                >
+                    <ak-array-input
+                        name="iprop-replica"
+                        .items=${provider.ipropAllowedReplicas ?? []}
+                        .newItem=${() => ""}
+                        .row=${(replica: string) => html`
+                            <ak-text-input
+                                name="replica"
+                                value="${replica}"
+                                placeholder="host/replica.example.com"
+                                input-hint="code"
+                            ></ak-text-input>
+                        `}
+                    ></ak-array-input>
+                    <p class="pf-c-form__helper-text">
+                        ${msg("An empty list denies all replicas. Realm suffixes are optional.", {
+                            id: "kerberos.iprop-allowed-replicas.help",
+                        })}
+                    </p>
+                </ak-form-element-horizontal>
+                <ak-text-input
+                    name="ipropUlogSize"
+                    value="${provider.ipropUlogSize ?? 1000}"
+                    label=${msg("Update log size", { id: "kerberos.iprop-ulog-size.label" })}
+                    type="number"
+                    min="0"
+                    .errorMessages=${errors?.ipropUlogSize}
+                ></ak-text-input>
+            </div>
+        </ak-form-group>
+
+        <ak-switch-input
+            name="traceEnabled"
+            label=${msg("Enable KRB5_TRACE-style KDC logging", {
+                id: "kerberos.trace-enabled.label",
+            })}
+            ?checked=${provider.traceEnabled ?? false}
+        ></ak-switch-input>
+
+        <ak-form-group
+            open
             label=${msg("MIT replica propagation", { id: "kerberos.kprop.label" })}
         >
             <div class="pf-c-form">

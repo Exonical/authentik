@@ -231,6 +231,26 @@ export interface KerberosProvider {
      */
     kpropInterval?: number;
     /**
+     * Serve MIT incremental propagation requests.
+     */
+    ipropEnabled?: boolean;
+    /**
+     * Kiprop service principal used by incremental propagation replicas.
+     */
+    ipropSpn?: string;
+    /**
+     *
+     */
+    ipropAllowedReplicas?: Array<string>;
+    /**
+     * Maximum number of incremental propagation updates to retain.
+     */
+    ipropUlogSize?: number;
+    /**
+     * Emit KRB5_TRACE-style KDC protocol messages to the outpost log.
+     */
+    traceEnabled?: boolean;
+    /**
      * Emit authentik events for KDC ticket operations.
      */
     kdcAuditEnabled?: boolean;
@@ -449,6 +469,12 @@ export function KerberosProviderFromJSONTyped(
         kpropTargets: json["kprop_targets"] == null ? undefined : json["kprop_targets"],
         kpropClientSpn: json["kprop_client_spn"] == null ? undefined : json["kprop_client_spn"],
         kpropInterval: json["kprop_interval"] == null ? undefined : json["kprop_interval"],
+        ipropEnabled: json["iprop_enabled"] == null ? undefined : json["iprop_enabled"],
+        ipropSpn: json["iprop_spn"] == null ? undefined : json["iprop_spn"],
+        ipropAllowedReplicas:
+            json["iprop_allowed_replicas"] == null ? undefined : json["iprop_allowed_replicas"],
+        ipropUlogSize: json["iprop_ulog_size"] == null ? undefined : json["iprop_ulog_size"],
+        traceEnabled: json["trace_enabled"] == null ? undefined : json["trace_enabled"],
         kdcAuditEnabled: json["kdc_audit_enabled"] == null ? undefined : json["kdc_audit_enabled"],
         kadminEnabled: json["kadmin_enabled"] == null ? undefined : json["kadmin_enabled"],
         kadminAcl: json["kadmin_acl"] == null ? undefined : json["kadmin_acl"],
@@ -530,6 +556,11 @@ export function KerberosProviderToJSONTyped(
         kprop_targets: value["kpropTargets"],
         kprop_client_spn: value["kpropClientSpn"],
         kprop_interval: value["kpropInterval"],
+        iprop_enabled: value["ipropEnabled"],
+        iprop_spn: value["ipropSpn"],
+        iprop_allowed_replicas: value["ipropAllowedReplicas"],
+        iprop_ulog_size: value["ipropUlogSize"],
+        trace_enabled: value["traceEnabled"],
         kdc_audit_enabled: value["kdcAuditEnabled"],
         kadmin_enabled: value["kadminEnabled"],
         kadmin_acl: value["kadminAcl"],

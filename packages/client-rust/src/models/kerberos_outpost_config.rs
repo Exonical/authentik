@@ -117,6 +117,20 @@ pub struct KerberosOutpostConfig {
     /// Interval in seconds between full kprop pushes.
     #[serde(rename = "kprop_interval", skip_serializing_if = "Option::is_none")]
     pub kprop_interval: Option<u32>,
+    /// Serve MIT incremental propagation requests.
+    #[serde(rename = "iprop_enabled", skip_serializing_if = "Option::is_none")]
+    pub iprop_enabled: Option<bool>,
+    /// Kiprop service principal used by incremental propagation replicas.
+    #[serde(rename = "iprop_spn", skip_serializing_if = "Option::is_none")]
+    pub iprop_spn: Option<String>,
+    #[serde(rename = "iprop_allowed_replicas", skip_serializing_if = "Option::is_none")]
+    pub iprop_allowed_replicas: Option<Vec<String>>,
+    /// Maximum number of incremental propagation updates to retain.
+    #[serde(rename = "iprop_ulog_size", skip_serializing_if = "Option::is_none")]
+    pub iprop_ulog_size: Option<u32>,
+    /// Emit KRB5_TRACE-style KDC protocol messages to the outpost log.
+    #[serde(rename = "trace_enabled", skip_serializing_if = "Option::is_none")]
+    pub trace_enabled: Option<bool>,
     /// Emit authentik events for KDC ticket operations.
     #[serde(rename = "kdc_audit_enabled", skip_serializing_if = "Option::is_none")]
     pub kdc_audit_enabled: Option<bool>,
@@ -175,6 +189,11 @@ impl KerberosOutpostConfig {
             kprop_client_spn: None,
             kprop_master_password: None,
             kprop_interval: None,
+            iprop_enabled: None,
+            iprop_spn: None,
+            iprop_allowed_replicas: None,
+            iprop_ulog_size: None,
+            trace_enabled: None,
             kdc_audit_enabled: None,
             kadmin_enabled: None,
             kadmin_acl: None,

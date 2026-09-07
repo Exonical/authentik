@@ -67,6 +67,11 @@ class KerberosProviderSerializer(ProviderSerializer):
         required=False,
         default=list,
     )
+    iprop_allowed_replicas = ListField(
+        child=CharField(allow_blank=False, min_length=1),
+        required=False,
+        default=list,
+    )
 
     def to_internal_value(self, data: dict) -> dict:
         """Reject malformed kprop targets before JSON values are accepted."""
@@ -86,6 +91,18 @@ class KerberosProviderSerializer(ProviderSerializer):
             raise ValidationError(
                 {"kadmin_acl": _("Kadmin ACL must be a list of non-empty strings.")}
             )
+        replicas = data.get("iprop_allowed_replicas")
+        if replicas is not None and (
+            not isinstance(replicas, list)
+            or any(not isinstance(replica, str) or not replica.strip() for replica in replicas)
+        ):
+            raise ValidationError(
+                {
+                    "iprop_allowed_replicas": _(
+                        "Iprop replicas must be a list of non-empty strings."
+                    )
+                }
+            )
         return super().to_internal_value(data)
 
     def validate(self, attrs: dict) -> dict:
@@ -98,6 +115,22 @@ class KerberosProviderSerializer(ProviderSerializer):
             raise ValidationError(
                 {"kadmin_acl": _("At least one ACL entry is required when kadmin is enabled.")}
             )
+        iprop_enabled = attrs.get(
+            "iprop_enabled", getattr(self.instance, "iprop_enabled", False)
+        )
+        if iprop_enabled:
+            iprop_spn = attrs.get("iprop_spn", getattr(self.instance, "iprop_spn", ""))
+            if not iprop_spn:
+                raise ValidationError(
+                    {"iprop_spn": _("This field is required when iprop is enabled.")}
+                )
+            if not iprop_spn.startswith("kiprop/"):
+                raise ValidationError({"iprop_spn": _("The iprop SPN must start with kiprop/.")})
+            host = iprop_spn.removeprefix("kiprop/")
+            if not host or "/" in host or "@" in host:
+                raise ValidationError(
+                    {"iprop_spn": _("The iprop SPN must contain one host component.")}
+                )
         enabled = attrs.get("kprop_enabled", getattr(self.instance, "kprop_enabled", False))
         if not enabled:
             return attrs
@@ -166,6 +199,11 @@ class KerberosProviderSerializer(ProviderSerializer):
             "kprop_client_spn",
             "kprop_master_password",
             "kprop_interval",
+            "iprop_enabled",
+            "iprop_spn",
+            "iprop_allowed_replicas",
+            "iprop_ulog_size",
+            "trace_enabled",
             "kdc_audit_enabled",
             "kadmin_enabled",
             "kadmin_acl",
@@ -629,6 +667,11 @@ class KerberosOutpostConfigSerializer(ModelSerializer):
         required=False,
         default=list,
     )
+    iprop_allowed_replicas = ListField(
+        child=CharField(allow_blank=False, min_length=1),
+        required=False,
+        default=list,
+    )
     maximum_ticket_lifetime = SerializerMethodField()
     maximum_ticket_renew_lifetime = SerializerMethodField()
 
@@ -681,6 +724,11 @@ class KerberosOutpostConfigSerializer(ModelSerializer):
             "kprop_client_spn",
             "kprop_master_password",
             "kprop_interval",
+            "iprop_enabled",
+            "iprop_spn",
+            "iprop_allowed_replicas",
+            "iprop_ulog_size",
+            "trace_enabled",
             "kdc_audit_enabled",
             "kadmin_enabled",
             "kadmin_acl",

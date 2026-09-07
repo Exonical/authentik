@@ -25,6 +25,7 @@ type ListenConfig struct {
 	Kerberos          []string `yaml:"kerberos" env:"KERBEROS, overwrite"`
 	Kpasswd           []string `yaml:"kpasswd" env:"KPASSWD, overwrite"`
 	Kadmin            []string `yaml:"kadmin" env:"KADMIN, overwrite"`
+	Iprop             []string `yaml:"iprop" env:"IPROP, overwrite"`
 	KKDCP             []string `yaml:"kkdcp" env:"KKDCP, overwrite"`
 	Metrics           []string `yaml:"metrics" env:"METRICS, overwrite"`
 	Debug             string   `yaml:"debug" env:"DEBUG, overwrite"`

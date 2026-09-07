@@ -123,6 +123,21 @@ const descriptionLabels: Record<string, string> = {
     "kerberos.kadmin-acl.term": msg("Kadmin ACL", {
         id: "kerberos.kadmin-acl.term",
     }),
+    "kerberos.iprop-enabled.term": msg("Incremental propagation enabled", {
+        id: "kerberos.iprop-enabled.term",
+    }),
+    "kerberos.iprop-spn.term": msg("Kiprop service principal", {
+        id: "kerberos.iprop-spn.term",
+    }),
+    "kerberos.iprop-allowed-replicas.term": msg("Allowed iprop replicas", {
+        id: "kerberos.iprop-allowed-replicas.term",
+    }),
+    "kerberos.iprop-ulog-size.term": msg("Iprop update log size", {
+        id: "kerberos.iprop-ulog-size.term",
+    }),
+    "kerberos.trace-enabled.term": msg("KRB5_TRACE-style KDC logging", {
+        id: "kerberos.trace-enabled.term",
+    }),
     "kerberos.principal-username-attribute.term": msg("Principal username attribute", {
         id: "kerberos.principal-username-attribute.term",
     }),
@@ -354,6 +369,31 @@ export class KerberosProviderViewPage extends AKElement {
                                                 "Kadmin ACL",
                                                 this.provider.kadminAcl?.join(", ") || "-",
                                                 "kerberos.kadmin-acl.term",
+                                            )}
+                                            ${this.renderBoolean(
+                                                "Incremental propagation enabled",
+                                                this.provider.ipropEnabled,
+                                                "kerberos.iprop-enabled.term",
+                                            )}
+                                            ${this.renderDescription(
+                                                "Kiprop service principal",
+                                                this.provider.ipropSpn || "-",
+                                                "kerberos.iprop-spn.term",
+                                            )}
+                                            ${this.renderDescription(
+                                                "Allowed iprop replicas",
+                                                this.provider.ipropAllowedReplicas?.join(", ") || "-",
+                                                "kerberos.iprop-allowed-replicas.term",
+                                            )}
+                                            ${this.renderDescription(
+                                                "Iprop update log size",
+                                                String(this.provider.ipropUlogSize ?? 0),
+                                                "kerberos.iprop-ulog-size.term",
+                                            )}
+                                            ${this.renderBoolean(
+                                                "KRB5_TRACE-style KDC logging",
+                                                this.provider.traceEnabled,
+                                                "kerberos.trace-enabled.term",
                                             )}
                                             ${this.renderBoolean(
                                                 "KDC Proxy enabled",
