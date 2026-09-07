@@ -67,6 +67,11 @@ export const ModelEnum = {
     AuthentikProvidersRadiusRadiusprovider: "authentik_providers_radius.radiusprovider",
     AuthentikProvidersRadiusRadiusproviderpropertymapping:
         "authentik_providers_radius.radiusproviderpropertymapping",
+    AuthentikProvidersKerberosKerberosprovider: "authentik_providers_kerberos.kerberosprovider",
+    AuthentikProvidersKerberosKerberosserviceprincipal:
+        "authentik_providers_kerberos.kerberosserviceprincipal",
+    AuthentikProvidersKerberosKerberosrealmtrust: "authentik_providers_kerberos.kerberosrealmtrust",
+    AuthentikProvidersKerberosKerberosuserkeys: "authentik_providers_kerberos.kerberosuserkeys",
     AuthentikProvidersSamlSamlprovider: "authentik_providers_saml.samlprovider",
     AuthentikProvidersSamlSamlpropertymapping: "authentik_providers_saml.samlpropertymapping",
     AuthentikProvidersScimScimprovider: "authentik_providers_scim.scimprovider",

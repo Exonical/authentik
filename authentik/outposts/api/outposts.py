@@ -29,6 +29,7 @@ from authentik.outposts.models import (
     OutpostType,
     default_outpost_config,
 )
+from authentik.providers.kerberos.models import KerberosProvider
 from authentik.providers.ldap.models import LDAPProvider
 from authentik.providers.proxy.models import ProxyProvider
 from authentik.providers.rac.models import RACProvider
@@ -74,6 +75,7 @@ class OutpostSerializer(ModelSerializer):
             OutpostType.PROXY: ProxyProvider,
             OutpostType.RADIUS: RadiusProvider,
             OutpostType.RAC: RACProvider,
+            OutpostType.KERBEROS: KerberosProvider,
             None: Provider,
         }
         for provider in providers:

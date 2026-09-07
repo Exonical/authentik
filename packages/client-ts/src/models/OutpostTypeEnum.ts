@@ -21,6 +21,7 @@ export const OutpostTypeEnum = {
     Ldap: "ldap",
     Radius: "radius",
     Rac: "rac",
+    Kerberos: "kerberos",
     UnknownDefaultOpenApi: "11184809",
 } as const;
 export type OutpostTypeEnum = (typeof OutpostTypeEnum)[keyof typeof OutpostTypeEnum];

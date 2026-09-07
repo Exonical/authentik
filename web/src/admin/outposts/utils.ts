@@ -13,6 +13,8 @@ export function outpostTypeToLabel(type?: OutpostTypeEnum): string {
             return msg("LDAP");
         case OutpostTypeEnum.Radius:
             return msg("Radius");
+        case OutpostTypeEnum.Kerberos:
+            return msg("Kerberos", { id: "outposts.type.kerberos" });
         case OutpostTypeEnum.Rac:
             return msg("RAC");
         case OutpostTypeEnum.UnknownDefaultOpenApi:
