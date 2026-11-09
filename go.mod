@@ -7,7 +7,6 @@ godebug multipathtcp=0
 require (
 	beryju.io/ldap v0.2.2
 	beryju.io/radius-eap v0.2.0
-	github.com/Exonical/go-kerberos v0.0.2
 	github.com/avast/retry-go/v4 v4.7.0
 	github.com/getsentry/sentry-go v0.50.0
 	github.com/go-ldap/ldap/v3 v3.4.15
@@ -35,8 +34,6 @@ require (
 )
 
 require (
-	filippo.io/edwards25519 v1.1.0 // indirect
-	filippo.io/nistec v0.0.4 // indirect
 	github.com/Azure/go-ntlmssp v0.1.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
