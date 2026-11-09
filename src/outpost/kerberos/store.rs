@@ -509,6 +509,20 @@ impl ProviderStore {
     reason = "S4U X.509 lookup uses the krb5-rs default"
 )]
 impl PrincipalStore for ProviderStore {
+    fn authorize_s4u2proxy(
+        &self,
+        client: (&PrincipalName, &str),
+        _server: &PrincipalEntry,
+        proxy: (&PrincipalName, &str),
+    ) -> bool {
+        let (ccomps, pcomps) = (components(client.0), components(proxy.0));
+        let authorize = self.authorize((&ccomps, client.1), (&pcomps, proxy.1));
+        match tokio::runtime::Handle::try_current() {
+            Ok(handle) => tokio::task::block_in_place(|| handle.block_on(authorize)),
+            Err(_) => false,
+        }
+    }
+
     async fn lookup(
         &self,
         name: &PrincipalName,

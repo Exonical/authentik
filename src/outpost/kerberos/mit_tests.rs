@@ -38,11 +38,14 @@ const PASSWORD: &str = "alice-password";
 const SERVICE: &str = "host/svc.mitkdc.test";
 const ENCTYPES: [i32; 2] = [18, 17];
 
+type Rule = fn(Option<&str>, Option<&str>, Option<&str>) -> bool;
+
 #[derive(Default)]
 struct Api {
     users: Mutex<HashMap<String, Value>>,
     services: Mutex<Vec<Value>>,
     denied: Mutex<Vec<String>>,
+    rule: Mutex<Option<Rule>>,
     audit: Mutex<Vec<Value>>,
 }
 
@@ -134,7 +137,10 @@ async fn user_keys(State(api): State<Arc<Api>>) -> Json<Value> {
 
 async fn access_check(State(api): State<Arc<Api>>, Query(q): Params) -> Json<Value> {
     let denied = api.denied.lock().unwrap_or_else(PoisonError::into_inner);
-    let passing = !q.get("username").is_some_and(|u| denied.contains(u));
+    let param = |k: &str| q.get(k).map(String::as_str);
+    let rule = *api.rule.lock().unwrap_or_else(PoisonError::into_inner);
+    let passing = !q.get("username").is_some_and(|u| denied.contains(u))
+        && rule.is_none_or(|r| r(param("username"), param("client_spn"), param("spn")));
     Json(json!({"access": {"passing": passing, "messages": [], "log_messages": []}}))
 }
 
@@ -554,5 +560,146 @@ async fn mit_interop_auth_indicators() -> Result<()> {
     let (ok, out) = h.run("", "kvno", &[SERVICE]).await?;
     eyre::ensure!(!ok, "password ticket satisfied a pkinit requirement: {out}");
     eyre::ensure!(out.to_lowercase().contains("policy"), "{out}");
+    Ok(())
+}
+
+const BACKEND: &str = "HTTP/backend.test";
+
+fn backend() -> Value {
+    let mut b = service();
+    b["spn"] = json!(BACKEND);
+    b
+}
+
+impl Harness {
+    fn set_rule(&self, rule: Rule) {
+        *self.api.rule.lock().unwrap_or_else(PoisonError::into_inner) = Some(rule);
+    }
+
+    fn service_keytab(&self) -> Result<String> {
+        use krb5_rs::keytab::{FileKeytab, Keytab as _, KeytabEntry};
+        let path = self.path("service.keytab");
+        FileKeytab::new(path.clone())
+            .add_entry(&KeytabEntry {
+                principal: krb5_rs::types::PrincipalName::new_srv_inst("host", "svc.mitkdc.test"),
+                realm: REALM.to_owned(),
+                timestamp: 0,
+                kvno: 1,
+                key: krb5_rs::types::EncryptionKey::new(18, vec![18_u8; 32]),
+            })
+            .map_err(|err| eyre!("write keytab: {err}"))?;
+        Ok(path.display().to_string())
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mit_interop_policies() -> Result<()> {
+    let Some(h) = Harness::start(json!({}), false).await? else {
+        return Ok(());
+    };
+    h.ok(&format!("{PASSWORD}\n"), "kinit", &["-p", "-r", "2h", USER])
+        .await?;
+    let klist = h.ok("", "klist", &["-f"]).await?;
+    let flags = klist
+        .lines()
+        .find_map(|l| l.split_once("Flags:").map(|(_, f)| f.trim().to_owned()))
+        .ok_or_else(|| eyre!("no flags: {klist}"))?;
+    eyre::ensure!(flags.contains('P'), "not proxiable: {klist}");
+    eyre::ensure!(
+        klist.to_lowercase().contains("renew until"),
+        "not renewable: {klist}"
+    );
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mit_interop_service_account_authorization() -> Result<()> {
+    let Some(denied) = Harness::start(json!({}), false).await? else {
+        return Ok(());
+    };
+    denied.set_rule(|_, client_spn, _| client_spn.is_none());
+    let keytab = denied.service_keytab()?;
+    let (ok, out) = denied
+        .run("", "kinit", &["-f", "-kt", &keytab, SERVICE])
+        .await?;
+    eyre::ensure!(!ok, "service kinit ignored the policy denial: {out}");
+    eyre::ensure!(out.to_lowercase().contains("policy"), "{out}");
+
+    let Some(allowed) = Harness::start(json!({}), false).await? else {
+        return Ok(());
+    };
+    let keytab = allowed.service_keytab()?;
+    allowed
+        .ok("", "kinit", &["-f", "-kt", &keytab, SERVICE])
+        .await?;
+    Ok(())
+}
+
+async fn s4u(targets: &[&str], rule: Option<Rule>) -> Result<Option<(bool, String)>> {
+    let mut front = service();
+    front["ok_to_auth_as_delegate"] = json!(true);
+    front["allowed_delegation_targets"] = json!(targets);
+    let Some(h) = Harness::start_with(
+        json!({"pac_enabled": true, "realm_sid": "S-1-5-21-1-2-3"}),
+        false,
+        vec![front, backend()],
+        |_| {},
+    )
+    .await?
+    else {
+        return Ok(None);
+    };
+    if let Some(rule) = rule {
+        h.set_rule(rule);
+    }
+    let keytab = h.service_keytab()?;
+    h.ok("", "kinit", &["-f", "-kt", &keytab, SERVICE]).await?;
+    let own = h.ok("", "kvno", &["-U", USER, SERVICE]).await?;
+    eyre::ensure!(
+        own.contains(&format!("{SERVICE}@{REALM}")) && own.contains("kvno = 1"),
+        "S4U2Self: {own}"
+    );
+    h.run("", "kvno", &["-U", USER, "-P", BACKEND])
+        .await
+        .map(Some)
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mit_interop_s4u() -> Result<()> {
+    let Some((ok, out)) = s4u(&[BACKEND], None).await? else {
+        return Ok(());
+    };
+    eyre::ensure!(
+        ok && out.contains(&format!("{BACKEND}@{REALM}")) && out.contains("kvno = 1"),
+        "S4U2Proxy: {out}"
+    );
+
+    let Some((ok, out)) = s4u(&[], None).await? else {
+        return Ok(());
+    };
+    eyre::ensure!(!ok, "S4U2Proxy to a target that is not allowed: {out}");
+    eyre::ensure!(
+        out.to_lowercase()
+            .contains("can't fulfill requested option"),
+        "{out}"
+    );
+
+    let Some((ok, out)) = s4u(
+        &[BACKEND],
+        Some(|user, _, spn| user != Some(USER) || spn != Some(BACKEND)),
+    )
+    .await?
+    else {
+        return Ok(());
+    };
+    eyre::ensure!(
+        !ok,
+        "S4U2Proxy ignored the impersonated user's policy: {out}"
+    );
+    eyre::ensure!(
+        out.to_lowercase()
+            .contains("can't fulfill requested option"),
+        "{out}"
+    );
     Ok(())
 }
