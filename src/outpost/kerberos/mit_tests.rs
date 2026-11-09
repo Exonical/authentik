@@ -47,6 +47,7 @@ struct Api {
     denied: Mutex<Vec<String>>,
     rule: Mutex<Option<Rule>>,
     certs: Mutex<HashMap<String, (String, Option<String>)>>,
+    trusts: Mutex<Vec<Value>>,
     key_seed: std::sync::atomic::AtomicU8,
     audit: Mutex<Vec<Value>>,
 }
@@ -286,7 +287,9 @@ fn router(api: Arc<Api>) -> Router {
         )
         .route(
             "/outposts/kerberos/{id}/realm_trusts/",
-            get(async || page(&[])),
+            get(async |State(api): State<Arc<Api>>| {
+                page(&api.trusts.lock().unwrap_or_else(PoisonError::into_inner))
+            }),
         )
         .route("/outposts/kerberos/{id}/user_key/", get(user_key))
         .route("/outposts/kerberos/{id}/user_keys/", get(user_keys))
@@ -386,6 +389,12 @@ impl Harness {
         }
         drop(rustls::crypto::aws_lc_rs::default_provider().install_default());
         let api = Arc::new(Api::default());
+        if let Some(trusts) = extra.get("mock_trusts").and_then(Value::as_array) {
+            api.trusts
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .clone_from(trusts);
+        }
         if let Some(certs) = extra.get("mock_certificates").and_then(Value::as_object) {
             let mut map = api.certs.lock().unwrap_or_else(PoisonError::into_inner);
             for (id, pair) in certs {
@@ -1292,5 +1301,136 @@ async fn mit_interop_anonymous_pkinit() -> Result<()> {
     };
     let (ok, out) = h.run("", "kinit", &["-n", "-X", &anchors]).await?;
     eyre::ensure!(!ok, "anonymous PKINIT succeeded while disabled: {out}");
+    Ok(())
+}
+
+const PEER_REALM: &str = "MIT.TEST";
+
+async fn peer_tool(h: &Harness, tool: &str, args: &[&str]) -> Result<()> {
+    let out = Command::new(tool)
+        .args(args)
+        .env("KRB5_CONFIG", h.path("krb5.conf"))
+        .env("KRB5_KDC_PROFILE", h.path("kdc.conf"))
+        .stdin(Stdio::null())
+        .output()
+        .await?;
+    eyre::ensure!(
+        out.status.success(),
+        "{tool} {args:?} failed: {}{}",
+        String::from_utf8_lossy(&out.stdout),
+        String::from_utf8_lossy(&out.stderr)
+    );
+    Ok(())
+}
+
+/// A user of a real MIT KDC in a peer realm gets a service ticket from the
+/// Rust KDC across an authentik realm trust.
+#[tokio::test(flavor = "multi_thread")]
+async fn mit_interop_cross_realm() -> Result<()> {
+    if !have_tools(&["krb5kdc", "kdb5_util", "kadmin.local"]) {
+        eprintln!("skipping: MIT KDC tools not installed");
+        return Ok(());
+    }
+    let trust_key = find_etype(18)
+        .map_err(|err| eyre!("{err:?}"))?
+        .string_to_key(
+            b"trust-password",
+            format!("{PEER_REALM}krbtgt{REALM}").as_bytes(),
+            None,
+        )
+        .map_err(|err| eyre!("{err:?}"))?;
+    let keys = json!({"18": STANDARD.encode(&*trust_key)});
+    let trust = json!({
+        "remote_realm": PEER_REALM, "capaths": [],
+        "outgoing_kvno": 1_i32, "outgoing_keys": keys,
+        "incoming_kvno": 1_i32, "incoming_keys": keys,
+    });
+    let Some(h) = Harness::start(json!({"mock_trusts": [trust]}), false).await? else {
+        return Ok(());
+    };
+    let port = std::net::TcpListener::bind("127.0.0.1:0")?
+        .local_addr()?
+        .port();
+    let config = std::fs::read_to_string(h.path("krb5.conf"))?.replace(
+        "[realms]\n",
+        &format!("[realms]\n\t{PEER_REALM} = {{\n\t\tkdc = 127.0.0.1:{port}\n\t}}\n"),
+    );
+    std::fs::write(h.path("krb5.conf"), config)?;
+    let db = h.path("principal");
+    std::fs::write(h.path("kadm5.acl"), format!("*/admin@{PEER_REALM} *\n"))?;
+    std::fs::write(
+        h.path("kdc.conf"),
+        format!(
+            "[kdcdefaults]\n\tkdc_ports = {port}\n\tkdc_tcp_ports = {port}\n\
+             [realms]\n\t{PEER_REALM} = {{\n\
+             \t\tdatabase_name = {db}\n\
+             \t\tacl_file = {acl}\n\
+             \t\tkey_stash_file = {stash}\n\t}}\n",
+            db = db.display(),
+            acl = h.path("kadm5.acl").display(),
+            stash = h.path("stash").display(),
+        ),
+    )?;
+    let db = db.display().to_string();
+    peer_tool(
+        &h,
+        "kdb5_util",
+        &[
+            "create",
+            "-r",
+            PEER_REALM,
+            "-d",
+            &db,
+            "-s",
+            "-P",
+            "master-password",
+        ],
+    )
+    .await?;
+    for query in [
+        format!("addprinc -pw {PASSWORD} {USER}"),
+        format!("addprinc -e aes256-cts-hmac-sha1-96:normal -pw trust-password krbtgt/{REALM}"),
+    ] {
+        peer_tool(
+            &h,
+            "kadmin.local",
+            &["-r", PEER_REALM, "-d", &db, "-q", &query],
+        )
+        .await?;
+    }
+    let _kdc = Command::new("krb5kdc")
+        .args(["-n", "-r", PEER_REALM])
+        .env("KRB5_CONFIG", h.path("krb5.conf"))
+        .env("KRB5_KDC_PROFILE", h.path("kdc.conf"))
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .kill_on_drop(true)
+        .spawn()?;
+    let mut ready = false;
+    for _ in 0..50_u32 {
+        if tokio::net::TcpStream::connect(("127.0.0.1", port))
+            .await
+            .is_ok()
+        {
+            ready = true;
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+    eyre::ensure!(ready, "MIT KDC did not start");
+
+    h.ok(
+        &format!("{PASSWORD}\n"),
+        "kinit",
+        &[&format!("{USER}@{PEER_REALM}")],
+    )
+    .await?;
+    let service = format!("{SERVICE}@{REALM}");
+    h.ok("", "kvno", &[&service]).await?;
+    let out = h.ok("", "klist", &[]).await?;
+    for principal in [format!("krbtgt/{REALM}@{PEER_REALM}"), service] {
+        eyre::ensure!(out.contains(&principal), "missing {principal}: {out}");
+    }
     Ok(())
 }
