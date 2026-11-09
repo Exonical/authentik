@@ -36,6 +36,7 @@ mod kkdcp;
 mod kpasswd;
 mod otp;
 mod pac;
+mod pkinit;
 mod policy;
 mod store;
 
@@ -249,6 +250,9 @@ impl KerberosOutpost {
             .clone()
             .filter(|s| !s.is_empty());
         cfg.otp_token_types = otp_enabled.then(|| vec![otp::token_type(otp_indicators.clone())]);
+        cfg.pkinit = pkinit::server_config(api, &self.certificates, provider)
+            .await
+            .map_err(|err| eyre!("PKINIT: {err}"))?;
         if !trusts.is_empty() {
             cfg.realm_profile = Some(
                 Profile::parse(&capaths(&realm, &trusts))
