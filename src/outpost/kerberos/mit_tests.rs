@@ -46,6 +46,7 @@ struct Api {
     services: Mutex<Vec<Value>>,
     denied: Mutex<Vec<String>>,
     rule: Mutex<Option<Rule>>,
+    key_seed: std::sync::atomic::AtomicU8,
     audit: Mutex<Vec<Value>>,
 }
 
@@ -152,6 +153,76 @@ async fn audit_event(State(api): State<Arc<Api>>, Json(body): Json<Value>) -> St
     StatusCode::NO_CONTENT
 }
 
+fn spn_json(api: &Api, spn: &str, kvno: i64) -> Value {
+    let seed = api
+        .key_seed
+        .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+        .wrapping_add(100);
+    json!({
+        "spn": spn,
+        "kvno": kvno,
+        "keys": {"18": STANDARD.encode([seed; 32]), "17": STANDARD.encode([seed; 16])},
+        "ok_to_auth_as_delegate": false,
+        "allowed_delegation_targets": [],
+        "required_auth_indicators": [],
+        "ticket_flags": [],
+    })
+}
+
+fn bare_spn(body: &Value) -> String {
+    let spn = body["spn"].as_str().unwrap_or_default();
+    spn.strip_suffix(&format!("@{REALM}"))
+        .unwrap_or(spn)
+        .to_owned()
+}
+
+async fn spn_create(State(api): State<Arc<Api>>, Json(body): Json<Value>) -> Json<Value> {
+    let created = spn_json(&api, &bare_spn(&body), 1);
+    api.services
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .push(created.clone());
+    Json(created)
+}
+
+async fn spn_update(
+    State(api): State<Arc<Api>>,
+    Json(body): Json<Value>,
+) -> Result<Json<Value>, StatusCode> {
+    let spn = bare_spn(&body);
+    let mut services = api.services.lock().unwrap_or_else(PoisonError::into_inner);
+    let entry = services
+        .iter_mut()
+        .find(|s| s["spn"] == json!(spn))
+        .ok_or(StatusCode::NOT_FOUND)?;
+    entry["ticket_flags"] = body["ticket_flags"].clone();
+    Ok(Json(entry.clone()))
+}
+
+async fn spn_rotate(
+    State(api): State<Arc<Api>>,
+    Json(body): Json<Value>,
+) -> Result<Json<Value>, StatusCode> {
+    let spn = bare_spn(&body);
+    let mut services = api.services.lock().unwrap_or_else(PoisonError::into_inner);
+    let entry = services
+        .iter_mut()
+        .find(|s| s["spn"] == json!(spn))
+        .ok_or(StatusCode::NOT_FOUND)?;
+    let kvno = entry["kvno"].as_i64().unwrap_or(1) + 1;
+    *entry = spn_json(&api, &spn, kvno);
+    Ok(Json(entry.clone()))
+}
+
+async fn spn_delete(State(api): State<Arc<Api>>, Json(body): Json<Value>) -> StatusCode {
+    let spn = bare_spn(&body);
+    api.services
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .retain(|s| s["spn"] != json!(spn));
+    StatusCode::NO_CONTENT
+}
+
 async fn set_password(State(api): State<Arc<Api>>, Json(body): Json<Value>) -> StatusCode {
     let (Some(username), Some(password)) = (body["username"].as_str(), body["password"].as_str())
     else {
@@ -186,6 +257,22 @@ fn router(api: Arc<Api>) -> Router {
         .route("/outposts/kerberos/{id}/access_check/", get(access_check))
         .route("/outposts/kerberos/{id}/audit_event/", post(audit_event))
         .route("/outposts/kerberos/{id}/set_password/", post(set_password))
+        .route(
+            "/outposts/kerberos/{id}/service_principal_create/",
+            post(spn_create),
+        )
+        .route(
+            "/outposts/kerberos/{id}/service_principal_update/",
+            post(spn_update),
+        )
+        .route(
+            "/outposts/kerberos/{id}/service_principal_rotate/",
+            post(spn_rotate),
+        )
+        .route(
+            "/outposts/kerberos/{id}/service_principal_delete/",
+            post(spn_delete),
+        )
         .with_state(api)
 }
 
@@ -264,7 +351,18 @@ impl Harness {
             ..Configuration::default()
         };
         let certificates = ak_common::tls::store::CertificateStore::new();
-        let (kdc, store) = build_provider(&config, &certificates, &provider(&extra)?).await?;
+        let provider = provider(&extra)?;
+        let (kdc, store) = build_provider(&config, &certificates, &provider).await?;
+
+        let kadmin = Arc::new(super::kadmin::Kadmin::default());
+        kadmin
+            .realm
+            .store(Some(Arc::new(super::kadmin::KadminRealm::new(
+                Arc::clone(&store),
+                provider.kadmin_acl.as_deref().unwrap_or_default(),
+            )?)));
+        let kadmin_listener = TcpListener::bind("127.0.0.1:0").await?;
+        let kadmin_port = kadmin_listener.local_addr()?.port();
 
         let (tx, rx) = watch::channel(false);
         let options = ServeOptions {
@@ -294,7 +392,8 @@ impl Harness {
         )])));
         let (udp, tcp, kpasswd_port) = bind_pair().await?;
         tokio::spawn(kpasswd::serve_udp(Arc::clone(&kpasswd), udp, rx.clone()));
-        tokio::spawn(kpasswd::serve_tcp(kpasswd, tcp, rx));
+        tokio::spawn(kpasswd::serve_tcp(kpasswd, tcp, rx.clone()));
+        tokio::spawn(super::kadmin::serve_tcp(kadmin, kadmin_listener, rx));
 
         let dir = tempfile::tempdir()?;
         let udp_limit = if force_tcp { 1_u32 } else { 1465_u32 };
@@ -312,6 +411,7 @@ impl Harness {
                  \t{REALM} = {{\n\
                  \t\tkdc = 127.0.0.1:{kdc_port}\n\
                  \t\tkpasswd_server = 127.0.0.1:{kpasswd_port}\n\
+                 \t\tadmin_server = 127.0.0.1:{kadmin_port}\n\
                  \t}}\n"
             ),
         )?;
@@ -700,6 +800,92 @@ async fn mit_interop_s4u() -> Result<()> {
         out.to_lowercase()
             .contains("can't fulfill requested option"),
         "{out}"
+    );
+    Ok(())
+}
+
+const NEWNODE: &str = "host/newnode.test";
+const UPDATED: &str = "alice-password-updated";
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mit_interop_kadmin() -> Result<()> {
+    if !have_tools(&["kadmin"]) {
+        return Ok(());
+    }
+    let Some(h) = Harness::start(
+        json!({"kadmin_enabled": true, "kadmin_acl": ["alice *"]}),
+        false,
+    )
+    .await?
+    else {
+        return Ok(());
+    };
+    let kadmin = |pw: &'static str, query: String| {
+        let h = &h;
+        async move {
+            h.run("", "kadmin", &["-p", USER, "-w", pw, "-q", &query])
+                .await
+        }
+    };
+    let ok = |(ok, out): (bool, String)| -> Result<String> {
+        eyre::ensure!(ok, "kadmin failed: {out}");
+        Ok(out)
+    };
+    let out = ok(kadmin(PASSWORD, format!("getprinc {USER}")).await?)?;
+    eyre::ensure!(out.contains(&format!("Principal: {USER}@{REALM}")), "{out}");
+    ok(kadmin(PASSWORD, format!("addprinc -randkey {NEWNODE}")).await?)?;
+    let out = ok(kadmin(PASSWORD, format!("getprinc {NEWNODE}")).await?)?;
+    eyre::ensure!(
+        out.contains(&format!("Principal: {NEWNODE}@{REALM}")),
+        "{out}"
+    );
+
+    let keytab = h.path("newnode.keytab").display().to_string();
+    ok(kadmin(PASSWORD, format!("ktadd -k {keytab} {NEWNODE}")).await?)?;
+    h.ok("", "kinit", &["-k", "-t", &keytab, NEWNODE]).await?;
+    h.ok("", "kdestroy", &[]).await?;
+    h.ok(&format!("{PASSWORD}\n"), "kinit", &[USER]).await?;
+    h.ok("", "kvno", &[NEWNODE]).await?;
+
+    ok(kadmin(PASSWORD, format!("cpw -pw {UPDATED} {USER}")).await?)?;
+    h.ok("", "kdestroy", &[]).await?;
+    h.ok(&format!("{UPDATED}\n"), "kinit", &[USER]).await?;
+
+    ok(kadmin(UPDATED, format!("delprinc -force {NEWNODE}")).await?)?;
+    let (_, out) = kadmin(UPDATED, format!("getprinc {NEWNODE}")).await?;
+    eyre::ensure!(
+        !out.contains(&format!("Principal: {NEWNODE}@{REALM}")),
+        "deleted principal still resolves: {out}"
+    );
+    let out = ok(kadmin(UPDATED, "listprincs".to_owned()).await?)?;
+    eyre::ensure!(
+        out.contains(&format!("{USER}@{REALM}")) && out.contains(&format!("{SERVICE}@{REALM}")),
+        "{out}"
+    );
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mit_interop_kadmin_denied() -> Result<()> {
+    if !have_tools(&["kadmin"]) {
+        return Ok(());
+    }
+    let Some(h) = Harness::start(
+        json!({"kadmin_enabled": true, "kadmin_acl": ["other *"]}),
+        false,
+    )
+    .await?
+    else {
+        return Ok(());
+    };
+    let query = format!("addprinc -randkey {NEWNODE}");
+    let (_, out) = h
+        .run("", "kadmin", &["-p", USER, "-w", PASSWORD, "-q", &query])
+        .await?;
+    let lower = out.to_lowercase();
+    eyre::ensure!(
+        lower.contains("permission") || lower.contains("privilege"),
+        "unlisted principal was not denied: {out}"
     );
     Ok(())
 }
