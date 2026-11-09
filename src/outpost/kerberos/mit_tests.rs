@@ -223,6 +223,12 @@ async fn spn_delete(State(api): State<Arc<Api>>, Json(body): Json<Value>) -> Sta
     StatusCode::NO_CONTENT
 }
 
+const OTP_CODE: &str = "424242";
+
+async fn otp_check(Json(body): Json<Value>) -> Json<Value> {
+    Json(json!({"allowed": body["username"] == json!(USER) && body["value"] == json!(OTP_CODE)}))
+}
+
 async fn set_password(State(api): State<Arc<Api>>, Json(body): Json<Value>) -> StatusCode {
     let (Some(username), Some(password)) = (body["username"].as_str(), body["password"].as_str())
     else {
@@ -257,6 +263,7 @@ fn router(api: Arc<Api>) -> Router {
         .route("/outposts/kerberos/{id}/access_check/", get(access_check))
         .route("/outposts/kerberos/{id}/audit_event/", post(audit_event))
         .route("/outposts/kerberos/{id}/set_password/", post(set_password))
+        .route("/outposts/kerberos/{id}/otp_check/", post(otp_check))
         .route(
             "/outposts/kerberos/{id}/service_principal_create/",
             post(spn_create),
@@ -428,13 +435,21 @@ impl Harness {
 
     /// Run an MIT tool, returning whether it succeeded and its output.
     async fn run(&self, input: &str, tool: &str, args: &[&str]) -> Result<(bool, String)> {
+        self.run_cache("ccache", input, tool, args).await
+    }
+
+    /// Like [`Self::run`], with the credential cache file `cache`.
+    async fn run_cache(
+        &self,
+        cache: &str,
+        input: &str,
+        tool: &str,
+        args: &[&str],
+    ) -> Result<(bool, String)> {
         let mut child = Command::new(tool)
             .args(args)
             .env("KRB5_CONFIG", self.path("krb5.conf"))
-            .env(
-                "KRB5CCNAME",
-                format!("FILE:{}", self.path("ccache").display()),
-            )
+            .env("KRB5CCNAME", format!("FILE:{}", self.path(cache).display()))
             .env("KRB5_TRACE", self.path("trace.log"))
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -887,5 +902,37 @@ async fn mit_interop_kadmin_denied() -> Result<()> {
         lower.contains("permission") || lower.contains("privilege"),
         "unlisted principal was not denied: {out}"
     );
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mit_interop_otp() -> Result<()> {
+    if !std::path::Path::new("/usr/lib/x86_64-linux-gnu/krb5/plugins/preauth/otp.so").exists()
+        && !std::path::Path::new("/usr/lib64/krb5/plugins/preauth/otp.so").exists()
+    {
+        return Ok(());
+    }
+    let Some(h) = Harness::start(
+        json!({"otp_enabled": true, "otp_indicators": ["otp"], "pac_enabled": true, "realm_sid": "S-1-5-21-1-2-3"}),
+        false,
+    )
+    .await?
+    else {
+        return Ok(());
+    };
+    let keytab = h.service_keytab()?;
+    let (ok, out) = h
+        .run_cache("armor", "", "kinit", &["-f", "-kt", &keytab, SERVICE])
+        .await?;
+    eyre::ensure!(ok, "armor kinit failed: {out}");
+    let armor = h.path("armor").display().to_string();
+
+    let (ok, out) = h.run("000000\n", "kinit", &["-T", &armor, USER]).await?;
+    eyre::ensure!(!ok, "wrong OTP code was accepted: {out}");
+    h.ok(&format!("{OTP_CODE}\n"), "kinit", &["-T", &armor, USER])
+        .await?;
+    let out = h.ok("", "klist", &[]).await?;
+    eyre::ensure!(out.contains(&format!("krbtgt/{REALM}@{REALM}")), "{out}");
+    h.ok("", "kvno", &[SERVICE]).await?;
     Ok(())
 }
