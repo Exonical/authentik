@@ -74,7 +74,7 @@ mod tests {
 
     #[test]
     fn anchors_require_a_certificate() {
-        let err = anchors("").unwrap_err();
+        let err = anchors("").expect_err("empty PEM");
         assert!(err.to_string().contains("no certificate data"));
         let cert =
             rcgen::generate_simple_self_signed(vec!["ca.test".to_owned()]).expect("certificate");
