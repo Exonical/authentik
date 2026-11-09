@@ -17,6 +17,7 @@ from authentik.providers.kerberos.models import (
     KerberosServicePrincipal,
     KerberosUserKeys,
 )
+from authentik.stages.password.models import PasswordDevice
 
 
 class KerberosProviderTests(TestCase):
@@ -144,10 +145,10 @@ class KerberosProviderTests(TestCase):
         user = create_test_user()
         keys = KerberosUserKeys.objects.get(provider=provider, user=user)
         self.assertEqual(keys.kvno, 1)
-        user.set_password("first-password")
+        PasswordDevice.set_password(user, "first-password")
         keys.refresh_from_db()
         self.assertEqual(keys.kvno, 2)
-        user.set_password("second-password")
+        PasswordDevice.set_password(user, "second-password")
         keys.refresh_from_db()
         self.assertEqual(keys.kvno, 3)
 

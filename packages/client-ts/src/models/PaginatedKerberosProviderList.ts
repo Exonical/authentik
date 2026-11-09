@@ -1,5 +1,3 @@
-/* tslint:disable */
-/* eslint-disable */
 /**
  * authentik
  * Making authentication simple.
@@ -12,28 +10,18 @@
  * Do not edit the class manually.
  */
 
-import type { KerberosProvider } from "./KerberosProvider";
-import { KerberosProviderFromJSON, KerberosProviderToJSON } from "./KerberosProvider";
-import type { Pagination } from "./Pagination";
-import { PaginationFromJSON, PaginationToJSON } from "./Pagination";
+import type { KerberosProvider } from "./KerberosProvider.js";
+import { KerberosProviderFromJSON, KerberosProviderToJSON } from "./KerberosProvider.js";
+import type { Pagination } from "./Pagination.js";
+import { PaginationFromJSON, PaginationToJSON } from "./Pagination.js";
 
 /**
- *
  * @export
  * @interface PaginatedKerberosProviderList
  */
 export interface PaginatedKerberosProviderList {
-    /**
-     *
-     */
     pagination: Pagination;
-    /**
-     *
-     */
     results: Array<KerberosProvider>;
-    /**
-     *
-     */
     autocomplete: { [key: string]: any };
 }
 

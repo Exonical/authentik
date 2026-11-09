@@ -1,5 +1,3 @@
-/* tslint:disable */
-/* eslint-disable */
 /**
  * authentik
  * Making authentication simple.
@@ -12,31 +10,21 @@
  * Do not edit the class manually.
  */
 
-import type { KerberosOutpostConfig } from "./KerberosOutpostConfig";
+import type { KerberosOutpostConfig } from "./KerberosOutpostConfig.js";
 import {
     KerberosOutpostConfigFromJSON,
     KerberosOutpostConfigToJSON,
-} from "./KerberosOutpostConfig";
-import type { Pagination } from "./Pagination";
-import { PaginationFromJSON, PaginationToJSON } from "./Pagination";
+} from "./KerberosOutpostConfig.js";
+import type { Pagination } from "./Pagination.js";
+import { PaginationFromJSON, PaginationToJSON } from "./Pagination.js";
 
 /**
- *
  * @export
  * @interface PaginatedKerberosOutpostConfigList
  */
 export interface PaginatedKerberosOutpostConfigList {
-    /**
-     *
-     */
     pagination: Pagination;
-    /**
-     *
-     */
     results: Array<KerberosOutpostConfig>;
-    /**
-     *
-     */
     autocomplete: { [key: string]: any };
 }
 

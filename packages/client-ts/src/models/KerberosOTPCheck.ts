@@ -1,5 +1,3 @@
-/* tslint:disable */
-/* eslint-disable */
 /**
  * authentik
  * Making authentication simple.
@@ -14,13 +12,11 @@
 
 /**
  * OTP validation data consumed by the KDC outpost.
+ *
  * @export
  * @interface KerberosOTPCheck
  */
 export interface KerberosOTPCheck {
-    /**
-     *
-     */
     allowed: boolean;
 }
 

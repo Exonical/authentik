@@ -7,28 +7,50 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('authentik_providers_kerberos', '0009_kerberosprovider_pac_enabled_and_more'),
+        ("authentik_providers_kerberos", "0009_kerberosprovider_pac_enabled_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='kerberosprovider',
-            name='encrypted_challenge_indicator',
-            field=models.TextField(blank=True, default='', help_text='Indicator asserted after encrypted-challenge preauthentication.'),
+            model_name="kerberosprovider",
+            name="encrypted_challenge_indicator",
+            field=models.TextField(
+                blank=True,
+                default="",
+                help_text="Indicator asserted after encrypted-challenge preauthentication.",
+            ),
         ),
         migrations.AddField(
-            model_name='kerberosprovider',
-            name='pkinit_indicators',
-            field=django.contrib.postgres.fields.ArrayField(base_field=models.TextField(), blank=True, default=list, help_text='Authentication indicators asserted after successful PKINIT.', size=None),
+            model_name="kerberosprovider",
+            name="pkinit_indicators",
+            field=django.contrib.postgres.fields.ArrayField(
+                base_field=models.TextField(),
+                blank=True,
+                default=list,
+                help_text="Authentication indicators asserted after successful PKINIT.",
+                size=None,
+            ),
         ),
         migrations.AddField(
-            model_name='kerberosprovider',
-            name='spake_indicators',
-            field=django.contrib.postgres.fields.ArrayField(base_field=models.TextField(), blank=True, default=list, help_text='Indicators asserted after SPAKE preauthentication.', size=None),
+            model_name="kerberosprovider",
+            name="spake_indicators",
+            field=django.contrib.postgres.fields.ArrayField(
+                base_field=models.TextField(),
+                blank=True,
+                default=list,
+                help_text="Indicators asserted after SPAKE preauthentication.",
+                size=None,
+            ),
         ),
         migrations.AddField(
-            model_name='kerberosserviceprincipal',
-            name='required_auth_indicators',
-            field=django.contrib.postgres.fields.ArrayField(base_field=models.TextField(), blank=True, default=list, help_text='Authentication indicators required to obtain tickets for this service.', size=None),
+            model_name="kerberosserviceprincipal",
+            name="required_auth_indicators",
+            field=django.contrib.postgres.fields.ArrayField(
+                base_field=models.TextField(),
+                blank=True,
+                default=list,
+                help_text="Authentication indicators required to obtain tickets for this service.",
+                size=None,
+            ),
         ),
     ]

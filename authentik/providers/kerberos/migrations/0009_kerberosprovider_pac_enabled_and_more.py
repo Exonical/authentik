@@ -7,18 +7,25 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('authentik_providers_kerberos', '0008_kerberosprovider_anonymous_pkinit_enabled_and_more'),
+        ("authentik_providers_kerberos", "0008_kerberosprovider_anonymous_pkinit_enabled_and_more"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='kerberosprovider',
-            name='pac_enabled',
-            field=models.BooleanField(default=False, help_text='Include an MS-PAC in issued tickets.'),
+            model_name="kerberosprovider",
+            name="pac_enabled",
+            field=models.BooleanField(
+                default=False, help_text="Include an MS-PAC in issued tickets."
+            ),
         ),
         migrations.AddField(
-            model_name='kerberosprovider',
-            name='realm_sid',
-            field=models.TextField(blank=True, default='', help_text='Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.', validators=[authentik.providers.kerberos.models.validate_realm_sid]),
+            model_name="kerberosprovider",
+            name="realm_sid",
+            field=models.TextField(
+                blank=True,
+                default="",
+                help_text="Domain SID used for MS-PAC identities, for example S-1-5-21-1-2-3.",
+                validators=[authentik.providers.kerberos.models.validate_realm_sid],
+            ),
         ),
     ]

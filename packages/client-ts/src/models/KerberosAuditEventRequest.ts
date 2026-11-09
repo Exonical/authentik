@@ -1,5 +1,3 @@
-/* tslint:disable */
-/* eslint-disable */
 /**
  * authentik
  * Making authentication simple.
@@ -12,62 +10,27 @@
  * Do not edit the class manually.
  */
 
-import type { EventEnum } from "./EventEnum";
-import { EventEnumFromJSON, EventEnumToJSON } from "./EventEnum";
+import type { EventEnum } from "./EventEnum.js";
+import { EventEnumFromJSON, EventEnumToJSON } from "./EventEnum.js";
 
 /**
  * KDC audit event data submitted by the Kerberos outpost.
+ *
  * @export
  * @interface KerberosAuditEventRequest
  */
 export interface KerberosAuditEventRequest {
-    /**
-     *
-     */
     event: EventEnum;
-    /**
-     *
-     */
     success: boolean;
-    /**
-     *
-     */
     client: string;
-    /**
-     *
-     */
     service: string;
-    /**
-     *
-     */
     status: string;
-    /**
-     *
-     */
     preauthType: string;
-    /**
-     *
-     */
     remoteAddr: string;
-    /**
-     *
-     */
     s4u2selfUser: string;
-    /**
-     *
-     */
     authIndicators: Array<string>;
-    /**
-     *
-     */
     errorCode: number;
-    /**
-     *
-     */
     requestId: string;
-    /**
-     *
-     */
     ticketId: string;
 }
 

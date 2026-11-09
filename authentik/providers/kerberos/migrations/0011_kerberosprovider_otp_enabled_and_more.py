@@ -7,18 +7,30 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('authentik_providers_kerberos', '0010_kerberosprovider_encrypted_challenge_indicator_and_more'),
+        (
+            "authentik_providers_kerberos",
+            "0010_kerberosprovider_encrypted_challenge_indicator_and_more",
+        ),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='kerberosprovider',
-            name='otp_enabled',
-            field=models.BooleanField(default=False, help_text="Enable RFC 6560 OTP preauthentication backed by the user's authentik TOTP and static authenticator devices."),
+            model_name="kerberosprovider",
+            name="otp_enabled",
+            field=models.BooleanField(
+                default=False,
+                help_text="Enable RFC 6560 OTP preauthentication backed by the user's authentik TOTP and static authenticator devices.",
+            ),
         ),
         migrations.AddField(
-            model_name='kerberosprovider',
-            name='otp_indicators',
-            field=django.contrib.postgres.fields.ArrayField(base_field=models.TextField(), blank=True, default=list, help_text='Authentication indicators asserted after successful OTP preauthentication.', size=None),
+            model_name="kerberosprovider",
+            name="otp_indicators",
+            field=django.contrib.postgres.fields.ArrayField(
+                base_field=models.TextField(),
+                blank=True,
+                default=list,
+                help_text="Authentication indicators asserted after successful OTP preauthentication.",
+                size=None,
+            ),
         ),
     ]

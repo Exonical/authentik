@@ -1,5 +1,3 @@
-/* tslint:disable */
-/* eslint-disable */
 /**
  * authentik
  * Making authentication simple.
@@ -14,13 +12,11 @@
 
 /**
  * Service principal management request for the kadm5 outpost.
+ *
  * @export
  * @interface KerberosServicePrincipalAdminRequest
  */
 export interface KerberosServicePrincipalAdminRequest {
-    /**
-     *
-     */
     spn: string;
 }
 

@@ -1,5 +1,3 @@
-/* tslint:disable */
-/* eslint-disable */
 /**
  * authentik
  * Making authentication simple.
@@ -15,130 +13,127 @@
 import {
     type DockerServiceConnection,
     DockerServiceConnectionFromJSON,
-} from "../models/DockerServiceConnection";
+} from "../models/DockerServiceConnection.js";
 import {
     type DockerServiceConnectionRequest,
     DockerServiceConnectionRequestToJSON,
-} from "../models/DockerServiceConnectionRequest";
+} from "../models/DockerServiceConnectionRequest.js";
 import {
     type KerberosAuditEventRequest,
     KerberosAuditEventRequestToJSON,
-} from "../models/KerberosAuditEventRequest";
+} from "../models/KerberosAuditEventRequest.js";
 import {
     type KerberosCheckAccess,
     KerberosCheckAccessFromJSON,
-} from "../models/KerberosCheckAccess";
-import { type KerberosOTPCheck, KerberosOTPCheckFromJSON } from "../models/KerberosOTPCheck";
+} from "../models/KerberosCheckAccess.js";
+import { type KerberosOTPCheck, KerberosOTPCheckFromJSON } from "../models/KerberosOTPCheck.js";
 import {
     type KerberosOTPCheckRequestRequest,
     KerberosOTPCheckRequestRequestToJSON,
-} from "../models/KerberosOTPCheckRequestRequest";
+} from "../models/KerberosOTPCheckRequestRequest.js";
 import {
     type KerberosServicePrincipalAdminRequest,
     KerberosServicePrincipalAdminRequestToJSON,
-} from "../models/KerberosServicePrincipalAdminRequest";
+} from "../models/KerberosServicePrincipalAdminRequest.js";
 import {
     type KerberosServicePrincipalOutpost,
     KerberosServicePrincipalOutpostFromJSON,
-} from "../models/KerberosServicePrincipalOutpost";
+} from "../models/KerberosServicePrincipalOutpost.js";
 import {
     type KerberosServicePrincipalUpdateRequest,
     KerberosServicePrincipalUpdateRequestToJSON,
-} from "../models/KerberosServicePrincipalUpdateRequest";
+} from "../models/KerberosServicePrincipalUpdateRequest.js";
 import {
     type KerberosSetPasswordRequest,
     KerberosSetPasswordRequestToJSON,
-} from "../models/KerberosSetPasswordRequest";
+} from "../models/KerberosSetPasswordRequest.js";
 import {
     type KerberosUserKeyOutpost,
     KerberosUserKeyOutpostFromJSON,
-} from "../models/KerberosUserKeyOutpost";
+} from "../models/KerberosUserKeyOutpost.js";
 import {
     type KubernetesServiceConnection,
     KubernetesServiceConnectionFromJSON,
-} from "../models/KubernetesServiceConnection";
+} from "../models/KubernetesServiceConnection.js";
 import {
     type KubernetesServiceConnectionRequest,
     KubernetesServiceConnectionRequestToJSON,
-} from "../models/KubernetesServiceConnectionRequest";
-import { type LDAPCheckAccess, LDAPCheckAccessFromJSON } from "../models/LDAPCheckAccess";
-import { type Outpost, OutpostFromJSON } from "../models/Outpost";
+} from "../models/KubernetesServiceConnectionRequest.js";
+import { type LDAPCheckAccess, LDAPCheckAccessFromJSON } from "../models/LDAPCheckAccess.js";
+import { type Outpost, OutpostFromJSON } from "../models/Outpost.js";
 import {
     type OutpostDefaultConfig,
     OutpostDefaultConfigFromJSON,
-} from "../models/OutpostDefaultConfig";
-import { type OutpostHealth, OutpostHealthFromJSON } from "../models/OutpostHealth";
-import { type OutpostRequest, OutpostRequestToJSON } from "../models/OutpostRequest";
+} from "../models/OutpostDefaultConfig.js";
+import { type OutpostHealth, OutpostHealthFromJSON } from "../models/OutpostHealth.js";
+import { type OutpostRequest, OutpostRequestToJSON } from "../models/OutpostRequest.js";
 import {
     type PaginatedDockerServiceConnectionList,
     PaginatedDockerServiceConnectionListFromJSON,
-} from "../models/PaginatedDockerServiceConnectionList";
+} from "../models/PaginatedDockerServiceConnectionList.js";
 import {
     type PaginatedKerberosOutpostConfigList,
     PaginatedKerberosOutpostConfigListFromJSON,
-} from "../models/PaginatedKerberosOutpostConfigList";
+} from "../models/PaginatedKerberosOutpostConfigList.js";
 import {
     type PaginatedKerberosRealmTrustOutpostList,
     PaginatedKerberosRealmTrustOutpostListFromJSON,
-} from "../models/PaginatedKerberosRealmTrustOutpostList";
+} from "../models/PaginatedKerberosRealmTrustOutpostList.js";
 import {
     type PaginatedKerberosServicePrincipalOutpostList,
     PaginatedKerberosServicePrincipalOutpostListFromJSON,
-} from "../models/PaginatedKerberosServicePrincipalOutpostList";
+} from "../models/PaginatedKerberosServicePrincipalOutpostList.js";
 import {
     type PaginatedKerberosUserKeyOutpostList,
     PaginatedKerberosUserKeyOutpostListFromJSON,
-} from "../models/PaginatedKerberosUserKeyOutpostList";
+} from "../models/PaginatedKerberosUserKeyOutpostList.js";
 import {
     type PaginatedKubernetesServiceConnectionList,
     PaginatedKubernetesServiceConnectionListFromJSON,
-} from "../models/PaginatedKubernetesServiceConnectionList";
+} from "../models/PaginatedKubernetesServiceConnectionList.js";
 import {
     type PaginatedLDAPOutpostConfigList,
     PaginatedLDAPOutpostConfigListFromJSON,
-} from "../models/PaginatedLDAPOutpostConfigList";
+} from "../models/PaginatedLDAPOutpostConfigList.js";
 import {
     type PaginatedOutpostList,
     PaginatedOutpostListFromJSON,
-} from "../models/PaginatedOutpostList";
+} from "../models/PaginatedOutpostList.js";
 import {
     type PaginatedProxyOutpostConfigList,
     PaginatedProxyOutpostConfigListFromJSON,
-} from "../models/PaginatedProxyOutpostConfigList";
+} from "../models/PaginatedProxyOutpostConfigList.js";
 import {
     type PaginatedRadiusOutpostConfigList,
     PaginatedRadiusOutpostConfigListFromJSON,
-} from "../models/PaginatedRadiusOutpostConfigList";
+} from "../models/PaginatedRadiusOutpostConfigList.js";
 import {
     type PaginatedServiceConnectionList,
     PaginatedServiceConnectionListFromJSON,
-} from "../models/PaginatedServiceConnectionList";
+} from "../models/PaginatedServiceConnectionList.js";
 import {
     type PatchedDockerServiceConnectionRequest,
     PatchedDockerServiceConnectionRequestToJSON,
-} from "../models/PatchedDockerServiceConnectionRequest";
+} from "../models/PatchedDockerServiceConnectionRequest.js";
 import {
     type PatchedKubernetesServiceConnectionRequest,
     PatchedKubernetesServiceConnectionRequestToJSON,
-} from "../models/PatchedKubernetesServiceConnectionRequest";
+} from "../models/PatchedKubernetesServiceConnectionRequest.js";
 import {
     type PatchedOutpostRequest,
     PatchedOutpostRequestToJSON,
-} from "../models/PatchedOutpostRequest";
-import { type RadiusCheckAccess, RadiusCheckAccessFromJSON } from "../models/RadiusCheckAccess";
-import { type ServiceConnection, ServiceConnectionFromJSON } from "../models/ServiceConnection";
+} from "../models/PatchedOutpostRequest.js";
+import { type RadiusCheckAccess, RadiusCheckAccessFromJSON } from "../models/RadiusCheckAccess.js";
+import { type ServiceConnection, ServiceConnectionFromJSON } from "../models/ServiceConnection.js";
 import {
     type ServiceConnectionState,
     ServiceConnectionStateFromJSON,
-} from "../models/ServiceConnectionState";
-import { type TypeCreate, TypeCreateFromJSON } from "../models/TypeCreate";
-import { type UsedBy, UsedByFromJSON } from "../models/UsedBy";
-import * as runtime from "../runtime";
+} from "../models/ServiceConnectionState.js";
+import { type TypeCreate, TypeCreateFromJSON } from "../models/TypeCreate.js";
+import { type UsedBy, UsedByFromJSON } from "../models/UsedBy.js";
+import * as runtime from "../runtime.js";
 
 export interface OutpostsInstancesCreateRequest {
-    /**
-     *
-     */
     outpostRequest: OutpostRequest;
 }
 
@@ -154,64 +149,28 @@ export interface OutpostsInstancesHealthListRequest {
      * A UUID string identifying this Outpost.
      */
     uuid: string;
-    /**
-     *
-     */
     managedIcontains?: string;
-    /**
-     *
-     */
     managedIexact?: string;
-    /**
-     *
-     */
     nameIcontains?: string;
-    /**
-     *
-     */
     nameIexact?: string;
     /**
      * Which field to use when ordering the results.
      */
     ordering?: string;
-    /**
-     *
-     */
     providersIsnull?: boolean;
-    /**
-     *
-     */
     providersByPk?: Array<number>;
     /**
      * A search term.
      */
     search?: string;
-    /**
-     *
-     */
     serviceConnectionNameIcontains?: string;
-    /**
-     *
-     */
     serviceConnectionNameIexact?: string;
 }
 
 export interface OutpostsInstancesListRequest {
-    /**
-     *
-     */
     managedIcontains?: string;
-    /**
-     *
-     */
     managedIexact?: string;
-    /**
-     *
-     */
     nameIcontains?: string;
-    /**
-     *
-     */
     nameIexact?: string;
     /**
      * Which field to use when ordering the results.
@@ -225,25 +184,13 @@ export interface OutpostsInstancesListRequest {
      * Number of results to return per page.
      */
     pageSize?: number;
-    /**
-     *
-     */
     providersIsnull?: boolean;
-    /**
-     *
-     */
     providersByPk?: Array<number>;
     /**
      * A search term.
      */
     search?: string;
-    /**
-     *
-     */
     serviceConnectionNameIcontains?: string;
-    /**
-     *
-     */
     serviceConnectionNameIexact?: string;
 }
 
@@ -252,10 +199,14 @@ export interface OutpostsInstancesPartialUpdateRequest {
      * A UUID string identifying this Outpost.
      */
     uuid: string;
-    /**
-     *
-     */
     patchedOutpostRequest?: PatchedOutpostRequest;
+}
+
+export interface OutpostsInstancesRebuildPermissionsCreateRequest {
+    /**
+     * A UUID string identifying this Outpost.
+     */
+    uuid: string;
 }
 
 export interface OutpostsInstancesRetrieveRequest {
@@ -270,9 +221,6 @@ export interface OutpostsInstancesUpdateRequest {
      * A UUID string identifying this Outpost.
      */
     uuid: string;
-    /**
-     *
-     */
     outpostRequest: OutpostRequest;
 }
 
@@ -288,17 +236,8 @@ export interface OutpostsKerberosAccessCheckRequest {
      * A unique integer value identifying this Kerberos Provider.
      */
     id: number;
-    /**
-     *
-     */
     clientSpn?: string;
-    /**
-     *
-     */
     spn?: string;
-    /**
-     *
-     */
     username?: string;
 }
 
@@ -307,16 +246,10 @@ export interface OutpostsKerberosAuditEventCreateRequest {
      * A unique integer value identifying this Kerberos Provider.
      */
     id: number;
-    /**
-     *
-     */
     kerberosAuditEventRequest: KerberosAuditEventRequest;
 }
 
 export interface OutpostsKerberosListRequest {
-    /**
-     *
-     */
     name?: string;
     /**
      * Which field to use when ordering the results.
@@ -341,9 +274,6 @@ export interface OutpostsKerberosOtpCheckRequest {
      * A unique integer value identifying this Kerberos Provider.
      */
     id: number;
-    /**
-     *
-     */
     kerberosOTPCheckRequestRequest: KerberosOTPCheckRequestRequest;
 }
 
@@ -352,9 +282,6 @@ export interface OutpostsKerberosRealmTrustsListRequest {
      * A unique integer value identifying this Kerberos Provider.
      */
     id: number;
-    /**
-     *
-     */
     name?: string;
     /**
      * Which field to use when ordering the results.
@@ -379,9 +306,6 @@ export interface OutpostsKerberosServicePrincipalCreateRequest {
      * A unique integer value identifying this Kerberos Provider.
      */
     id: number;
-    /**
-     *
-     */
     kerberosServicePrincipalAdminRequest: KerberosServicePrincipalAdminRequest;
 }
 
@@ -390,9 +314,6 @@ export interface OutpostsKerberosServicePrincipalDeleteRequest {
      * A unique integer value identifying this Kerberos Provider.
      */
     id: number;
-    /**
-     *
-     */
     kerberosServicePrincipalAdminRequest: KerberosServicePrincipalAdminRequest;
 }
 
@@ -401,9 +322,6 @@ export interface OutpostsKerberosServicePrincipalRotateRequest {
      * A unique integer value identifying this Kerberos Provider.
      */
     id: number;
-    /**
-     *
-     */
     kerberosServicePrincipalAdminRequest: KerberosServicePrincipalAdminRequest;
 }
 
@@ -412,9 +330,6 @@ export interface OutpostsKerberosServicePrincipalUpdateRequest {
      * A unique integer value identifying this Kerberos Provider.
      */
     id: number;
-    /**
-     *
-     */
     kerberosServicePrincipalUpdateRequest: KerberosServicePrincipalUpdateRequest;
 }
 
@@ -423,9 +338,6 @@ export interface OutpostsKerberosServicePrincipalsListRequest {
      * A unique integer value identifying this Kerberos Provider.
      */
     id: number;
-    /**
-     *
-     */
     name?: string;
     /**
      * Which field to use when ordering the results.
@@ -450,9 +362,6 @@ export interface OutpostsKerberosSetPasswordCreateRequest {
      * A unique integer value identifying this Kerberos Provider.
      */
     id: number;
-    /**
-     *
-     */
     kerberosSetPasswordRequest: KerberosSetPasswordRequest;
 }
 
@@ -461,9 +370,6 @@ export interface OutpostsKerberosUserKeyRetrieveRequest {
      * A unique integer value identifying this Kerberos Provider.
      */
     id: number;
-    /**
-     *
-     */
     username: string;
 }
 
@@ -472,9 +378,6 @@ export interface OutpostsKerberosUserKeysListRequest {
      * A unique integer value identifying this Kerberos Provider.
      */
     id: number;
-    /**
-     *
-     */
     name?: string;
     /**
      * Which field to use when ordering the results.
@@ -499,16 +402,10 @@ export interface OutpostsLdapAccessCheckRequest {
      * A unique integer value identifying this LDAP Provider.
      */
     id: number;
-    /**
-     *
-     */
     appSlug?: string;
 }
 
 export interface OutpostsLdapListRequest {
-    /**
-     *
-     */
     name?: string;
     /**
      * Which field to use when ordering the results.
@@ -529,9 +426,6 @@ export interface OutpostsLdapListRequest {
 }
 
 export interface OutpostsProxyListRequest {
-    /**
-     *
-     */
     name?: string;
     /**
      * Which field to use when ordering the results.
@@ -556,16 +450,10 @@ export interface OutpostsRadiusAccessCheckRequest {
      * A unique integer value identifying this Radius Provider.
      */
     id: number;
-    /**
-     *
-     */
     appSlug?: string;
 }
 
 export interface OutpostsRadiusListRequest {
-    /**
-     *
-     */
     name?: string;
     /**
      * Which field to use when ordering the results.
@@ -593,9 +481,6 @@ export interface OutpostsServiceConnectionsAllDestroyRequest {
 }
 
 export interface OutpostsServiceConnectionsAllListRequest {
-    /**
-     *
-     */
     name?: string;
     /**
      * Which field to use when ordering the results.
@@ -637,9 +522,6 @@ export interface OutpostsServiceConnectionsAllUsedByListRequest {
 }
 
 export interface OutpostsServiceConnectionsDockerCreateRequest {
-    /**
-     *
-     */
     dockerServiceConnectionRequest: DockerServiceConnectionRequest;
 }
 
@@ -651,13 +533,7 @@ export interface OutpostsServiceConnectionsDockerDestroyRequest {
 }
 
 export interface OutpostsServiceConnectionsDockerListRequest {
-    /**
-     *
-     */
     local?: boolean;
-    /**
-     *
-     */
     name?: string;
     /**
      * Which field to use when ordering the results.
@@ -675,17 +551,8 @@ export interface OutpostsServiceConnectionsDockerListRequest {
      * A search term.
      */
     search?: string;
-    /**
-     *
-     */
     tlsAuthentication?: string;
-    /**
-     *
-     */
     tlsVerification?: string;
-    /**
-     *
-     */
     url?: string;
 }
 
@@ -694,9 +561,6 @@ export interface OutpostsServiceConnectionsDockerPartialUpdateRequest {
      * A UUID string identifying this Docker Service-Connection.
      */
     uuid: string;
-    /**
-     *
-     */
     patchedDockerServiceConnectionRequest?: PatchedDockerServiceConnectionRequest;
 }
 
@@ -712,9 +576,6 @@ export interface OutpostsServiceConnectionsDockerUpdateRequest {
      * A UUID string identifying this Docker Service-Connection.
      */
     uuid: string;
-    /**
-     *
-     */
     dockerServiceConnectionRequest: DockerServiceConnectionRequest;
 }
 
@@ -726,9 +587,6 @@ export interface OutpostsServiceConnectionsDockerUsedByListRequest {
 }
 
 export interface OutpostsServiceConnectionsKubernetesCreateRequest {
-    /**
-     *
-     */
     kubernetesServiceConnectionRequest: KubernetesServiceConnectionRequest;
 }
 
@@ -740,13 +598,7 @@ export interface OutpostsServiceConnectionsKubernetesDestroyRequest {
 }
 
 export interface OutpostsServiceConnectionsKubernetesListRequest {
-    /**
-     *
-     */
     local?: boolean;
-    /**
-     *
-     */
     name?: string;
     /**
      * Which field to use when ordering the results.
@@ -771,9 +623,6 @@ export interface OutpostsServiceConnectionsKubernetesPartialUpdateRequest {
      * A UUID string identifying this Kubernetes Service-Connection.
      */
     uuid: string;
-    /**
-     *
-     */
     patchedKubernetesServiceConnectionRequest?: PatchedKubernetesServiceConnectionRequest;
 }
 
@@ -789,9 +638,6 @@ export interface OutpostsServiceConnectionsKubernetesUpdateRequest {
      * A UUID string identifying this Kubernetes Service-Connection.
      */
     uuid: string;
-    /**
-     *
-     */
     kubernetesServiceConnectionRequest: KubernetesServiceConnectionRequest;
 }
 
@@ -802,9 +648,6 @@ export interface OutpostsServiceConnectionsKubernetesUsedByListRequest {
     uuid: string;
 }
 
-/**
- *
- */
 export class OutpostsApi extends runtime.BaseAPI {
     /**
      * Creates request options for outpostsInstancesCreate without sending the request
@@ -834,7 +677,7 @@ export class OutpostsApi extends runtime.BaseAPI {
             }
         }
 
-        let urlPath = `/outposts/instances/`;
+        const urlPath = `/outposts/instances/`;
 
         return {
             path: urlPath,
@@ -870,7 +713,8 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for outpostsInstancesDefaultSettingsRetrieve without sending the request
+     * Creates request options for outpostsInstancesDefaultSettingsRetrieve without sending the
+     * request
      */
     async outpostsInstancesDefaultSettingsRetrieveRequestOpts(): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
@@ -886,7 +730,7 @@ export class OutpostsApi extends runtime.BaseAPI {
             }
         }
 
-        let urlPath = `/outposts/instances/default_settings/`;
+        const urlPath = `/outposts/instances/default_settings/`;
 
         return {
             path: urlPath,
@@ -1157,7 +1001,7 @@ export class OutpostsApi extends runtime.BaseAPI {
             }
         }
 
-        let urlPath = `/outposts/instances/`;
+        const urlPath = `/outposts/instances/`;
 
         return {
             path: urlPath,
@@ -1259,6 +1103,68 @@ export class OutpostsApi extends runtime.BaseAPI {
             initOverrides,
         );
         return await response.value();
+    }
+
+    /**
+     * Creates request options for outpostsInstancesRebuildPermissionsCreate without sending the
+     * request
+     */
+    async outpostsInstancesRebuildPermissionsCreateRequestOpts(
+        requestParameters: OutpostsInstancesRebuildPermissionsCreateRequest,
+    ): Promise<runtime.RequestOpts> {
+        if (requestParameters["uuid"] == null) {
+            throw new runtime.RequiredError(
+                "uuid",
+                'Required parameter "uuid" was null or undefined when calling outpostsInstancesRebuildPermissionsCreate().',
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("authentik", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/outposts/instances/{uuid}/rebuild_permissions/`;
+        urlPath = urlPath.replace("{uuid}", encodeURIComponent(String(requestParameters["uuid"])));
+
+        return {
+            path: urlPath,
+            method: "POST",
+            headers: headerParameters,
+            query: queryParameters,
+        };
+    }
+
+    /**
+     * Delete and recreate all permissions of the outpost's service account
+     */
+    async outpostsInstancesRebuildPermissionsCreateRaw(
+        requestParameters: OutpostsInstancesRebuildPermissionsCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<runtime.ApiResponse<void>> {
+        const requestOptions =
+            await this.outpostsInstancesRebuildPermissionsCreateRequestOpts(requestParameters);
+        const response = await this.request(requestOptions, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Delete and recreate all permissions of the outpost's service account
+     */
+    async outpostsInstancesRebuildPermissionsCreate(
+        requestParameters: OutpostsInstancesRebuildPermissionsCreateRequest,
+        initOverrides?: RequestInit | runtime.InitOverrideFunction,
+    ): Promise<void> {
+        await this.outpostsInstancesRebuildPermissionsCreateRaw(requestParameters, initOverrides);
     }
 
     /**
@@ -1645,7 +1551,7 @@ export class OutpostsApi extends runtime.BaseAPI {
             }
         }
 
-        let urlPath = `/outposts/kerberos/`;
+        const urlPath = `/outposts/kerberos/`;
 
         return {
             path: urlPath,
@@ -1731,7 +1637,7 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Check a user\'s authentik TOTP or static authentication token.
+     * Check a user's authentik TOTP or static authentication token.
      */
     async outpostsKerberosOtpCheckRaw(
         requestParameters: OutpostsKerberosOtpCheckRequest,
@@ -1746,7 +1652,7 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Check a user\'s authentik TOTP or static authentication token.
+     * Check a user's authentik TOTP or static authentication token.
      */
     async outpostsKerberosOtpCheck(
         requestParameters: OutpostsKerberosOtpCheckRequest,
@@ -1844,7 +1750,8 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for outpostsKerberosServicePrincipalCreate without sending the request
+     * Creates request options for outpostsKerberosServicePrincipalCreate without sending the
+     * request
      */
     async outpostsKerberosServicePrincipalCreateRequestOpts(
         requestParameters: OutpostsKerberosServicePrincipalCreateRequest,
@@ -1923,7 +1830,8 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for outpostsKerberosServicePrincipalDelete without sending the request
+     * Creates request options for outpostsKerberosServicePrincipalDelete without sending the
+     * request
      */
     async outpostsKerberosServicePrincipalDeleteRequestOpts(
         requestParameters: OutpostsKerberosServicePrincipalDeleteRequest,
@@ -1996,7 +1904,8 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for outpostsKerberosServicePrincipalRotate without sending the request
+     * Creates request options for outpostsKerberosServicePrincipalRotate without sending the
+     * request
      */
     async outpostsKerberosServicePrincipalRotateRequestOpts(
         requestParameters: OutpostsKerberosServicePrincipalRotateRequest,
@@ -2075,7 +1984,8 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for outpostsKerberosServicePrincipalUpdate without sending the request
+     * Creates request options for outpostsKerberosServicePrincipalUpdate without sending the
+     * request
      */
     async outpostsKerberosServicePrincipalUpdateRequestOpts(
         requestParameters: OutpostsKerberosServicePrincipalUpdateRequest,
@@ -2124,7 +2034,7 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Update a service principal\'s ticket flags for kadm5.
+     * Update a service principal's ticket flags for kadm5.
      */
     async outpostsKerberosServicePrincipalUpdateRaw(
         requestParameters: OutpostsKerberosServicePrincipalUpdateRequest,
@@ -2140,7 +2050,7 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Update a service principal\'s ticket flags for kadm5.
+     * Update a service principal's ticket flags for kadm5.
      */
     async outpostsKerberosServicePrincipalUpdate(
         requestParameters: OutpostsKerberosServicePrincipalUpdateRequest,
@@ -2288,7 +2198,7 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Set a user\'s password through the Kerberos outpost.
+     * Set a user's password through the Kerberos outpost.
      */
     async outpostsKerberosSetPasswordCreateRaw(
         requestParameters: OutpostsKerberosSetPasswordCreateRequest,
@@ -2302,7 +2212,7 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Set a user\'s password through the Kerberos outpost.
+     * Set a user's password through the Kerberos outpost.
      */
     async outpostsKerberosSetPasswordCreate(
         requestParameters: OutpostsKerberosSetPasswordCreateRequest,
@@ -2360,7 +2270,7 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get one user\'s password-derived key set.
+     * Get one user's password-derived key set.
      */
     async outpostsKerberosUserKeyRetrieveRaw(
         requestParameters: OutpostsKerberosUserKeyRetrieveRequest,
@@ -2376,7 +2286,7 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get one user\'s password-derived key set.
+     * Get one user's password-derived key set.
      */
     async outpostsKerberosUserKeyRetrieve(
         requestParameters: OutpostsKerberosUserKeyRetrieveRequest,
@@ -2582,7 +2492,7 @@ export class OutpostsApi extends runtime.BaseAPI {
             }
         }
 
-        let urlPath = `/outposts/ldap/`;
+        const urlPath = `/outposts/ldap/`;
 
         return {
             path: urlPath,
@@ -2657,7 +2567,7 @@ export class OutpostsApi extends runtime.BaseAPI {
             }
         }
 
-        let urlPath = `/outposts/proxy/`;
+        const urlPath = `/outposts/proxy/`;
 
         return {
             path: urlPath,
@@ -2799,7 +2709,7 @@ export class OutpostsApi extends runtime.BaseAPI {
             }
         }
 
-        let urlPath = `/outposts/radius/`;
+        const urlPath = `/outposts/radius/`;
 
         return {
             path: urlPath,
@@ -2935,7 +2845,7 @@ export class OutpostsApi extends runtime.BaseAPI {
             }
         }
 
-        let urlPath = `/outposts/service_connections/all/`;
+        const urlPath = `/outposts/service_connections/all/`;
 
         return {
             path: urlPath,
@@ -3043,7 +2953,8 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for outpostsServiceConnectionsAllStateRetrieve without sending the request
+     * Creates request options for outpostsServiceConnectionsAllStateRetrieve without sending the
+     * request
      */
     async outpostsServiceConnectionsAllStateRetrieveRequestOpts(
         requestParameters: OutpostsServiceConnectionsAllStateRetrieveRequest,
@@ -3080,7 +2991,7 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get the service connection\'s state
+     * Get the service connection's state
      */
     async outpostsServiceConnectionsAllStateRetrieveRaw(
         requestParameters: OutpostsServiceConnectionsAllStateRetrieveRequest,
@@ -3096,7 +3007,7 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get the service connection\'s state
+     * Get the service connection's state
      */
     async outpostsServiceConnectionsAllStateRetrieve(
         requestParameters: OutpostsServiceConnectionsAllStateRetrieveRequest,
@@ -3110,7 +3021,8 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for outpostsServiceConnectionsAllTypesList without sending the request
+     * Creates request options for outpostsServiceConnectionsAllTypesList without sending the
+     * request
      */
     async outpostsServiceConnectionsAllTypesListRequestOpts(): Promise<runtime.RequestOpts> {
         const queryParameters: any = {};
@@ -3126,7 +3038,7 @@ export class OutpostsApi extends runtime.BaseAPI {
             }
         }
 
-        let urlPath = `/outposts/service_connections/all/types/`;
+        const urlPath = `/outposts/service_connections/all/types/`;
 
         return {
             path: urlPath,
@@ -3161,7 +3073,8 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for outpostsServiceConnectionsAllUsedByList without sending the request
+     * Creates request options for outpostsServiceConnectionsAllUsedByList without sending the
+     * request
      */
     async outpostsServiceConnectionsAllUsedByListRequestOpts(
         requestParameters: OutpostsServiceConnectionsAllUsedByListRequest,
@@ -3226,7 +3139,8 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for outpostsServiceConnectionsDockerCreate without sending the request
+     * Creates request options for outpostsServiceConnectionsDockerCreate without sending the
+     * request
      */
     async outpostsServiceConnectionsDockerCreateRequestOpts(
         requestParameters: OutpostsServiceConnectionsDockerCreateRequest,
@@ -3253,7 +3167,7 @@ export class OutpostsApi extends runtime.BaseAPI {
             }
         }
 
-        let urlPath = `/outposts/service_connections/docker/`;
+        const urlPath = `/outposts/service_connections/docker/`;
 
         return {
             path: urlPath,
@@ -3297,7 +3211,8 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for outpostsServiceConnectionsDockerDestroy without sending the request
+     * Creates request options for outpostsServiceConnectionsDockerDestroy without sending the
+     * request
      */
     async outpostsServiceConnectionsDockerDestroyRequestOpts(
         requestParameters: OutpostsServiceConnectionsDockerDestroyRequest,
@@ -3412,7 +3327,7 @@ export class OutpostsApi extends runtime.BaseAPI {
             }
         }
 
-        let urlPath = `/outposts/service_connections/docker/`;
+        const urlPath = `/outposts/service_connections/docker/`;
 
         return {
             path: urlPath,
@@ -3453,7 +3368,8 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for outpostsServiceConnectionsDockerPartialUpdate without sending the request
+     * Creates request options for outpostsServiceConnectionsDockerPartialUpdate without sending the
+     * request
      */
     async outpostsServiceConnectionsDockerPartialUpdateRequestOpts(
         requestParameters: OutpostsServiceConnectionsDockerPartialUpdateRequest,
@@ -3525,7 +3441,8 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for outpostsServiceConnectionsDockerRetrieve without sending the request
+     * Creates request options for outpostsServiceConnectionsDockerRetrieve without sending the
+     * request
      */
     async outpostsServiceConnectionsDockerRetrieveRequestOpts(
         requestParameters: OutpostsServiceConnectionsDockerRetrieveRequest,
@@ -3592,7 +3509,8 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for outpostsServiceConnectionsDockerUpdate without sending the request
+     * Creates request options for outpostsServiceConnectionsDockerUpdate without sending the
+     * request
      */
     async outpostsServiceConnectionsDockerUpdateRequestOpts(
         requestParameters: OutpostsServiceConnectionsDockerUpdateRequest,
@@ -3671,7 +3589,8 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for outpostsServiceConnectionsDockerUsedByList without sending the request
+     * Creates request options for outpostsServiceConnectionsDockerUsedByList without sending the
+     * request
      */
     async outpostsServiceConnectionsDockerUsedByListRequestOpts(
         requestParameters: OutpostsServiceConnectionsDockerUsedByListRequest,
@@ -3736,7 +3655,8 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for outpostsServiceConnectionsKubernetesCreate without sending the request
+     * Creates request options for outpostsServiceConnectionsKubernetesCreate without sending the
+     * request
      */
     async outpostsServiceConnectionsKubernetesCreateRequestOpts(
         requestParameters: OutpostsServiceConnectionsKubernetesCreateRequest,
@@ -3763,7 +3683,7 @@ export class OutpostsApi extends runtime.BaseAPI {
             }
         }
 
-        let urlPath = `/outposts/service_connections/kubernetes/`;
+        const urlPath = `/outposts/service_connections/kubernetes/`;
 
         return {
             path: urlPath,
@@ -3807,7 +3727,8 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for outpostsServiceConnectionsKubernetesDestroy without sending the request
+     * Creates request options for outpostsServiceConnectionsKubernetesDestroy without sending the
+     * request
      */
     async outpostsServiceConnectionsKubernetesDestroyRequestOpts(
         requestParameters: OutpostsServiceConnectionsKubernetesDestroyRequest,
@@ -3868,7 +3789,8 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for outpostsServiceConnectionsKubernetesList without sending the request
+     * Creates request options for outpostsServiceConnectionsKubernetesList without sending the
+     * request
      */
     async outpostsServiceConnectionsKubernetesListRequestOpts(
         requestParameters: OutpostsServiceConnectionsKubernetesListRequest,
@@ -3910,7 +3832,7 @@ export class OutpostsApi extends runtime.BaseAPI {
             }
         }
 
-        let urlPath = `/outposts/service_connections/kubernetes/`;
+        const urlPath = `/outposts/service_connections/kubernetes/`;
 
         return {
             path: urlPath,
@@ -3951,7 +3873,8 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for outpostsServiceConnectionsKubernetesPartialUpdate without sending the request
+     * Creates request options for outpostsServiceConnectionsKubernetesPartialUpdate without sending
+     * the request
      */
     async outpostsServiceConnectionsKubernetesPartialUpdateRequestOpts(
         requestParameters: OutpostsServiceConnectionsKubernetesPartialUpdateRequest,
@@ -4025,7 +3948,8 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for outpostsServiceConnectionsKubernetesRetrieve without sending the request
+     * Creates request options for outpostsServiceConnectionsKubernetesRetrieve without sending the
+     * request
      */
     async outpostsServiceConnectionsKubernetesRetrieveRequestOpts(
         requestParameters: OutpostsServiceConnectionsKubernetesRetrieveRequest,
@@ -4092,7 +4016,8 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for outpostsServiceConnectionsKubernetesUpdate without sending the request
+     * Creates request options for outpostsServiceConnectionsKubernetesUpdate without sending the
+     * request
      */
     async outpostsServiceConnectionsKubernetesUpdateRequestOpts(
         requestParameters: OutpostsServiceConnectionsKubernetesUpdateRequest,
@@ -4171,7 +4096,8 @@ export class OutpostsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Creates request options for outpostsServiceConnectionsKubernetesUsedByList without sending the request
+     * Creates request options for outpostsServiceConnectionsKubernetesUsedByList without sending
+     * the request
      */
     async outpostsServiceConnectionsKubernetesUsedByListRequestOpts(
         requestParameters: OutpostsServiceConnectionsKubernetesUsedByListRequest,

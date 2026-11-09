@@ -66,9 +66,9 @@ authentik now uses [Python 3.14](https://docs.python.org/3/whatsnew/3.14.html) u
 An integration is how authentik connects to third-party applications, directories, and other identity providers. The following integration guides were recently added. A big thanks to our contributors!
 
 - [Affine](https://integrations.goauthentik.io/chat-communication-collaboration/affine/) (Thanks to @akaSorin!)
-- [Arcane](https://integrations.goauthentik.io/integrations/hypervisors-orchestrators/arcane/) (Thanks to @steilerDev!)
-- [Datadog](https://integrations.goauthentik.io/integrations/monitoring/datadog/) (Thanks to @dominic-r!)
-- [Elastic Cloud](https://integrations.goauthentik.io/integrations/platforms/elastic-cloud/) (Thanks to @dominic-r!)
+- [Arcane](https://integrations.goauthentik.io/hypervisors-orchestrators/arcane/) (Thanks to @steilerDev!)
+- [Datadog](https://integrations.goauthentik.io/monitoring/datadog/) (Thanks to @dominic-r!)
+- [Elastic Cloud](https://integrations.goauthentik.io/platforms/elastic-cloud/) (Thanks to @dominic-r!)
 
 ## Upgrading
 
@@ -436,6 +436,23 @@ helm upgrade authentik authentik/authentik -f values.yaml --version ^2026.2
 - security: automated internal backport of patch 1934.sec.patch to authentik-2026.2 (#24057)
 - sources/oauth: improve id_token validation for apple source (cherry-pick #24017 to version-2026.2) (#24021)
 - tests/openid_conformance: migrate to upstream images (cherry-pick #23828 to version-2026.2) (#23835)
+
+## Fixed in 2026.2.7
+
+- core: bump django from 5.2.16 to v5.2.17 (cherry-pick #24793 to version-2026.2) (#24817)
+- core: return the intended status code from error views for all request methods (cherry-pick #24902 to version-2026.2) (#24956)
+- lib: avoid DNS resolution in fqdn_rand (cherry-pick #25728 to version-2026.2) (#25759)
+- lifecycle/container: drop curl and runit (cherry-pick #24008 to version-2026.2) (#24113)
+- policies: filter policy engine (cherry-pick #24025 to version-2026.2) (#24169)
+- providers/scim: fix scim changed detection for nested attributes (cherry-pick #24332 to version-2026.2) (#24443)
+- rbac: use constant-time comparison in SecretKeyFilter (cherry-pick #24888 to version-2026.2) (#24946)
+- security: automated internal backport of patch 1751-secrets-read-permission.sec.patch to authentik-2026.2 (#25955)
+- security: automated internal backport of patch 1877-group-hierarchy-roles.sec.patch to authentik-2026.2 (#25956)
+- security: automated internal backport of patch 1914-saml.sec.patch to authentik-2026.2 (#25957)
+- security: automated internal backport of patch 2032-authenticator-email-recipient-override.sec.patch to authentik-2026.2 (#25958)
+- security: automated internal backport of patch 2190-libxml2-doctype.sec.patch to authentik-2026.2 (#25959)
+- server/core: handle unsupported HTTP method (cherry-pick #22498 to version-2026.2) (#25363)
+- stages/identification: dynamic captcha keys when stage embedded in identification stage (cherry-pick #24079 to version-2026.2) (#25499)
 
 ## API Changes
 

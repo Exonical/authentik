@@ -1,5 +1,3 @@
-/* tslint:disable */
-/* eslint-disable */
 /**
  * authentik
  * Making authentication simple.
@@ -14,33 +12,16 @@
 
 /**
  * Realm trust data consumed by the KDC outpost.
+ *
  * @export
  * @interface KerberosRealmTrustOutpost
  */
 export interface KerberosRealmTrustOutpost {
-    /**
-     *
-     */
     remoteRealm: string;
-    /**
-     *
-     */
     capaths: Array<string>;
-    /**
-     *
-     */
     outgoingKvno: number;
-    /**
-     *
-     */
     readonly outgoingKeys: { [key: string]: any };
-    /**
-     *
-     */
     incomingKvno: number;
-    /**
-     *
-     */
     readonly incomingKeys: { [key: string]: any };
 }
 

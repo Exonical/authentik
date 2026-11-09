@@ -1,20 +1,23 @@
-import "#elements/banner/BaseURLBanner";
+import "#admin/sidebar/Bookmarks/Bookmark";
 import "#elements/banner/EnterpriseStatusBanner";
 import "#elements/banner/VersionBanner";
 import "#elements/sidebar/Sidebar";
-import "#elements/sidebar/SidebarItem";
-import "#elements/router/RouterOutlet";
+import "#elements/router/core/RouterView";
 import "#elements/commands/ak-command-palette";
 import "#elements/commands/ak-command-palette-user-modal";
-
-import {
-    createAdminSidebarEnterpriseEntries,
-    createAdminSidebarEntries,
-    renderSidebarItems,
-    SidebarEntry,
-} from "./navigation/sidebar.js";
+import "#components/notifications/APIDrawer";
+import "#components/notifications/NotificationDrawer";
+import "#components/ak-page-navbar";
+import "#admin/sidebar/VersionDetails";
+import "#admin/sidebar/BreadcrumbWrapper";
+import PFBanner from "@patternfly/patternfly/components/Banner/banner.css";
+import PFButton from "@patternfly/patternfly/components/Button/button.css";
+import PFDrawer from "@patternfly/patternfly/components/Drawer/drawer.css";
+import PFNav from "@patternfly/patternfly/components/Nav/nav.css";
+import PFPage from "@patternfly/patternfly/components/Page/page.css";
 
 import { isAPIResultReady } from "#common/api/responses";
+import { globalAK } from "#common/global";
 import { isGuest } from "#common/users";
 import { WebsocketClient } from "#common/ws/WebSocketClient";
 
@@ -30,8 +33,16 @@ import { WithCapabilitiesConfig } from "#elements/mixins/capabilities";
 import { WithLicenseSummary } from "#elements/mixins/license";
 import { WithNotifications } from "#elements/mixins/notifications";
 import { canAccessAdmin, WithSession } from "#elements/mixins/session";
-import { navigate } from "#elements/router/RouterOutlet";
+import {
+    currentInterfacePath,
+    formatInterfacePrefix,
+    toAdminInterface,
+    toUserInterface,
+} from "#elements/router/core/interfaces";
+import { matchRoute } from "#elements/router/core/matcher";
+import { navigate, RouterNavigateEvent } from "#elements/router/core/navigation";
 import { SlottedTemplateResult } from "#elements/types";
+import { ifPresent } from "#elements/utils/attributes";
 
 import { AKDrawerChangeEvent } from "#components/notifications/events";
 import {
@@ -42,21 +53,36 @@ import {
 } from "#components/notifications/utils";
 
 import Styles from "#admin/ak-interface-admin.css";
-import { ROUTES } from "#admin/Routes";
+import { DEFAULT_PATH, ROUTES } from "#admin/Routes";
+import { BookmarkController } from "#admin/sidebar/Bookmarks/BookmarkController";
+import { bookmarksToSidebar } from "#admin/sidebar/Bookmarks/bookmarkToSidebar";
+import { BreadcrumbController } from "#admin/sidebar/BreadcrumbController";
+import { createAdminSidebarEntries } from "#admin/sidebar/constants";
+import {
+    ExtendedSidebarItem,
+    findCurrentSidebarKey,
+    findCurrentSidebarSectionLabel,
+    resolveSidebarEntries,
+} from "#admin/sidebar/sidebarTools";
 
 import { CapabilitiesEnum } from "@goauthentik/api";
 
-import { LOCALE_STATUS_EVENT, LocaleStatusEventDetail, msg } from "@lit/localize";
+import { msg } from "@lit/localize";
 import { CSSResult, html, PropertyValues, TemplateResult } from "lit";
-import { customElement, eventOptions, property, state } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { guard } from "lit/directives/guard.js";
+let lastRoutePath: string | null = null;
+let lastRouteName: string | null = null;
 
-import PFBanner from "@patternfly/patternfly/components/Banner/banner.css";
-import PFButton from "@patternfly/patternfly/components/Button/button.css";
-import PFDrawer from "@patternfly/patternfly/components/Drawer/drawer.css";
-import PFNav from "@patternfly/patternfly/components/Nav/nav.css";
-import PFPage from "@patternfly/patternfly/components/Page/page.css";
+function routeNameForPath(path: string): string | null {
+    if (path !== lastRoutePath) {
+        lastRoutePath = path;
+        lastRouteName = matchRoute(path, ROUTES)?.route.name ?? null;
+    }
+
+    return lastRouteName;
+}
 
 @customElement("ak-interface-admin")
 export class AdminInterface extends WithLicenseSummary(
@@ -80,15 +106,18 @@ export class AdminInterface extends WithLicenseSummary(
     @property({ type: Boolean, reflect: true, attribute: "sidebar" })
     public sidebarOpen = false;
 
-    @property({ type: Array })
-    public entries: readonly SidebarEntry[] = createAdminSidebarEntries();
+    public get navigationEntries(): readonly ExtendedSidebarItem[] {
+        const canEnterprise = this.can(CapabilitiesEnum.IsEnterprise);
 
-    protected get navigationEntries(): readonly SidebarEntry[] {
-        if (!this.can(CapabilitiesEnum.IsEnterprise)) {
-            return this.entries;
-        }
+        const entries = createAdminSidebarEntries(canEnterprise);
 
-        return [...this.entries, ...createAdminSidebarEnterpriseEntries()];
+        const result = resolveSidebarEntries(entries, {
+            canEnterprise,
+            // Assume licensed until the summary loads so the notice doesn't flash.
+            licensed: !this.licenseSummary || this.hasEnterpriseLicense,
+        });
+
+        return bookmarksToSidebar(result, this.bookmarkManager.bookmarks ?? []);
     }
 
     //#endregion
@@ -97,11 +126,6 @@ export class AdminInterface extends WithLicenseSummary(
 
     public toggleSidebar = () => {
         this.sidebarOpen = !this.sidebarOpen;
-    };
-
-    public synchronizeSidebarEntries = () => {
-        this.logger.debug("Synchronizing sidebar entries with current locale");
-        this.entries = createAdminSidebarEntries();
     };
 
     //#endregion
@@ -113,10 +137,26 @@ export class AdminInterface extends WithLicenseSummary(
         this.sidebarOpen = event.matches;
     };
 
-    @eventOptions({ passive: true })
-    protected routeChangeListener() {
+    // Recompute the sidebar default on every route change. The path-routing
+    // outlet drives navigation through `RouterNavigateEvent` (push/replace) and
+    // `popstate` (back/forward) rather than the legacy `ak-route-change` event.
+    #routeChangeListener = () => {
         this.sidebarOpen = this.#sidebarMatcher.matches;
-    }
+        this.pathname = window.location.pathname;
+    };
+
+    private _breadcrumbManager = new BreadcrumbController(this);
+
+    private bookmarkManager = new BookmarkController(this);
+
+    /**
+     * The current `location.pathname`, tracked so the navbar's section follows
+     * the route. Kept raw rather than interface-relative: this element upgrades
+     * before the entrypoint calls `initRouter`, so the prefix is only stripped at
+     * render time.
+     */
+    @state()
+    public pathname = window.location.pathname;
 
     @state()
     protected drawer: DrawerState = readDrawerParams();
@@ -125,13 +165,6 @@ export class AdminInterface extends WithLicenseSummary(
     protected drawerListener = (event: AKDrawerChangeEvent) => {
         this.drawer = event.drawer;
         persistDrawerParams(event.drawer);
-    };
-
-    @listen(LOCALE_STATUS_EVENT, { target: window })
-    localeStatusListener = (event: CustomEvent<LocaleStatusEventDetail>) => {
-        if (event.detail.status === "ready") {
-            this.synchronizeSidebarEntries();
-        }
     };
 
     //#endregion
@@ -153,29 +186,19 @@ export class AdminInterface extends WithLicenseSummary(
         const commands: PaletteCommandDefinitionInit[] = [
             {
                 label: msg("Create a new application..."),
-                action: () => navigate("/core/applications", { createWizard: true }),
+                action: () =>
+                    navigate(
+                        toAdminInterface("core/applications", { "create-wizard": "application" }),
+                    ),
                 group: msg("Applications"),
             },
-            ...this.navigationEntries.flatMap(([, label, , children]) =>
-                (children ?? []).flatMap(([path, childLabel, attributes]) => {
-                    const enterpriseOnly =
-                        !Array.isArray(attributes) && attributes?.enterprise === true;
-
-                    if (enterpriseOnly && !this.can(CapabilitiesEnum.IsEnterprise)) {
-                        return [];
-                    }
-
+            ...this.navigationEntries.flatMap(({ label, children }: ExtendedSidebarItem) =>
+                (children ?? []).flatMap(({ path, label: childLabel }: ExtendedSidebarItem) => {
                     const command: PaletteCommandDefinitionInit = {
                         namespace: PaletteCommandNamespace.Navigation,
                         label: childLabel,
                         group: label,
-                        action: () => {
-                            navigate(
-                                enterpriseOnly && !this.hasEnterpriseLicense
-                                    ? "/enterprise/licenses"
-                                    : path!,
-                            );
-                        },
+                        action: () => navigate(path!),
                     };
 
                     return [command];
@@ -187,7 +210,7 @@ export class AdminInterface extends WithLicenseSummary(
                 prefix: CommandPrefix.SearchFor(),
                 group: msg("Users"),
                 keywords: [msg("search"), msg("find")],
-                action: async (data, event) => {
+                action: async (_data, event) => {
                     event?.stopPropagation();
 
                     const userPalette = this.ownerDocument.createElement(
@@ -214,6 +237,9 @@ export class AdminInterface extends WithLicenseSummary(
         this.#sidebarMatcher.addEventListener("change", this.#sidebarMediaQueryListener, {
             passive: true,
         });
+
+        window.addEventListener(RouterNavigateEvent.eventName, this.#routeChangeListener);
+        window.addEventListener("popstate", this.#routeChangeListener);
     }
 
     public disconnectedCallback(): void {
@@ -222,6 +248,9 @@ export class AdminInterface extends WithLicenseSummary(
         cancelAnimationFrame(this.#refreshCommandsFrameID);
 
         this.#sidebarMatcher.removeEventListener("change", this.#sidebarMediaQueryListener);
+
+        window.removeEventListener(RouterNavigateEvent.eventName, this.#routeChangeListener);
+        window.removeEventListener("popstate", this.#routeChangeListener);
 
         WebsocketClient.close();
     }
@@ -237,7 +266,7 @@ export class AdminInterface extends WithLicenseSummary(
 
         if (changedProperties.has("session") && isAPIResultReady(this.session)) {
             if (!isGuest(this.session.user) && !canAccessAdmin(this.session.user)) {
-                window.location.assign("/if/user/");
+                window.location.assign(toUserInterface());
             }
         }
     }
@@ -251,6 +280,10 @@ export class AdminInterface extends WithLicenseSummary(
             return html`<slot></slot>`;
         }
 
+        const path = currentInterfacePath(this.pathname);
+        const routeName = routeNameForPath(path);
+        const entries = this.navigationEntries;
+
         const sidebarClasses = {
             "pf-c-page__sidebar": true,
             "pf-m-expanded": this.sidebarOpen,
@@ -258,21 +291,24 @@ export class AdminInterface extends WithLicenseSummary(
         };
 
         const openDrawerCount = (this.drawer.notifications ? 1 : 0) + (this.drawer.api ? 1 : 0);
+
         const drawerClasses = {
             "pf-m-expanded": openDrawerCount !== 0,
             "pf-m-collapsed": openDrawerCount === 0,
         };
 
         return html`<div class="pf-c-page">
-                <ak-page-navbar>
+                <ak-page-navbar
+                    .section=${findCurrentSidebarSectionLabel(entries, routeName, this.pathname)}
+                >
                     <button
                         slot="toggle"
                         aria-controls="global-nav"
                         class="pf-c-button pf-m-plain"
                         @click=${this.toggleSidebar}
-                        aria-label=${this.sidebarOpen
-                            ? msg("Collapse navigation")
-                            : msg("Expand navigation")}
+                        aria-label=${
+                            this.sidebarOpen ? msg("Collapse navigation") : msg("Expand navigation")
+                        }
                         aria-expanded=${this.sidebarOpen ? "true" : "false"}
                     >
                         <i aria-hidden="true" class="fas fa-bars"></i>
@@ -280,12 +316,19 @@ export class AdminInterface extends WithLicenseSummary(
 
                     ${this.renderCommandPaletteButton()}
                     <ak-version-banner></ak-version-banner>
-                    <ak-base-url-banner></ak-base-url-banner>
                     <ak-enterprise-status interface="admin"></ak-enterprise-status>
+                    <ak-ui-bookmark slot="bookmark"></ak-ui-bookmark>
+                    <ak-ui-breadcrumbs slot="breadcrumbs"></ak-ui-breadcrumbs>
                 </ak-page-navbar>
 
-                <ak-sidebar ?hidden=${!this.sidebarOpen} class="${classMap(sidebarClasses)}"
-                    >${renderSidebarItems(this.navigationEntries)}
+                <ak-sidebar
+                    id="global-nav"
+                    ?hidden=${!this.sidebarOpen}
+                    class="${classMap(sidebarClasses)}"
+                    .entries=${entries}
+                    current=${ifPresent(findCurrentSidebarKey(entries, routeName, path))}
+                >
+                    <ak-version-details slot="footer"></ak-version-details>
                 </ak-sidebar>
 
                 <div class="pf-c-page__drawer">
@@ -293,16 +336,19 @@ export class AdminInterface extends WithLicenseSummary(
                         <div class="pf-c-drawer__main">
                             <div class="pf-c-drawer__content">
                                 <div class="pf-c-drawer__body">
-                                    <ak-router-outlet
+                                    <ak-router-view
                                         role="presentation"
                                         class="pf-c-page__main"
                                         tabindex="-1"
                                         id="main-content"
-                                        default-url="/administration/overview"
                                         .routes=${ROUTES}
-                                        @ak-route-change=${this.routeChangeListener}
+                                        .prefix=${formatInterfacePrefix(
+                                            globalAK().api.relBase,
+                                            "admin",
+                                        )}
+                                        .defaultPath=${DEFAULT_PATH}
                                     >
-                                    </ak-router-outlet>
+                                    </ak-router-view>
                                 </div>
                             </div>
                             ${renderNotificationDrawerPanel(this.drawer)}

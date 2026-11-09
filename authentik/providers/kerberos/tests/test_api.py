@@ -10,8 +10,8 @@ from rest_framework.test import APITestCase
 
 from authentik.core.models import Application, Group
 from authentik.core.tests.utils import create_test_admin_user, create_test_cert, create_test_user
-from authentik.events.models import Event
 from authentik.crypto.models import CertificateKeyPair
+from authentik.events.models import Event
 from authentik.lib.generators import generate_id
 from authentik.policies.dummy.models import DummyPolicy
 from authentik.policies.expiry.models import PasswordExpiryPolicy
@@ -34,6 +34,7 @@ from authentik.providers.kerberos.models import (
 from authentik.stages.authenticator.oath import TOTP
 from authentik.stages.authenticator_static.models import StaticDevice, StaticToken
 from authentik.stages.authenticator_totp.models import TOTPDevice
+from authentik.stages.password.models import PasswordDevice
 
 
 class KerberosProviderAPITests(APITestCase):
@@ -313,7 +314,13 @@ class KerberosProviderAPITests(APITestCase):
 
     def test_iprop_requires_valid_service_principal(self):
         """Enabled iprop rejects missing and malformed kiprop service principals."""
-        for value in ("", "host/kdc.example.com", "kiprop/", "kiprop/a/b", "kiprop/kdc@EXAMPLE.COM"):
+        for value in (
+            "",
+            "host/kdc.example.com",
+            "kiprop/",
+            "kiprop/a/b",
+            "kiprop/kdc@EXAMPLE.COM",
+        ):
             serializer = KerberosProviderSerializer(
                 data={
                     "name": generate_id(),
@@ -1106,8 +1113,7 @@ class KerberosProviderAPITests(APITestCase):
             provider=provider,
         )
         user = create_test_user()
-        user.set_password("old-password")
-        user.save()
+        PasswordDevice.set_password(user, "old-password")
         policy = PasswordPolicy.objects.create(
             name=generate_id(),
             length_min=20,

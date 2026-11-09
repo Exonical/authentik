@@ -1,5 +1,3 @@
-/* tslint:disable */
-/* eslint-disable */
 /**
  * authentik
  * Making authentication simple.
@@ -12,30 +10,26 @@
  * Do not edit the class manually.
  */
 
-import type { AllowedEnctypesEnum } from "./AllowedEnctypesEnum";
-import { AllowedEnctypesEnumFromJSON, AllowedEnctypesEnumToJSON } from "./AllowedEnctypesEnum";
-import type { PrincipalUsernameAttributeEnum } from "./PrincipalUsernameAttributeEnum";
+import type { AllowedEnctypesEnum } from "./AllowedEnctypesEnum.js";
+import { AllowedEnctypesEnumFromJSON, AllowedEnctypesEnumToJSON } from "./AllowedEnctypesEnum.js";
+import type { PrincipalUsernameAttributeEnum } from "./PrincipalUsernameAttributeEnum.js";
 import {
     PrincipalUsernameAttributeEnumFromJSON,
     PrincipalUsernameAttributeEnumToJSON,
-} from "./PrincipalUsernameAttributeEnum";
+} from "./PrincipalUsernameAttributeEnum.js";
 
 /**
  * KerberosProvider serializer.
+ *
  * @export
  * @interface KerberosProvider
  */
 export interface KerberosProvider {
-    /**
-     *
-     */
     readonly pk: number;
-    /**
-     *
-     */
     name: string;
     /**
-     * Flow used for authentication when the associated application is accessed by an un-authenticated user.
+     * Flow used for authentication when the associated application is accessed by an
+     * un-authenticated user.
      */
     authenticationFlow?: string | null;
     /**
@@ -46,9 +40,6 @@ export interface KerberosProvider {
      * Flow used ending the session from a provider.
      */
     invalidationFlow?: string | null;
-    /**
-     *
-     */
     propertyMappings?: Array<string>;
     /**
      * Get object component so that we know how to edit the object
@@ -82,49 +73,19 @@ export interface KerberosProvider {
      * Return internal model name
      */
     readonly metaModelName: string;
-    /**
-     *
-     */
     realmName: string;
-    /**
-     *
-     */
     defaultDomain?: string;
-    /**
-     *
-     */
     maximumTicketLifetime?: string;
-    /**
-     *
-     */
     maximumTicketRenewLifetime?: string;
-    /**
-     *
-     */
     defaultTicketLifetime?: string;
-    /**
-     *
-     */
     defaultTicketRenewLifetime?: string;
-    /**
-     *
-     */
     allowedEnctypes?: Array<AllowedEnctypesEnum>;
-    /**
-     *
-     */
     requirePreauthentication?: boolean;
     /**
      * Advertise PA-SPAKE preauthentication (RFC 9588).
      */
     spakeEnabled?: boolean;
-    /**
-     *
-     */
     udpEnabled?: boolean;
-    /**
-     *
-     */
     tcpEnabled?: boolean;
     /**
      * Maximum concurrent UDP request handlers; 0 uses the built-in default of 1024.
@@ -146,21 +107,9 @@ export interface KerberosProvider {
      * Enable RFC 3244 password changes through the Kerberos outpost.
      */
     kpasswdEnabled?: boolean;
-    /**
-     *
-     */
     forwardable?: boolean;
-    /**
-     *
-     */
     renewable?: boolean;
-    /**
-     *
-     */
     proxiable?: boolean;
-    /**
-     *
-     */
     principalUsernameAttribute?: PrincipalUsernameAttributeEnum;
     /**
      * Certificate/key pair the KDC uses to sign PKINIT replies. Requires a private key.
@@ -187,7 +136,8 @@ export interface KerberosProvider {
      */
     encryptedChallengeIndicator?: string;
     /**
-     * Enable RFC 6560 OTP preauthentication backed by the user's authentik TOTP and static authenticator devices.
+     * Enable RFC 6560 OTP preauthentication backed by the user's authentik TOTP and static
+     * authenticator devices.
      */
     otpEnabled?: boolean;
     /**
@@ -218,9 +168,6 @@ export interface KerberosProvider {
      * Push full MIT Kerberos database dumps to replica KDCs.
      */
     kpropEnabled?: boolean;
-    /**
-     *
-     */
     kpropTargets?: Array<string>;
     /**
      * Service principal used to authenticate kprop pushes.
@@ -238,9 +185,6 @@ export interface KerberosProvider {
      * Kiprop service principal used by incremental propagation replicas.
      */
     ipropSpn?: string;
-    /**
-     *
-     */
     ipropAllowedReplicas?: Array<string>;
     /**
      * Maximum number of incremental propagation updates to retain.
@@ -258,17 +202,8 @@ export interface KerberosProvider {
      * Serve the kadm5 admin protocol from the outpost.
      */
     kadminEnabled?: boolean;
-    /**
-     *
-     */
     kadminAcl?: Array<string>;
-    /**
-     *
-     */
     readonly masterKey: string;
-    /**
-     *
-     */
     readonly outpostSet: Array<string>;
 }
 

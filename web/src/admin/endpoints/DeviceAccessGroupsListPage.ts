@@ -1,9 +1,7 @@
 import "#elements/forms/DeleteBulkForm";
 import "#elements/forms/ModalForm";
 import "#admin/endpoints/DeviceAccessGroupForm";
-import "#admin/policies/BoundPoliciesList";
 import "@patternfly/elements/pf-tooltip/pf-tooltip.js";
-
 import { aki } from "#common/api/client";
 
 import { IconEditButton, ModalInvokerButton } from "#elements/dialogs";
@@ -12,6 +10,7 @@ import { TablePage } from "#elements/table/TablePage";
 import { SlottedTemplateResult } from "#elements/types";
 
 import { DeviceAccessGroupForm } from "#admin/endpoints/DeviceAccessGroupForm";
+import { renderBoundPoliciesExpansion } from "#admin/policies/renderPolicyBindings";
 
 import { DeviceAccessGroup, EndpointsApi } from "@goauthentik/api";
 
@@ -52,9 +51,7 @@ export class DeviceAccessGroupsListPage extends TablePage<DeviceAccessGroup> {
     }
 
     protected override renderExpanded(item: DeviceAccessGroup) {
-        return html`<div class="pf-c-content">
-            <ak-bound-policies-list .target=${item.pbmUuid}></ak-bound-policies-list>
-        </div>`;
+        return renderBoundPoliciesExpansion({ target: item.pbmUuid });
     }
 
     protected override renderObjectCreate(): SlottedTemplateResult {
@@ -63,6 +60,7 @@ export class DeviceAccessGroupsListPage extends TablePage<DeviceAccessGroup> {
 
     renderToolbarSelected() {
         const disabled = this.selectedElements.length < 1;
+
         return html`<ak-forms-delete-bulk
             object-label=${msg("Device Group(s)")}
             .objects=${this.selectedElements}

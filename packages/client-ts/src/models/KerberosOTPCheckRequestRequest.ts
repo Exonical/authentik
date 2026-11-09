@@ -1,5 +1,3 @@
-/* tslint:disable */
-/* eslint-disable */
 /**
  * authentik
  * Making authentication simple.
@@ -14,17 +12,12 @@
 
 /**
  * OTP validation request submitted by the KDC outpost.
+ *
  * @export
  * @interface KerberosOTPCheckRequestRequest
  */
 export interface KerberosOTPCheckRequestRequest {
-    /**
-     *
-     */
     username: string;
-    /**
-     *
-     */
     value: string;
 }
 

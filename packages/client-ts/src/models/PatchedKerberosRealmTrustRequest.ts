@@ -1,5 +1,3 @@
-/* tslint:disable */
-/* eslint-disable */
 /**
  * authentik
  * Making authentication simple.
@@ -14,17 +12,12 @@
 
 /**
  * Kerberos realm trust serializer.
+ *
  * @export
  * @interface PatchedKerberosRealmTrustRequest
  */
 export interface PatchedKerberosRealmTrustRequest {
-    /**
-     *
-     */
     provider?: number;
-    /**
-     *
-     */
     remoteRealm?: string;
     /**
      * Intermediate realms for transited-path checking.

@@ -1,5 +1,3 @@
-/* tslint:disable */
-/* eslint-disable */
 /**
  * authentik
  * Making authentication simple.
@@ -12,42 +10,32 @@
  * Do not edit the class manually.
  */
 
-import type { TicketFlagsEnum } from "./TicketFlagsEnum";
-import { TicketFlagsEnumFromJSON, TicketFlagsEnumToJSON } from "./TicketFlagsEnum";
+import type { TicketFlagsEnum } from "./TicketFlagsEnum.js";
+import { TicketFlagsEnumFromJSON, TicketFlagsEnumToJSON } from "./TicketFlagsEnum.js";
 
 /**
  * Kerberos service principal serializer.
+ *
  * @export
  * @interface KerberosServicePrincipalRequest
  */
 export interface KerberosServicePrincipalRequest {
-    /**
-     *
-     */
     provider: number;
-    /**
-     *
-     */
     spn: string;
     /**
-     * Optional authentik user (typically a service account) whose policies are evaluated when this principal acts as a Kerberos client.
+     * Optional authentik user (typically a service account) whose policies are evaluated when this
+     * principal acts as a Kerberos client.
      */
     serviceAccount?: number | null;
     /**
      * Allow this service principal to authenticate as a user for delegation.
      */
     okToAuthAsDelegate?: boolean;
-    /**
-     *
-     */
     allowedDelegationTargets?: Array<string>;
     /**
      * Authentication indicators required to obtain tickets for this service.
      */
     requiredAuthIndicators?: Array<string>;
-    /**
-     *
-     */
     ticketFlags?: Array<TicketFlagsEnum>;
 }
 

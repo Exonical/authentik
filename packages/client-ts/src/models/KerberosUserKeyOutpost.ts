@@ -1,5 +1,3 @@
-/* tslint:disable */
-/* eslint-disable */
 /**
  * authentik
  * Making authentication simple.
@@ -12,77 +10,29 @@
  * Do not edit the class manually.
  */
 
-import { parseDateTime } from "../runtime";
-
+import { parseDateTime } from "../runtime.js";
 /**
  * User key data consumed by the KDC outpost.
+ *
  * @export
  * @interface KerberosUserKeyOutpost
  */
 export interface KerberosUserKeyOutpost {
-    /**
-     *
-     */
     username: string;
-    /**
-     *
-     */
     enabled: boolean;
-    /**
-     *
-     */
     readonly principal: string;
-    /**
-     *
-     */
     kvno: number;
-    /**
-     *
-     */
     salt: string;
-    /**
-     *
-     */
     readonly keys: { [key: string]: any };
-    /**
-     *
-     */
     readonly maxTicketLifetime: number | null;
-    /**
-     *
-     */
     readonly maxRenewLifetime: number | null;
-    /**
-     *
-     */
     readonly requiresPasswordChange: boolean;
-    /**
-     *
-     */
     readonly pacUserId: number;
-    /**
-     *
-     */
     readonly pacPrimaryGroupId: number;
-    /**
-     *
-     */
     readonly pacGroupIds: Array<number>;
-    /**
-     *
-     */
     pacName: string;
-    /**
-     *
-     */
     readonly pacUpn: string;
-    /**
-     *
-     */
     readonly passwordExpiration: Date | null;
-    /**
-     *
-     */
     readonly flags: Array<string>;
 }
 

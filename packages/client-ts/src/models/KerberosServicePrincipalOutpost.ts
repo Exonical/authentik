@@ -1,5 +1,3 @@
-/* tslint:disable */
-/* eslint-disable */
 /**
  * authentik
  * Making authentication simple.
@@ -14,37 +12,17 @@
 
 /**
  * Service principal data consumed by the KDC outpost.
+ *
  * @export
  * @interface KerberosServicePrincipalOutpost
  */
 export interface KerberosServicePrincipalOutpost {
-    /**
-     *
-     */
     spn: string;
-    /**
-     *
-     */
     kvno: number;
-    /**
-     *
-     */
     readonly keys: { [key: string]: any };
-    /**
-     *
-     */
     okToAuthAsDelegate: boolean;
-    /**
-     *
-     */
     allowedDelegationTargets: Array<string>;
-    /**
-     *
-     */
     requiredAuthIndicators: Array<string>;
-    /**
-     *
-     */
     ticketFlags: Array<string>;
 }
 

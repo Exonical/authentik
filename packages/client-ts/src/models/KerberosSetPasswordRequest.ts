@@ -1,5 +1,3 @@
-/* tslint:disable */
-/* eslint-disable */
 /**
  * authentik
  * Making authentication simple.
@@ -14,17 +12,12 @@
 
 /**
  * Password change request for the Kerberos outpost.
+ *
  * @export
  * @interface KerberosSetPasswordRequest
  */
 export interface KerberosSetPasswordRequest {
-    /**
-     *
-     */
     username: string;
-    /**
-     *
-     */
     password: string;
 }
 

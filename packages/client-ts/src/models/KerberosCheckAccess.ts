@@ -1,5 +1,3 @@
-/* tslint:disable */
-/* eslint-disable */
 /**
  * authentik
  * Making authentication simple.
@@ -12,18 +10,16 @@
  * Do not edit the class manually.
  */
 
-import type { PolicyTestResult } from "./PolicyTestResult";
-import { PolicyTestResultFromJSON, PolicyTestResultToJSON } from "./PolicyTestResult";
+import type { PolicyTestResult } from "./PolicyTestResult.js";
+import { PolicyTestResultFromJSON, PolicyTestResultToJSON } from "./PolicyTestResult.js";
 
 /**
  * Policy access data consumed by the KDC outpost.
+ *
  * @export
  * @interface KerberosCheckAccess
  */
 export interface KerberosCheckAccess {
-    /**
-     *
-     */
     access: PolicyTestResult;
 }
 

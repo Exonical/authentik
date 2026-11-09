@@ -65,13 +65,14 @@ def default_enctypes() -> list[int]:
     return [18, 20]
 
 
+SID_SUBAUTHORITY_MAX = 0xFFFFFFFF
 REALM_SID_PATTERN = re.compile(r"^S-1-5-21-(\d+)-(\d+)-(\d+)$")
 
 
 def validate_realm_sid(value: str):
     """Validate the domain SID format used by MS-PAC identities."""
     match = REALM_SID_PATTERN.fullmatch(value)
-    if match is None or any(int(part) > 0xFFFFFFFF for part in match.groups()):
+    if match is None or any(int(part) > SID_SUBAUTHORITY_MAX for part in match.groups()):
         raise ValidationError(_("Realm SID must match S-1-5-21-<a>-<b>-<c>."))
 
 
@@ -110,7 +111,9 @@ class KerberosProvider(OutpostModel, Provider):
     tcp_enabled = models.BooleanField(default=True)
     max_udp_workers = models.PositiveIntegerField(
         default=0,
-        help_text=_("Maximum concurrent UDP request handlers; 0 uses the built-in default of 1024."),
+        help_text=_(
+            "Maximum concurrent UDP request handlers; 0 uses the built-in default of 1024."
+        ),
     )
     max_tcp_connections = models.PositiveIntegerField(
         default=0,
@@ -122,9 +125,7 @@ class KerberosProvider(OutpostModel, Provider):
     )
     max_datagram_reply_size = models.PositiveIntegerField(
         default=0,
-        help_text=_(
-            "Maximum UDP reply size in bytes; 0 uses the built-in default of 65536 bytes."
-        ),
+        help_text=_("Maximum UDP reply size in bytes; 0 uses the built-in default of 65536 bytes."),
     )
     kpasswd_enabled = models.BooleanField(
         default=True,

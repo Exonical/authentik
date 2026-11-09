@@ -6,7 +6,7 @@ from authentik.core.tests.utils import create_test_flow, create_test_user
 from authentik.flows.markers import StageMarker
 from authentik.flows.models import FlowDesignation, FlowStageBinding
 from authentik.flows.planner import PLAN_CONTEXT_PENDING_USER, FlowPlan
-from authentik.flows.tests import FlowTestCase
+from authentik.flows.tests import APIFlowTestCase
 from authentik.flows.views.executor import SESSION_KEY_PLAN
 from authentik.lib.generators import generate_id
 from authentik.providers.kerberos.models import KerberosProvider, KerberosUserKeys
@@ -14,7 +14,7 @@ from authentik.stages.password import BACKEND_INBUILT
 from authentik.stages.password.models import PasswordStage
 
 
-class KerberosPasswordStageTests(FlowTestCase):
+class KerberosPasswordStageTests(APIFlowTestCase):
     """Test Kerberos key backfill from password stages."""
 
     def setUp(self):

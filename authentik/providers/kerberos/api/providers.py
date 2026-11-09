@@ -36,8 +36,8 @@ from authentik.lib.utils.time import timedelta_from_string
 from authentik.policies.api.exec import PolicyTestResultSerializer
 from authentik.policies.engine import PolicyEngine
 from authentik.policies.expiry.models import PasswordExpiryPolicy
-from authentik.policies.password.models import PasswordPolicy
 from authentik.policies.models import PolicyBinding
+from authentik.policies.password.models import PasswordPolicy
 from authentik.policies.types import PolicyRequest, PolicyResult
 from authentik.providers.kerberos.models import (
     KERBEROS_TICKET_FLAGS,
@@ -49,6 +49,7 @@ from authentik.providers.kerberos.models import (
 )
 from authentik.stages.authenticator_static.models import StaticDevice
 from authentik.stages.authenticator_totp.models import TOTPDevice
+from authentik.stages.password.models import PasswordDevice
 
 KEYTAB_KVNO_MAX = 255
 
@@ -97,11 +98,7 @@ class KerberosProviderSerializer(ProviderSerializer):
             or any(not isinstance(replica, str) or not replica.strip() for replica in replicas)
         ):
             raise ValidationError(
-                {
-                    "iprop_allowed_replicas": _(
-                        "Iprop replicas must be a list of non-empty strings."
-                    )
-                }
+                {"iprop_allowed_replicas": _("Iprop replicas must be a list of non-empty strings.")}
             )
         return super().to_internal_value(data)
 
@@ -115,9 +112,7 @@ class KerberosProviderSerializer(ProviderSerializer):
             raise ValidationError(
                 {"kadmin_acl": _("At least one ACL entry is required when kadmin is enabled.")}
             )
-        iprop_enabled = attrs.get(
-            "iprop_enabled", getattr(self.instance, "iprop_enabled", False)
-        )
+        iprop_enabled = attrs.get("iprop_enabled", getattr(self.instance, "iprop_enabled", False))
         if iprop_enabled:
             iprop_spn = attrs.get("iprop_spn", getattr(self.instance, "iprop_spn", ""))
             if not iprop_spn:
@@ -134,15 +129,18 @@ class KerberosProviderSerializer(ProviderSerializer):
         enabled = attrs.get("kprop_enabled", getattr(self.instance, "kprop_enabled", False))
         if not enabled:
             return attrs
-        client_spn = attrs.get(
-            "kprop_client_spn", getattr(self.instance, "kprop_client_spn", "")
-        )
+        client_spn = attrs.get("kprop_client_spn", getattr(self.instance, "kprop_client_spn", ""))
         if not client_spn:
-            raise ValidationError({"kprop_client_spn": _("This field is required when kprop is enabled.")})
+            raise ValidationError(
+                {"kprop_client_spn": _("This field is required when kprop is enabled.")}
+            )
         provider = self.instance
-        if provider is None or not KerberosServicePrincipal.objects.filter(
-            provider=provider, spn=client_spn
-        ).exists():
+        if (
+            provider is None
+            or not KerberosServicePrincipal.objects.filter(
+                provider=provider, spn=client_spn
+            ).exists()
+        ):
             raise ValidationError(
                 {"kprop_client_spn": _("This service principal does not belong to this provider.")}
             )
@@ -255,8 +253,7 @@ class KerberosServicePrincipalSerializer(ModelSerializer):
             )
         flags = data.get("ticket_flags")
         if flags is not None and (
-            not isinstance(flags, list)
-            or any(not isinstance(flag, str) for flag in flags)
+            not isinstance(flags, list) or any(not isinstance(flag, str) for flag in flags)
         ):
             raise ValidationError({"ticket_flags": _("Ticket flags must be strings.")})
         return super().to_internal_value(data)
@@ -436,9 +433,7 @@ class KerberosRealmTrustViewSet(ModelViewSet):
         """Rotate one directional trust key set."""
         trust = self.get_object()
         direction = self._direction(request)
-        keys = {
-            str(enctype): generate_key(enctype) for enctype in trust.provider.allowed_enctypes
-        }
+        keys = {str(enctype): generate_key(enctype) for enctype in trust.provider.allowed_enctypes}
         if direction == "outgoing":
             trust.outgoing_kvno += 1
             trust.outgoing_keys = keys
@@ -806,9 +801,7 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
             .order_by("user__username")
         )
         page = self.paginate_queryset(user_keys)
-        return self.get_paginated_response(
-            KerberosUserKeyOutpostSerializer(page, many=True).data
-        )
+        return self.get_paginated_response(KerberosUserKeyOutpostSerializer(page, many=True).data)
 
     @extend_schema(
         request=KerberosServicePrincipalAdminSerializer,
@@ -1085,8 +1078,7 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
                 messages.extend(result.messages)
         if messages:
             return Response({"messages": messages}, status=400)
-        user.set_password(password, request=request)
-        user.save()
+        PasswordDevice.set_password(user, password, request=request)
         if user.attributes.get("reset_password") is True:
             user.attributes["reset_password"] = False
             user.save(update_fields=["attributes"])

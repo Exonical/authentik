@@ -1,5 +1,3 @@
-/* tslint:disable */
-/* eslint-disable */
 /**
  * authentik
  * Making authentication simple.
@@ -14,13 +12,11 @@
 
 /**
  * Password policy failure returned by the Kerberos outpost.
+ *
  * @export
  * @interface KerberosPasswordPolicyError
  */
 export interface KerberosPasswordPolicyError {
-    /**
-     *
-     */
     messages: Array<string>;
 }
 

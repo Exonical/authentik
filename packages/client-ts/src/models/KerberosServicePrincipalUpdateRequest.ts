@@ -1,5 +1,3 @@
-/* tslint:disable */
-/* eslint-disable */
 /**
  * authentik
  * Making authentication simple.
@@ -12,22 +10,17 @@
  * Do not edit the class manually.
  */
 
-import type { TicketFlagsEnum } from "./TicketFlagsEnum";
-import { TicketFlagsEnumFromJSON, TicketFlagsEnumToJSON } from "./TicketFlagsEnum";
+import type { TicketFlagsEnum } from "./TicketFlagsEnum.js";
+import { TicketFlagsEnumFromJSON, TicketFlagsEnumToJSON } from "./TicketFlagsEnum.js";
 
 /**
  * Service principal ticket flag update request for the kadm5 outpost.
+ *
  * @export
  * @interface KerberosServicePrincipalUpdateRequest
  */
 export interface KerberosServicePrincipalUpdateRequest {
-    /**
-     *
-     */
     spn: string;
-    /**
-     *
-     */
     ticketFlags: Array<TicketFlagsEnum>;
 }
 
