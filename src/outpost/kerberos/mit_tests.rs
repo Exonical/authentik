@@ -369,6 +369,7 @@ struct Harness {
     dir: tempfile::TempDir,
     api: Arc<Api>,
     kdc: Arc<super::ProviderKdc>,
+    store: Arc<super::store::ProviderStore>,
     _shutdown: watch::Sender<bool>,
 }
 
@@ -422,6 +423,7 @@ impl Harness {
         let certificates = ak_common::tls::store::CertificateStore::new();
         let provider = provider(&extra)?;
         let (kdc, store) = build_provider(&config, &certificates, &provider).await?;
+        let harness_store = Arc::clone(&store);
 
         let kadmin = Arc::new(super::kadmin::Kadmin::default());
         kadmin
@@ -488,6 +490,7 @@ impl Harness {
             dir,
             api,
             kdc,
+            store: harness_store,
             _shutdown: tx,
         }))
     }
@@ -1307,10 +1310,19 @@ async fn mit_interop_anonymous_pkinit() -> Result<()> {
 const PEER_REALM: &str = "MIT.TEST";
 
 async fn peer_tool(h: &Harness, tool: &str, args: &[&str]) -> Result<()> {
+    mit_tool(&h.path("krb5.conf"), &h.path("kdc.conf"), tool, args).await
+}
+
+async fn mit_tool(
+    config: &std::path::Path,
+    profile: &std::path::Path,
+    tool: &str,
+    args: &[&str],
+) -> Result<()> {
     let out = Command::new(tool)
         .args(args)
-        .env("KRB5_CONFIG", h.path("krb5.conf"))
-        .env("KRB5_KDC_PROFILE", h.path("kdc.conf"))
+        .env("KRB5_CONFIG", config)
+        .env("KRB5_KDC_PROFILE", profile)
         .stdin(Stdio::null())
         .output()
         .await?;
@@ -1407,18 +1419,7 @@ async fn mit_interop_cross_realm() -> Result<()> {
         .stderr(Stdio::null())
         .kill_on_drop(true)
         .spawn()?;
-    let mut ready = false;
-    for _ in 0..50_u32 {
-        if tokio::net::TcpStream::connect(("127.0.0.1", port))
-            .await
-            .is_ok()
-        {
-            ready = true;
-            break;
-        }
-        tokio::time::sleep(Duration::from_millis(100)).await;
-    }
-    eyre::ensure!(ready, "MIT KDC did not start");
+    wait_port(port, "MIT KDC").await?;
 
     h.ok(
         &format!("{PASSWORD}\n"),
@@ -1431,6 +1432,209 @@ async fn mit_interop_cross_realm() -> Result<()> {
     let out = h.ok("", "klist", &[]).await?;
     for principal in [format!("krbtgt/{REALM}@{PEER_REALM}"), service] {
         eyre::ensure!(out.contains(&principal), "missing {principal}: {out}");
+    }
+    Ok(())
+}
+
+fn free_port() -> Result<u16> {
+    Ok(std::net::TcpListener::bind("127.0.0.1:0")?
+        .local_addr()?
+        .port())
+}
+
+async fn wait_port(port: u16, what: &str) -> Result<()> {
+    for _ in 0..50_u32 {
+        if tokio::net::TcpStream::connect(("127.0.0.1", port))
+            .await
+            .is_ok()
+        {
+            return Ok(());
+        }
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+    Err(eyre!("{what} did not start"))
+}
+
+const KPROP_MASTER: &str = "kprop-master-password";
+
+fn named_service(spn: &str) -> Value {
+    let mut service = service();
+    service["spn"] = json!(spn);
+    service
+}
+
+async fn replica_command(
+    h: &Harness,
+    input: &str,
+    tool: &str,
+    args: &[&str],
+) -> Result<std::process::Output> {
+    let mut child = Command::new(tool)
+        .args(args)
+        .env("KRB5_CONFIG", h.path("replica.conf"))
+        .env("KRB5_KDC_PROFILE", h.path("replica-kdc.conf"))
+        .env(
+            "KRB5CCNAME",
+            format!("FILE:{}", h.path("replica.ccache").display()),
+        )
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true)
+        .spawn()?;
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin.write_all(input.as_bytes()).await?;
+    }
+    Ok(child.wait_with_output().await?)
+}
+
+/// The Rust outpost propagates its database to a real MIT `kpropd`, and the
+/// replica's own `krb5kdc` then issues tickets from it.
+#[tokio::test(flavor = "multi_thread")]
+async fn mit_interop_kprop() -> Result<()> {
+    use krb5_rs::{
+        kdc::kdb::mit::dump::{DumpVersion, write_dump},
+        keytab::{FileKeytab, Keytab as _, KeytabEntry},
+    };
+    if !have_tools(&["kpropd", "krb5kdc", "kdb5_util", "kadmin.local"]) {
+        eprintln!("skipping: MIT KDC tools not installed");
+        return Ok(());
+    }
+    let extra = json!({
+        "kprop_master_password": KPROP_MASTER,
+        "kprop_client_spn": "host/kprop-client",
+    });
+    // kpropd accepts tickets for host/<its hostname>, which is the host the
+    // outpost connects to.
+    let host = std::fs::read_to_string("/proc/sys/kernel/hostname")?
+        .trim()
+        .to_ascii_lowercase();
+    let services = vec![
+        service(),
+        named_service("host/kprop-client"),
+        named_service(&format!("host/{host}")),
+    ];
+    let Some(h) = Harness::start_with(extra.clone(), false, services, |_| {}).await? else {
+        return Ok(());
+    };
+    let keytab = h.path("kpropd.keytab");
+    FileKeytab::new(keytab.clone())
+        .add_entry(&KeytabEntry {
+            principal: krb5_rs::types::PrincipalName::new_srv_inst("host", &host),
+            realm: REALM.to_owned(),
+            timestamp: 0,
+            kvno: 1,
+            key: krb5_rs::types::EncryptionKey::new(18, vec![18_u8; 32]),
+        })
+        .map_err(|err| eyre!("write keytab: {err}"))?;
+
+    let (kprop_port, kdc_port) = (free_port()?, free_port()?);
+    let (config, profile) = (h.path("replica.conf"), h.path("replica-kdc.conf"));
+    let db = h.path("replica-db").display().to_string();
+    std::fs::write(
+        &config,
+        format!(
+            "[libdefaults]\n\tdefault_realm = {REALM}\n\tdns_lookup_kdc = false\n\
+             \tudp_preference_limit = 1\n\tdns_canonicalize_hostname = false\n\tqualify_shortname = \"\"\n\trdns = false\n\
+             [realms]\n\t{REALM} = {{\n\t\tkdc = 127.0.0.1:{kdc_port}\n\t}}\n"
+        ),
+    )?;
+    std::fs::write(h.path("kpropd.acl"), format!("host/kprop-client@{REALM}\n"))?;
+    std::fs::write(h.path("kadm5.acl"), "")?;
+    std::fs::write(
+        &profile,
+        format!(
+            "[kdcdefaults]\n\tkdc_ports = {kdc_port}\n\tkdc_tcp_ports = {kdc_port}\n\
+             [realms]\n\t{REALM} = {{\n\
+             \t\tdatabase_name = {db}\n\
+             \t\tacl_file = {acl}\n\
+             \t\tkey_stash_file = {stash}\n\t}}\n",
+            acl = h.path("kadm5.acl").display(),
+            stash = h.path("replica-stash").display(),
+        ),
+    )?;
+    mit_tool(
+        &config,
+        &profile,
+        "kdb5_util",
+        &["create", "-r", REALM, "-d", &db, "-s", "-P", KPROP_MASTER],
+    )
+    .await?;
+
+    let log = std::fs::File::create(h.path("kpropd.log"))?;
+    let _kpropd = Command::new("kpropd")
+        .args(["-d", "-S", "-r", REALM, "-P", &kprop_port.to_string()])
+        .arg("-s")
+        .arg(&keytab)
+        .arg("-a")
+        .arg(h.path("kpropd.acl"))
+        .arg("-f")
+        .arg(h.path("from_master"))
+        .env("KRB5_CONFIG", &config)
+        .env("KRB5_KDC_PROFILE", &profile)
+        .stdin(Stdio::null())
+        .stdout(log.try_clone()?)
+        .stderr(log)
+        .kill_on_drop(true)
+        .spawn()?;
+    wait_port(kprop_port, "kpropd").await?;
+
+    let provider = provider(&extra)?;
+    let source = super::kprop::Source::new(&provider, Arc::clone(&h.store), Arc::clone(&h.kdc))?
+        .ok_or_else(|| eyre!("kprop source not configured"))?;
+    let dump = write_dump(DumpVersion::R111, &source.entries().await?, &[]);
+    Box::pin(source.push(&format!("{host}:{kprop_port}"), &dump))
+        .await
+        .map_err(|err| {
+            let log = std::fs::read_to_string(h.path("kpropd.log")).unwrap_or_default();
+            eyre!(
+                "{err}
+kpropd:
+{log}"
+            )
+        })?;
+
+    let mut loaded = false;
+    for _ in 0..50_u32 {
+        let out = replica_command(
+            &h,
+            "",
+            "kadmin.local",
+            &["-r", REALM, "-d", &db, "-q", "getprinc alice"],
+        )
+        .await?;
+        if String::from_utf8_lossy(&out.stdout).contains(&format!("Principal: {USER}@{REALM}")) {
+            loaded = true;
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    }
+    eyre::ensure!(
+        loaded,
+        "replica did not load the database: {}",
+        std::fs::read_to_string(h.path("kpropd.log"))?
+    );
+
+    let _kdc = Command::new("krb5kdc")
+        .args(["-n", "-r", REALM])
+        .env("KRB5_CONFIG", &config)
+        .env("KRB5_KDC_PROFILE", &profile)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .kill_on_drop(true)
+        .spawn()?;
+    wait_port(kdc_port, "replica KDC").await?;
+    for (input, tool, args) in [
+        (format!("{PASSWORD}\n"), "kinit", [USER]),
+        (String::new(), "kvno", [SERVICE]),
+    ] {
+        let out = replica_command(&h, &input, tool, &args).await?;
+        eyre::ensure!(
+            out.status.success(),
+            "replica {tool} failed: {}",
+            String::from_utf8_lossy(&out.stderr)
+        );
     }
     Ok(())
 }
