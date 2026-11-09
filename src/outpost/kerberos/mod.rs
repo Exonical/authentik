@@ -254,6 +254,9 @@ async fn build_provider(
         cfg.max_dgram_reply_size = usize::try_from(size)?;
     }
     cfg.disable_pac = realm_sid.is_none();
+    if provider.spake_enabled.unwrap_or(false) {
+        cfg.spake_groups = vec![krb5_rs::spake::Group::Edwards25519];
+    }
     cfg.spake_indicators = provider.spake_indicators.clone().unwrap_or_default();
     cfg.encrypted_challenge_indicator = provider
         .encrypted_challenge_indicator

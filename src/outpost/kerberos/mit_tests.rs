@@ -41,6 +41,7 @@ const ENCTYPES: [i32; 2] = [18, 17];
 #[derive(Default)]
 struct Api {
     users: Mutex<HashMap<String, Value>>,
+    services: Mutex<Vec<Value>>,
     denied: Mutex<Vec<String>>,
     audit: Mutex<Vec<Value>>,
 }
@@ -123,6 +124,10 @@ async fn user_key(
         .ok_or(StatusCode::NOT_FOUND)
 }
 
+async fn service_principals(State(api): State<Arc<Api>>) -> Json<Value> {
+    page(&api.services.lock().unwrap_or_else(PoisonError::into_inner))
+}
+
 async fn user_keys(State(api): State<Arc<Api>>) -> Json<Value> {
     page(&api.users().values().cloned().collect::<Vec<_>>())
 }
@@ -164,7 +169,7 @@ fn router(api: Arc<Api>) -> Router {
     Router::new()
         .route(
             "/outposts/kerberos/{id}/service_principals/",
-            get(async || page(&[service()])),
+            get(service_principals),
         )
         .route(
             "/outposts/kerberos/{id}/realm_trusts/",
@@ -226,13 +231,24 @@ struct Harness {
 
 impl Harness {
     async fn start(extra: Value, force_tcp: bool) -> Result<Option<Self>> {
+        Self::start_with(extra, force_tcp, vec![service()], |_| {}).await
+    }
+
+    async fn start_with(
+        extra: Value,
+        force_tcp: bool,
+        services: Vec<Value>,
+        user_setup: impl FnOnce(&mut Value),
+    ) -> Result<Option<Self>> {
         if !have_tools(&["kinit", "kvno", "klist", "kpasswd"]) {
             eprintln!("skipping: MIT client tools not installed");
             return Ok(None);
         }
         let api = Arc::new(Api::default());
-        api.users()
-            .insert(USER.to_owned(), user(USER, PASSWORD, 1)?);
+        let mut alice = user(USER, PASSWORD, 1)?;
+        user_setup(&mut alice);
+        api.users().insert(USER.to_owned(), alice);
+        *api.services.lock().unwrap_or_else(PoisonError::into_inner) = services;
 
         let listener = TcpListener::bind("127.0.0.1:0").await?;
         let base_path = format!("http://{}", listener.local_addr()?);
@@ -441,4 +457,102 @@ async fn mit_interop_audit() -> Result<()> {
         "missing audit events: {:?}",
         h.api.audit.lock().unwrap_or_else(PoisonError::into_inner)
     ))
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mit_interop_disabled_user() -> Result<()> {
+    let Some(h) = Harness::start_with(json!({}), false, vec![service()], |u| {
+        u["enabled"] = json!(false);
+    })
+    .await?
+    else {
+        return Ok(());
+    };
+    let (ok, out) = h.kinit(PASSWORD).await?;
+    eyre::ensure!(!ok, "disabled user got a TGT: {out}");
+    eyre::ensure!(out.to_lowercase().contains("revoked"), "{out}");
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mit_interop_user_lifetime() -> Result<()> {
+    let Some(h) = Harness::start_with(json!({}), false, vec![service()], |u| {
+        u["max_ticket_lifetime"] = json!(90_i32);
+    })
+    .await?
+    else {
+        return Ok(());
+    };
+    h.ok(&format!("{PASSWORD}\n"), "kinit", &[USER]).await?;
+    let klist = h.ok("", "klist", &[]).await?;
+    let line = klist
+        .lines()
+        .find(|l| l.contains(&format!("krbtgt/{REALM}@{REALM}")))
+        .ok_or_else(|| eyre!("no TGT: {klist}"))?;
+    let fields: Vec<&str> = line.split_whitespace().collect();
+    let parse =
+        |f: &[&str]| chrono::NaiveDateTime::parse_from_str(&f.join(" "), "%m/%d/%y %H:%M:%S").ok();
+    let (Some(start), Some(end)) = (
+        fields.get(0..2).and_then(parse),
+        fields.get(2..4).and_then(parse),
+    ) else {
+        return Err(eyre!("unparsable klist: {klist}"));
+    };
+    let lifetime = (end - start).num_seconds();
+    eyre::ensure!(
+        (60_i64..=120_i64).contains(&lifetime),
+        "lifetime {lifetime}s: {klist}"
+    );
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mit_interop_user_ticket_flags() -> Result<()> {
+    let Some(h) = Harness::start_with(json!({}), false, vec![service()], |u| {
+        u["flags"] = json!(["disallow_forwardable"]);
+    })
+    .await?
+    else {
+        return Ok(());
+    };
+    h.ok(&format!("{PASSWORD}\n"), "kinit", &["-f", USER])
+        .await?;
+    let klist = h.ok("", "klist", &["-f"]).await?;
+    let flags = klist
+        .lines()
+        .find_map(|l| l.split_once("Flags:").map(|(_, f)| f.trim().to_owned()))
+        .ok_or_else(|| eyre!("no flags: {klist}"))?;
+    eyre::ensure!(
+        !flags.contains('F'),
+        "forwardable flag was not removed: {klist}"
+    );
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mit_interop_spake() -> Result<()> {
+    let Some(h) = Harness::start(json!({"spake_enabled": true}), false).await? else {
+        return Ok(());
+    };
+    h.ok(&format!("{PASSWORD}\n"), "kinit", &[USER]).await?;
+    let trace = std::fs::read_to_string(h.path("trace.log"))?;
+    eyre::ensure!(
+        trace.to_lowercase().contains("spake"),
+        "no SPAKE in trace:\n{trace}"
+    );
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mit_interop_auth_indicators() -> Result<()> {
+    let mut restricted = service();
+    restricted["required_auth_indicators"] = json!(["pkinit"]);
+    let Some(h) = Harness::start_with(json!({}), false, vec![restricted], |_| {}).await? else {
+        return Ok(());
+    };
+    h.ok(&format!("{PASSWORD}\n"), "kinit", &[USER]).await?;
+    let (ok, out) = h.run("", "kvno", &[SERVICE]).await?;
+    eyre::ensure!(!ok, "password ticket satisfied a pkinit requirement: {out}");
+    eyre::ensure!(out.to_lowercase().contains("policy"), "{out}");
+    Ok(())
 }
