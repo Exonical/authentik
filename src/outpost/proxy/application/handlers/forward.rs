@@ -300,6 +300,9 @@ mod tests {
     }
 
     fn forward_single_app(session_dir: &std::path::Path) -> Application {
+        // Feature combinations such as `kerberos` enable more than one rustls
+        // provider, so pick the same one as `ak_common::tls::init`.
+        drop(rustls::crypto::aws_lc_rs::default_provider().install_default());
         let provider = ProxyOutpostConfig {
             name: "app".to_owned(),
             external_host: "https://app.example.com".to_owned(),

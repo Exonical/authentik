@@ -107,6 +107,9 @@ struct TestServer {
 
 impl TestServer {
     fn tcp(tls: bool) -> Self {
+        // Feature combinations such as `kerberos` enable more than one rustls
+        // provider, so pick the same one as `ak_common::tls::init`.
+        drop(rustls::crypto::aws_lc_rs::default_provider().install_default());
         let listener = TcpListener::bind("127.0.0.1:0").expect("bind test server");
         listener
             .set_nonblocking(true)
