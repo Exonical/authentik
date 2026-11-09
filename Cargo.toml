@@ -61,7 +61,7 @@ hyper-util = { version = "= 0.1.21", features = [
 ipnet = { version = "= 2.12.2", features = ["serde"] }
 json-subscriber = "= 0.3.1"
 jsonwebtoken = { version = "= 11.1.0", features = ["aws_lc_rs"] }
-krb5-rs = { git = "https://github.com/Exonical/krb5-rs", rev = "33c66ff51076593238f67ba4681d654b2eb01123", default-features = false, features = [
+krb5-rs = { git = "https://github.com/Exonical/krb5-rs", rev = "82c5803fcc4f83a41915b496875008880d484850", default-features = false, features = [
   "kdc",
   "pkinit",
   "fast",
@@ -122,6 +122,7 @@ serde_repr = "= 0.1.21"
 serde_with = { version = "= 3.24.0", default-features = false, features = [
   "base64",
 ] }
+rasn = "= 0.28.15"
 sha2 = "= 0.11.0"
 sqlx = { version = "= 0.9.0", default-features = false, features = [
   "runtime-tokio",
@@ -322,6 +323,7 @@ kerberos = [
   "ak-common/kerberos",
   "dep:chrono",
   "dep:krb5-rs",
+  "dep:rasn",
   "dep:hkdf",
   "dep:sha2",
 ]
@@ -353,6 +355,7 @@ hyper-unix-socket.workspace = true
 hyper-util.workspace = true
 jsonwebtoken = { workspace = true, optional = true }
 krb5-rs = { workspace = true, optional = true }
+rasn = { workspace = true, optional = true }
 metrics-exporter-prometheus.workspace = true
 metrics.workspace = true
 moka = { workspace = true, optional = true }

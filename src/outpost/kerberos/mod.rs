@@ -25,11 +25,13 @@ use tokio::sync::watch;
 use tracing::{debug, error, info, instrument, warn};
 
 use self::{
+    kpasswd::{Kpasswd, KpasswdRealm},
     policy::AccessPolicy,
     store::{ProviderStore, StoreSettings, StoreSources},
 };
 use crate::outpost::{Outpost, OutpostController, event::EventSessionEnd};
 
+mod kpasswd;
 mod pac;
 mod policy;
 mod store;
@@ -79,6 +81,7 @@ impl KdcService for Dispatcher {
 pub(crate) struct KerberosOutpost {
     controller: Arc<OutpostController>,
     dispatcher: Arc<Dispatcher>,
+    kpasswd: Arc<Kpasswd>,
 }
 
 fn seconds(value: i32) -> Duration {
@@ -131,7 +134,10 @@ fn capaths(realm: &str, trusts: &[ak_client::models::KerberosRealmTrustOutpost])
 }
 
 impl KerberosOutpost {
-    async fn build_provider(&self, provider: &KerberosOutpostConfig) -> Result<ProviderKdc> {
+    async fn build_provider(
+        &self,
+        provider: &KerberosOutpostConfig,
+    ) -> Result<(ProviderKdc, Arc<ProviderStore>)> {
         let api = &self.controller.api_config;
         let master_key = STANDARD.decode(provider.master_key.as_deref().unwrap_or_default())?;
         if master_key.is_empty() {
@@ -231,9 +237,12 @@ impl KerberosOutpost {
             );
         }
 
-        Ok(Kdc::builder(cfg, Arc::clone(&store))
-            .kdcpolicy(vec![Arc::new(AccessPolicy { store })])
-            .build())
+        let kdc = Kdc::builder(cfg, Arc::clone(&store))
+            .kdcpolicy(vec![Arc::new(AccessPolicy {
+                store: Arc::clone(&store),
+            })])
+            .build();
+        Ok((kdc, store))
     }
 
     fn spawn_listeners(&self, tasks: &mut Tasks, shutdown: &watch::Receiver<bool>) -> Result<()> {
@@ -262,6 +271,26 @@ impl KerberosOutpost {
                 .spawn(async move { Ok(serve_tcp_with(dispatcher, tcp, options).await?) })?;
             info!(%addr, "Kerberos KDC listening");
         }
+        for addr in config::get().listen.kpasswd.iter().copied() {
+            let udp = std::net::UdpSocket::bind(addr)?;
+            udp.set_nonblocking(true)?;
+            let udp = tokio::net::UdpSocket::from_std(udp)?;
+            let (svc, rx) = (Arc::clone(&self.kpasswd), shutdown.clone());
+            tasks
+                .build_task()
+                .name(&format!("{}::kpasswd::udp::{addr}", module_path!()))
+                .spawn(kpasswd::serve_udp(svc, udp, rx))?;
+
+            let tcp = std::net::TcpListener::bind(addr)?;
+            tcp.set_nonblocking(true)?;
+            let tcp = tokio::net::TcpListener::from_std(tcp)?;
+            let (svc, rx) = (Arc::clone(&self.kpasswd), shutdown.clone());
+            tasks
+                .build_task()
+                .name(&format!("{}::kpasswd::tcp::{addr}", module_path!()))
+                .spawn(kpasswd::serve_tcp(svc, tcp, rx))?;
+            info!(%addr, "kpasswd listening");
+        }
         Ok(())
     }
 }
@@ -276,6 +305,7 @@ impl Outpost for KerberosOutpost {
         Ok(Self {
             controller,
             dispatcher: Arc::new(Dispatcher::default()),
+            kpasswd: Arc::new(Kpasswd::default()),
         })
     }
 
@@ -311,9 +341,20 @@ impl Outpost for KerberosOutpost {
         }
 
         let mut realms = Vec::with_capacity(providers.len());
+        let mut kpasswd = std::collections::HashMap::new();
         for provider in &providers {
             match self.build_provider(provider).await {
-                Ok(kdc) => {
+                Ok((kdc, store)) => {
+                    if provider.kpasswd_enabled.unwrap_or_default() {
+                        kpasswd.insert(
+                            provider.realm_name.clone(),
+                            Arc::new(KpasswdRealm {
+                                store,
+                                udp: provider.udp_enabled.unwrap_or_default(),
+                                tcp: provider.tcp_enabled.unwrap_or_default(),
+                            }),
+                        );
+                    }
                     info!(
                         name = provider.name,
                         realm = provider.realm_name,
@@ -328,6 +369,7 @@ impl Outpost for KerberosOutpost {
                 ),
             }
         }
+        self.kpasswd.realms.store(Arc::new(kpasswd));
         self.dispatcher
             .realms
             .store((!realms.is_empty()).then(|| Arc::new(KdcRealms::new(realms))));

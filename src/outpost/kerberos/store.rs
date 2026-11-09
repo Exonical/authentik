@@ -283,6 +283,26 @@ impl ProviderStore {
         })
     }
 
+    pub(crate) fn api(&self) -> &Configuration {
+        &self.api
+    }
+
+    pub(crate) fn provider_id(&self) -> i32 {
+        self.provider_id
+    }
+
+    /// A principal loaded at refresh time (service, synthetic or trust).
+    pub(crate) fn entry(&self, comps: &[&str]) -> Option<&PrincipalEntry> {
+        self.entries.get(&(
+            self.settings.realm.clone(),
+            comps.iter().map(|c| (*c).to_owned()).collect(),
+        ))
+    }
+
+    pub(crate) fn invalidate_user(&self, username: &str) {
+        self.users.invalidate(username);
+    }
+
     pub(crate) fn settings(&self) -> &StoreSettings {
         &self.settings
     }
