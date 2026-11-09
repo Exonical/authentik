@@ -35,6 +35,7 @@ mod audit;
 mod kadmin;
 mod kkdcp;
 mod kpasswd;
+mod kprop;
 mod otp;
 mod pac;
 mod pkinit;
@@ -99,6 +100,7 @@ pub(crate) struct KerberosOutpost {
     dispatcher: Arc<Dispatcher>,
     kpasswd: Arc<Kpasswd>,
     kadmin: Arc<kadmin::Kadmin>,
+    kprop: kprop::Kprop,
     kkdcp: Arc<kkdcp::Kkdcp>,
     certificates: ak_common::tls::store::CertificateStore,
 }
@@ -395,6 +397,7 @@ impl Outpost for KerberosOutpost {
             dispatcher: Arc::new(Dispatcher::default()),
             kpasswd: Arc::new(Kpasswd::default()),
             kadmin: Arc::new(kadmin::Kadmin::default()),
+            kprop: kprop::Kprop::default(),
             kkdcp: Arc::new(kkdcp::Kkdcp::new(Arc::new(
                 ak_common::tls::self_signed::generate_certifiedkey()?,
             ))),
@@ -437,6 +440,7 @@ impl Outpost for KerberosOutpost {
         let mut kkdcp_cert = None;
         let mut kpasswd = std::collections::HashMap::new();
         let mut kadmin = None;
+        let mut kprop_jobs = Vec::new();
         for provider in &providers {
             match self.build_provider(provider).await {
                 Ok((kdc, store)) => {
@@ -458,7 +462,7 @@ impl Outpost for KerberosOutpost {
                         kpasswd.insert(
                             provider.realm_name.clone(),
                             Arc::new(KpasswdRealm {
-                                store,
+                                store: Arc::clone(&store),
                                 udp: provider.udp_enabled.unwrap_or_default(),
                                 tcp: provider.tcp_enabled.unwrap_or_default(),
                             }),
@@ -470,6 +474,11 @@ impl Outpost for KerberosOutpost {
                         "loaded provider"
                     );
                     let kdc = Arc::new(kdc);
+                    match kprop::KpropJob::new(provider, store, Arc::clone(&kdc)) {
+                        Ok(Some(job)) => kprop_jobs.push(job),
+                        Ok(None) => {}
+                        Err(err) => warn!(?err, name = provider.name, "kprop disabled"),
+                    }
                     if let Some(cert) = self.kkdcp_certificate(provider).await {
                         kkdcp_cert.get_or_insert(cert);
                         kkdcp.push(Arc::clone(&kdc));
@@ -490,6 +499,7 @@ impl Outpost for KerberosOutpost {
         }
         self.kpasswd.realms.store(Arc::new(kpasswd));
         self.kadmin.realm.store(kadmin);
+        self.kprop.replace(kprop_jobs).await;
         self.dispatcher.udp.store(kdc_realms(udp));
         self.dispatcher.tcp.store(kdc_realms(tcp));
         self.kkdcp.realms.store(kdc_realms(kkdcp));

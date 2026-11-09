@@ -138,7 +138,7 @@ fn ticket_flags(flags: &[String]) -> PrincipalAttributes {
     attrs
 }
 
-fn new_entry(
+pub(crate) fn new_entry(
     name: PrincipalName,
     realm: &str,
     attributes: PrincipalAttributes,
@@ -313,7 +313,7 @@ impl ProviderStore {
         &self.settings
     }
 
-    fn user_entry(&self, identity: &KerberosUserKeyOutpost) -> Result<PrincipalEntry> {
+    pub(crate) fn user_entry(&self, identity: &KerberosUserKeyOutpost) -> Result<PrincipalEntry> {
         let realm = &self.settings.realm;
         let keys = decode_keys(
             &identity.keys,
