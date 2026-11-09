@@ -32,6 +32,7 @@ use self::{
 use crate::outpost::{Outpost, OutpostController, event::EventSessionEnd};
 
 mod audit;
+mod iprop;
 mod kadmin;
 mod kkdcp;
 mod kpasswd;
@@ -101,6 +102,7 @@ pub(crate) struct KerberosOutpost {
     kpasswd: Arc<Kpasswd>,
     kadmin: Arc<kadmin::Kadmin>,
     kprop: kprop::Kprop,
+    iprop: Arc<iprop::Iprop>,
     kkdcp: Arc<kkdcp::Kkdcp>,
     certificates: ak_common::tls::store::CertificateStore,
 }
@@ -366,6 +368,17 @@ impl KerberosOutpost {
                 .spawn(kadmin::serve_tcp(svc, tcp, rx))?;
             info!(%addr, "kadmin listening");
         }
+        for addr in config::get().listen.iprop.iter().copied() {
+            let tcp = std::net::TcpListener::bind(addr)?;
+            tcp.set_nonblocking(true)?;
+            let tcp = tokio::net::TcpListener::from_std(tcp)?;
+            let (svc, rx) = (Arc::clone(&self.iprop), shutdown.clone());
+            tasks
+                .build_task()
+                .name(&format!("{}::iprop::{addr}", module_path!()))
+                .spawn(iprop::serve_tcp(svc, tcp, rx))?;
+            info!(%addr, "iprop listening");
+        }
         for addr in config::get().listen.kkdcp.iter().copied() {
             let resolver: Arc<dyn rustls::server::ResolvesServerCert> =
                 Arc::<kkdcp::Kkdcp>::clone(&self.kkdcp);
@@ -398,6 +411,7 @@ impl Outpost for KerberosOutpost {
             kpasswd: Arc::new(Kpasswd::default()),
             kadmin: Arc::new(kadmin::Kadmin::default()),
             kprop: kprop::Kprop::default(),
+            iprop: Arc::new(iprop::Iprop::default()),
             kkdcp: Arc::new(kkdcp::Kkdcp::new(Arc::new(
                 ak_common::tls::self_signed::generate_certifiedkey()?,
             ))),
@@ -441,6 +455,8 @@ impl Outpost for KerberosOutpost {
         let mut kpasswd = std::collections::HashMap::new();
         let mut kadmin = None;
         let mut kprop_jobs = Vec::new();
+        let mut iprop_realm = None;
+        let mut iprop_ids = Vec::new();
         for provider in &providers {
             match self.build_provider(provider).await {
                 Ok((kdc, store)) => {
@@ -474,10 +490,38 @@ impl Outpost for KerberosOutpost {
                         "loaded provider"
                     );
                     let kdc = Arc::new(kdc);
-                    match kprop::KpropJob::new(provider, store, Arc::clone(&kdc)) {
-                        Ok(Some(job)) => kprop_jobs.push(job),
+                    let iprop_enabled = provider.iprop_enabled.unwrap_or_default();
+                    match kprop::Source::new(provider, Arc::clone(&store), Arc::clone(&kdc)) {
+                        Ok(Some(source)) => {
+                            let mirror = iprop_enabled.then(|| {
+                                iprop_ids.push(store.provider_id());
+                                self.iprop.mirror(provider, store.provider_id())
+                            });
+                            if let Some(mirror) = &mirror {
+                                if iprop_realm.is_none() {
+                                    iprop_realm = Some(Arc::new(iprop::IpropRealm::new(
+                                        provider,
+                                        Arc::clone(&store),
+                                        Arc::clone(&source),
+                                        Arc::clone(mirror),
+                                    )));
+                                } else {
+                                    warn!(
+                                        name = provider.name,
+                                        "iprop is single-realm; ignoring additional enabled provider"
+                                    );
+                                }
+                            }
+                            kprop_jobs.extend(kprop::KpropJob::new(provider, source, mirror));
+                        }
+                        Ok(None) if iprop_enabled || provider.kprop_enabled.unwrap_or_default() => {
+                            warn!(
+                                name = provider.name,
+                                "replication requires a kprop master password"
+                            );
+                        }
                         Ok(None) => {}
-                        Err(err) => warn!(?err, name = provider.name, "kprop disabled"),
+                        Err(err) => warn!(?err, name = provider.name, "replication disabled"),
                     }
                     if let Some(cert) = self.kkdcp_certificate(provider).await {
                         kkdcp_cert.get_or_insert(cert);
@@ -500,6 +544,8 @@ impl Outpost for KerberosOutpost {
         self.kpasswd.realms.store(Arc::new(kpasswd));
         self.kadmin.realm.store(kadmin);
         self.kprop.replace(kprop_jobs).await;
+        self.iprop.retain(&iprop_ids);
+        self.iprop.realm.store(iprop_realm);
         self.dispatcher.udp.store(kdc_realms(udp));
         self.dispatcher.tcp.store(kdc_realms(tcp));
         self.kkdcp.realms.store(kdc_realms(kkdcp));

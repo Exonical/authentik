@@ -19,6 +19,7 @@ use krb5_rs::{
                 MitEntry,
                 dump::{DumpVersion, write_dump},
                 mkey::MasterKeys,
+                parse_name_with_default,
             },
         },
         replication::StoredPrincipal,
@@ -32,6 +33,7 @@ use tracing::{info, warn};
 
 use super::{
     PAGE_SIZE, ProviderKdc,
+    iprop::Mirror,
     store::{ProviderStore, components, new_entry},
 };
 
@@ -55,86 +57,47 @@ impl KdcTransport for LocalTransport {
     }
 }
 
-pub(crate) struct KpropJob {
+/// A provider's principals as MIT entries, and the kprop client that sends them.
+pub(crate) struct Source {
     name: String,
     store: Arc<ProviderStore>,
     kdc: Arc<ProviderKdc>,
-    targets: Vec<String>,
-    client: String,
+    client: Option<String>,
     master: EncryptionKey,
-    interval: Duration,
 }
 
-impl KpropJob {
-    /// The job for `provider`, or `None` when kprop isn't fully configured.
+impl Source {
+    /// The source for `provider`, or `None` without a master password.
     pub(crate) fn new(
         provider: &KerberosOutpostConfig,
         store: Arc<ProviderStore>,
         kdc: Arc<ProviderKdc>,
-    ) -> Result<Option<Self>> {
-        let targets: Vec<String> = provider
-            .kprop_targets
-            .iter()
-            .flatten()
-            .map(|t| t.trim().to_owned())
-            .filter(|t| !t.is_empty())
-            .collect();
-        let client = provider.kprop_client_spn.clone().unwrap_or_default();
+    ) -> Result<Option<Arc<Self>>> {
         let password = provider.kprop_master_password.clone().unwrap_or_default();
-        let interval = provider.kprop_interval.unwrap_or_default();
-        if !provider.kprop_enabled.unwrap_or_default()
-            || targets.is_empty()
-            || client.is_empty()
-            || password.is_empty()
-            || interval == 0
-        {
+        if password.is_empty() {
             return Ok(None);
         }
         let master = master_key_from_password(&provider.realm_name, &password, MASTER_ENCTYPE)
             .map_err(|err| eyre!("derive kprop master key: {err}"))?;
-        Ok(Some(Self {
+        Ok(Some(Arc::new(Self {
             name: provider.name.clone(),
             store,
             kdc,
-            targets,
-            client,
+            client: provider
+                .kprop_client_spn
+                .clone()
+                .filter(|c| !c.trim().is_empty()),
             master,
-            interval: Duration::from_secs(u64::from(interval)),
-        }))
+        })))
     }
 
-    #[expect(clippy::infinite_loop, reason = "aborted on refresh")]
-    async fn run(self) {
-        loop {
-            Box::pin(self.push_all()).await;
-            tokio::time::sleep(self.interval).await;
-        }
+    pub(crate) fn has_client(&self) -> bool {
+        self.client.is_some()
     }
 
-    async fn push_all(&self) {
-        let dump = match self.dump().await {
-            Ok(dump) => dump,
-            Err(err) => {
-                warn!(?err, name = self.name, "failed to build MIT replica dump");
-                return;
-            }
-        };
-        for target in &self.targets {
-            match Box::pin(self.push(target, &dump)).await {
-                Ok(()) => info!(name = self.name, target, "propagated database"),
-                Err(err) => warn!(
-                    ?err,
-                    name = self.name,
-                    target,
-                    "failed to propagate database"
-                ),
-            }
-        }
-    }
-
-    /// Every principal with keys, except `kadmin/admin`, as a MIT dump with
-    /// keys encrypted under the master key.
-    async fn dump(&self) -> Result<Vec<u8>> {
+    /// Every principal with keys, except `kadmin/admin`, with keys encrypted
+    /// under the master key.
+    pub(crate) async fn entries(&self) -> Result<Vec<MitEntry>> {
         let realm = &self.store.settings().realm;
         let masters = MasterKeys::single(self.master.clone());
         let km_name = master_principal_named("K/M").map_err(|err| eyre!("{err}"))?;
@@ -177,7 +140,7 @@ impl KpropJob {
         for user in &users {
             entries.push(self.store.user_entry(user)?);
         }
-        let mit = entries
+        entries
             .iter()
             .filter(|e| !e.keys.is_empty())
             .map(|e| {
@@ -185,21 +148,25 @@ impl KpropJob {
                     .and_then(|stored| stored.to_mit(&masters))
                     .map_err(|err| eyre!("{}: {err}", components(&e.name).join("/")))
             })
-            .collect::<Result<Vec<MitEntry>>>()?;
-        Ok(write_dump(DumpVersion::R111, &mit, &[]))
+            .collect()
     }
 
-    async fn push(&self, target: &str, dump: &[u8]) -> Result<()> {
+    /// Authenticate as the kprop client SPN and send `dump` to `target`.
+    pub(crate) async fn push(&self, target: &str, dump: &[u8]) -> Result<()> {
+        let spn = self
+            .client
+            .as_deref()
+            .ok_or_else(|| eyre!("no kprop client SPN configured"))?;
         let realm = &self.store.settings().realm;
         let (host, port) = target_address(target)?;
-        let (name, _) = krb5_rs::kdc::kdb::mit::parse_name_with_default(&self.client, realm)
+        let (name, _) = parse_name_with_default(spn, realm)
             .map_err(|err| eyre!("parse kprop client SPN: {err}"))?;
         let comps = components(&name);
         let comps: Vec<&str> = comps.iter().map(String::as_str).collect();
         let entry = self
             .store
             .entry(&comps)
-            .ok_or_else(|| eyre!("kprop client SPN {} not found", self.client))?;
+            .ok_or_else(|| eyre!("kprop client SPN {spn} not found"))?;
         let kvno = entry.keys.iter().map(|k| k.kvno).max();
         let keys: Vec<EncryptionKey> = entry
             .keys
@@ -208,7 +175,7 @@ impl KpropJob {
             .map(|k| k.key.clone())
             .collect();
         if keys.is_empty() {
-            return Err(eyre!("kprop client SPN {} has no keys", self.client));
+            return Err(eyre!("kprop client SPN {spn} has no keys"));
         }
         let client = KerberosClient::new(realm.clone(), LocalTransport(Arc::clone(&self.kdc)));
         let tgt = Box::pin(
@@ -240,6 +207,81 @@ impl KpropJob {
         )
         .await
         .map_err(|err| eyre!("send database: {err}"))
+    }
+}
+
+/// Periodic full kprop pushes and iprop mirror updates for one provider.
+pub(crate) struct KpropJob {
+    source: Arc<Source>,
+    targets: Vec<String>,
+    mirror: Option<Arc<std::sync::Mutex<Mirror>>>,
+    interval: Duration,
+}
+
+impl KpropJob {
+    /// The job for `provider`, or `None` when there's nothing to replicate.
+    pub(crate) fn new(
+        provider: &KerberosOutpostConfig,
+        source: Arc<Source>,
+        mirror: Option<Arc<std::sync::Mutex<Mirror>>>,
+    ) -> Option<Self> {
+        let targets: Vec<String> =
+            if provider.kprop_enabled.unwrap_or_default() && source.has_client() {
+                provider
+                    .kprop_targets
+                    .iter()
+                    .flatten()
+                    .map(|t| t.trim().to_owned())
+                    .filter(|t| !t.is_empty())
+                    .collect()
+            } else {
+                Vec::new()
+            };
+        let interval = provider.kprop_interval.unwrap_or_default();
+        if interval == 0 || (targets.is_empty() && mirror.is_none()) {
+            return None;
+        }
+        Some(Self {
+            source,
+            targets,
+            mirror,
+            interval: Duration::from_secs(u64::from(interval)),
+        })
+    }
+
+    #[expect(clippy::infinite_loop, reason = "aborted on refresh")]
+    async fn run(self) {
+        loop {
+            Box::pin(self.tick()).await;
+            tokio::time::sleep(self.interval).await;
+        }
+    }
+
+    async fn tick(&self) {
+        let name = &self.source.name;
+        let entries = match self.source.entries().await {
+            Ok(entries) => entries,
+            Err(err) => {
+                warn!(?err, name, "failed to snapshot principals for replication");
+                return;
+            }
+        };
+        if let Some(mirror) = &self.mirror {
+            mirror
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .sync(entries.clone());
+        }
+        if self.targets.is_empty() {
+            return;
+        }
+        let dump = write_dump(DumpVersion::R111, &entries, &[]);
+        for target in &self.targets {
+            match Box::pin(self.source.push(target, &dump)).await {
+                Ok(()) => info!(name, target, "propagated database"),
+                Err(err) => warn!(?err, name, target, "failed to propagate database"),
+            }
+        }
     }
 }
 
