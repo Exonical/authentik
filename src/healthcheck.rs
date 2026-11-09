@@ -29,6 +29,13 @@ pub(super) fn run(args: &Cli) -> Result<()> {
             .build()?
             .get("http://localhost/-/health/live/")
             .send()?,
+        #[cfg(feature = "kerberos")]
+        Mode::Kerberos => Client::builder()
+            .user_agent("goauthentik.io/healthcheck")
+            .unix_socket(crate::metrics::socket_path())
+            .build()?
+            .get("http://localhost/outpost.goauthentik.io/ping")
+            .send()?,
         #[cfg(feature = "proxy")]
         Mode::Proxy => Client::builder()
             .user_agent("goauthentik.io/healthcheck")

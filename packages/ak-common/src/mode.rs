@@ -33,6 +33,9 @@ pub enum Mode {
     /// Running the proxy outpost.
     #[cfg(feature = "proxy")]
     Proxy = 128,
+    /// Running the Kerberos outpost.
+    #[cfg(feature = "kerberos")]
+    Kerberos = 129,
 }
 
 impl std::fmt::Display for Mode {
@@ -46,6 +49,8 @@ impl std::fmt::Display for Mode {
             Self::Worker => write!(f, "worker"),
             #[cfg(feature = "proxy")]
             Self::Proxy => write!(f, "proxy"),
+            #[cfg(feature = "kerberos")]
+            Self::Kerberos => write!(f, "kerberos"),
         }
     }
 }
@@ -70,6 +75,8 @@ impl FromStr for Mode {
             "worker" => Ok(Self::Worker),
             #[cfg(feature = "proxy")]
             "proxy" => Ok(Self::Proxy),
+            #[cfg(feature = "kerberos")]
+            "kerberos" => Ok(Self::Kerberos),
             _ => Err(eyre!("Unknown mode")),
         }
     }
@@ -87,6 +94,8 @@ impl Mode {
             2 => Self::Worker,
             #[cfg(feature = "proxy")]
             128 => Self::Proxy,
+            #[cfg(feature = "kerberos")]
+            129 => Self::Kerberos,
             _ => unreachable!(),
         }
     }

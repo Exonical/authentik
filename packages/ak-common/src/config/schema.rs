@@ -209,6 +209,16 @@ pub struct ListenConfig {
     pub https: Vec<SocketAddr>,
     #[serde(deserialize_with = "deserialize_list")]
     pub metrics: Vec<SocketAddr>,
+    #[serde(deserialize_with = "deserialize_list")]
+    pub kerberos: Vec<SocketAddr>,
+    #[serde(deserialize_with = "deserialize_list")]
+    pub kpasswd: Vec<SocketAddr>,
+    #[serde(deserialize_with = "deserialize_list")]
+    pub kadmin: Vec<SocketAddr>,
+    #[serde(deserialize_with = "deserialize_list")]
+    pub iprop: Vec<SocketAddr>,
+    #[serde(deserialize_with = "deserialize_list")]
+    pub kkdcp: Vec<SocketAddr>,
     pub debug_tokio: Option<SocketAddr>,
     #[serde(deserialize_with = "deserialize_list")]
     pub trusted_proxy_cidrs: Vec<IpNet>,

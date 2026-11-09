@@ -13,6 +13,7 @@ publish.workspace = true
 default = ["core", "proxy"]
 core = ["dep:sqlx"]
 proxy = []
+kerberos = []
 
 [dependencies]
 ak-client.workspace = true

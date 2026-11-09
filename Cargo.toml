@@ -42,6 +42,7 @@ eyre = "= 0.6.14"
 futures = "= 0.3.34"
 glob = "= 0.3.4"
 http-body-util = "= 0.1.5"
+hkdf = "= 0.13.0"
 hyper = { version = "= 1.12.0", features = ["client", "http1", "http2"] }
 hyper-rustls = { version = "= 0.27.10", default-features = false, features = [
   "aws-lc-rs",
@@ -60,6 +61,11 @@ hyper-util = { version = "= 0.1.21", features = [
 ipnet = { version = "= 2.12.2", features = ["serde"] }
 json-subscriber = "= 0.3.1"
 jsonwebtoken = { version = "= 11.1.0", features = ["aws_lc_rs"] }
+krb5-rs = { git = "https://github.com/Exonical/krb5-rs", rev = "33c66ff51076593238f67ba4681d654b2eb01123", default-features = false, features = [
+  "kdc",
+  "pkinit",
+  "fast",
+] }
 metrics = "= 0.24.6"
 metrics-exporter-prometheus = { version = "= 0.18.3", default-features = false }
 moka = { version = "= 0.12.16", default-features = false, features = [
@@ -115,6 +121,7 @@ serde_repr = "= 0.1.21"
 serde_with = { version = "= 3.24.0", default-features = false, features = [
   "base64",
 ] }
+sha2 = "= 0.11.0"
 sqlx = { version = "= 0.9.0", default-features = false, features = [
   "runtime-tokio",
   "tls-rustls-aws-lc-rs",
@@ -309,6 +316,14 @@ proxy = [
   "dep:thiserror",
   "dep:askama",
 ]
+kerberos = [
+  "proxy",
+  "ak-common/kerberos",
+  "dep:chrono",
+  "dep:krb5-rs",
+  "dep:hkdf",
+  "dep:sha2",
+]
 
 [build-dependencies]
 pyo3-build-config.workspace = true
@@ -325,15 +340,18 @@ base64 = { workspace = true, optional = true }
 axum-extra = { workspace = true, optional = true }
 axum-server.workspace = true
 axum.workspace = true
+chrono = { workspace = true, optional = true }
 color-eyre.workspace = true
 eyre.workspace = true
 futures.workspace = true
 http-body-util.workspace = true
+hkdf = { workspace = true, optional = true }
 hyper = { workspace = true, optional = true }
 hyper-rustls = { workspace = true, optional = true }
 hyper-unix-socket.workspace = true
 hyper-util.workspace = true
 jsonwebtoken = { workspace = true, optional = true }
+krb5-rs = { workspace = true, optional = true }
 metrics-exporter-prometheus.workspace = true
 metrics.workspace = true
 moka = { workspace = true, optional = true }
@@ -349,6 +367,7 @@ rustls.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_repr.workspace = true
+sha2 = { workspace = true, optional = true }
 sqlx = { workspace = true, optional = true }
 thiserror = { workspace = true, optional = true }
 time.workspace = true

@@ -38,6 +38,8 @@ enum Command {
     Worker(worker::Cli),
     #[cfg(feature = "proxy")]
     Proxy(outpost::proxy::Cli),
+    #[cfg(feature = "kerberos")]
+    Kerberos(outpost::kerberos::Cli),
     Healthcheck(healthcheck::Cli),
     #[cfg(feature = "core")]
     Manage(boot::Manage),
@@ -85,6 +87,8 @@ fn main() -> Result<()> {
         }
         #[cfg(feature = "proxy")]
         Command::Proxy(_) => Mode::set(Mode::Proxy)?,
+        #[cfg(feature = "kerberos")]
+        Command::Kerberos(_) => Mode::set(Mode::Kerberos)?,
         Command::Healthcheck(args) => return healthcheck::run(args),
         // These don't run authentik itself, so they skip the setup below and its logging to stdout
         #[cfg(feature = "core")]
@@ -161,6 +165,15 @@ fn main() -> Result<()> {
                 #[cfg(feature = "proxy")]
                 Command::Proxy(args) => {
                     outpost::start::<outpost::proxy::ProxyOutpost>(
+                        args,
+                        &mut tasks,
+                        Some(log_filter_handle),
+                    )
+                    .await?;
+                }
+                #[cfg(feature = "kerberos")]
+                Command::Kerberos(args) => {
+                    outpost::start::<outpost::kerberos::KerberosOutpost>(
                         args,
                         &mut tasks,
                         Some(log_filter_handle),

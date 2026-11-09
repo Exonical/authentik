@@ -14,6 +14,8 @@ use tracing::{debug, info, instrument, warn};
 use uuid::Uuid;
 
 pub(crate) mod event;
+#[cfg(feature = "kerberos")]
+pub(crate) mod kerberos;
 #[cfg(feature = "proxy")]
 pub(crate) mod proxy;
 
