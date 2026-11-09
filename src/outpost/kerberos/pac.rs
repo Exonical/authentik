@@ -25,7 +25,7 @@ impl Sid {
             return Err(eyre!("invalid SID {value:?}"));
         }
         let authority: u64 = authority.parse()?;
-        if authority >= 1_u64 << 48 {
+        if authority >= 1_u64 << 48_u32 {
             return Err(eyre!("SID authority exceeds 48 bits"));
         }
         Ok(Self {
@@ -284,7 +284,8 @@ mod tests {
                 1, 4, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0
             ]
         );
-        assert!(Sid::parse("S-1-x").is_err());
+        let err = Sid::parse("S-1-x").expect_err("reject bad SID");
+        assert!(err.to_string().contains("invalid"));
     }
 
     #[test]
