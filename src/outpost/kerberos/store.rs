@@ -46,6 +46,7 @@ pub(crate) struct StoreSettings {
     pub(crate) require_preauth: bool,
     pub(crate) anonymous_pkinit: bool,
     pub(crate) realm_sid: Option<Sid>,
+    pub(crate) otp: bool,
 }
 
 /// The identity authentik returned for a user, kept for PAC generation.
@@ -342,6 +343,9 @@ impl ProviderStore {
             .filter(|s| *s > 0)
             .map(Duration::from_secs);
         entry.pw_expiration = identity.password_expiration;
+        if self.settings.otp {
+            entry.otp = Some("[]".to_owned());
+        }
         Ok(entry)
     }
 

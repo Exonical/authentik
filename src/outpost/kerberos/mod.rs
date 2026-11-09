@@ -32,6 +32,7 @@ use self::{
 use crate::outpost::{Outpost, OutpostController, event::EventSessionEnd};
 
 mod kpasswd;
+mod otp;
 mod pac;
 mod policy;
 mod store;
@@ -195,6 +196,8 @@ impl KerberosOutpost {
                     .inspect_err(|err| warn!(?err, "ignoring invalid PAC realm SID"))
                     .ok()
             });
+        let otp_enabled = provider.otp_enabled.unwrap_or_default();
+        let otp_indicators = provider.otp_indicators.clone().unwrap_or_default();
         let store = Arc::new(ProviderStore::new(
             api.clone(),
             provider.pk,
@@ -205,6 +208,7 @@ impl KerberosOutpost {
                 require_preauth: provider.require_preauthentication.unwrap_or(true),
                 anonymous_pkinit: provider.anonymous_pkinit_enabled.unwrap_or_default(),
                 realm_sid: realm_sid.clone(),
+                otp: otp_enabled,
             },
             &StoreSources {
                 master_key: &master_key,
@@ -229,7 +233,7 @@ impl KerberosOutpost {
             .encrypted_challenge_indicator
             .clone()
             .filter(|s| !s.is_empty());
-        cfg.otp_token_types = None;
+        cfg.otp_token_types = otp_enabled.then(|| vec![otp::token_type(otp_indicators.clone())]);
         if !trusts.is_empty() {
             cfg.realm_profile = Some(
                 Profile::parse(&capaths(&realm, &trusts))
@@ -237,11 +241,17 @@ impl KerberosOutpost {
             );
         }
 
-        let kdc = Kdc::builder(cfg, Arc::clone(&store))
-            .kdcpolicy(vec![Arc::new(AccessPolicy {
+        let mut builder =
+            Kdc::builder(cfg, Arc::clone(&store)).kdcpolicy(vec![Arc::new(AccessPolicy {
                 store: Arc::clone(&store),
-            })])
-            .build();
+            })]);
+        if otp_enabled {
+            builder = builder.otp_verifier(Arc::new(otp::ApiOtp {
+                store: Arc::clone(&store),
+                indicators: otp_indicators,
+            }));
+        }
+        let kdc = builder.build();
         Ok((kdc, store))
     }
 

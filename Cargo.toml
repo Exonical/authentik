@@ -61,7 +61,7 @@ hyper-util = { version = "= 0.1.21", features = [
 ipnet = { version = "= 2.12.2", features = ["serde"] }
 json-subscriber = "= 0.3.1"
 jsonwebtoken = { version = "= 11.1.0", features = ["aws_lc_rs"] }
-krb5-rs = { git = "https://github.com/Exonical/krb5-rs", rev = "82c5803fcc4f83a41915b496875008880d484850", default-features = false, features = [
+krb5-rs = { git = "https://github.com/Exonical/krb5-rs", rev = "60a3b1a671c6913629d268cfa039aa601ef5eb46", default-features = false, features = [
   "kdc",
   "pkinit",
   "fast",
