@@ -3,9 +3,12 @@
 use std::{fmt::Write as _, net::SocketAddr, sync::Arc, time::Duration};
 
 use ak_client::{
-    apis::outposts_api::{
-        outposts_kerberos_list, outposts_kerberos_realm_trusts_list,
-        outposts_kerberos_service_principals_list,
+    apis::{
+        configuration::Configuration,
+        outposts_api::{
+            outposts_kerberos_list, outposts_kerberos_realm_trusts_list,
+            outposts_kerberos_service_principals_list,
+        },
     },
     models::KerberosOutpostConfig,
 };
@@ -37,6 +40,8 @@ mod kadmin;
 mod kkdcp;
 mod kpasswd;
 mod kprop;
+#[cfg(test)]
+mod mit_tests;
 mod otp;
 mod pac;
 mod pkinit;
@@ -156,133 +161,132 @@ fn capaths(realm: &str, trusts: &[ak_client::models::KerberosRealmTrustOutpost])
     out
 }
 
-impl KerberosOutpost {
-    async fn build_provider(
-        &self,
-        provider: &KerberosOutpostConfig,
-    ) -> Result<(ProviderKdc, Arc<ProviderStore>)> {
-        let api = &self.controller.api_config;
-        let master_key = STANDARD.decode(provider.master_key.as_deref().unwrap_or_default())?;
-        if master_key.is_empty() {
-            return Err(eyre!("provider has no master key"));
-        }
-        let services = fetch_all(
-            |page| {
-                outposts_kerberos_service_principals_list(
-                    api,
-                    provider.pk,
-                    None,
-                    None,
-                    Some(page),
-                    Some(PAGE_SIZE),
-                    None,
-                )
-            },
-            |r| &r.pagination,
-            |r| r.results,
-        )
-        .await?;
-        let trusts = fetch_all(
-            |page| {
-                outposts_kerberos_realm_trusts_list(
-                    api,
-                    provider.pk,
-                    None,
-                    None,
-                    Some(page),
-                    Some(PAGE_SIZE),
-                    None,
-                )
-            },
-            |r| &r.pagination,
-            |r| r.results,
-        )
-        .await?;
+async fn build_provider(
+    api: &Configuration,
+    certificates: &ak_common::tls::store::CertificateStore,
+    provider: &KerberosOutpostConfig,
+) -> Result<(ProviderKdc, Arc<ProviderStore>)> {
+    let master_key = STANDARD.decode(provider.master_key.as_deref().unwrap_or_default())?;
+    if master_key.is_empty() {
+        return Err(eyre!("provider has no master key"));
+    }
+    let services = fetch_all(
+        |page| {
+            outposts_kerberos_service_principals_list(
+                api,
+                provider.pk,
+                None,
+                None,
+                Some(page),
+                Some(PAGE_SIZE),
+                None,
+            )
+        },
+        |r| &r.pagination,
+        |r| r.results,
+    )
+    .await?;
+    let trusts = fetch_all(
+        |page| {
+            outposts_kerberos_realm_trusts_list(
+                api,
+                provider.pk,
+                None,
+                None,
+                Some(page),
+                Some(PAGE_SIZE),
+                None,
+            )
+        },
+        |r| &r.pagination,
+        |r| r.results,
+    )
+    .await?;
 
-        let realm = provider.realm_name.clone();
-        let enctypes = enctypes(provider);
-        let iprop_spn = provider
-            .iprop_enabled
-            .unwrap_or_default()
-            .then(|| provider.iprop_spn.clone())
-            .flatten()
-            .filter(|s| !s.is_empty());
-        let realm_sid = provider
-            .pac_enabled
-            .unwrap_or_default()
-            .then_some(provider.realm_sid.as_deref())
-            .flatten()
-            .filter(|s| !s.is_empty())
-            .and_then(|sid| {
-                pac::Sid::parse(sid)
-                    .inspect_err(|err| warn!(?err, "ignoring invalid PAC realm SID"))
-                    .ok()
-            });
-        let otp_enabled = provider.otp_enabled.unwrap_or_default();
-        let otp_indicators = provider.otp_indicators.clone().unwrap_or_default();
-        let store = Arc::new(ProviderStore::new(
-            api.clone(),
-            provider.pk,
-            StoreSettings {
-                realm: realm.clone(),
-                enctypes: enctypes.clone(),
-                base_attributes: base_attributes(provider),
-                require_preauth: provider.require_preauthentication.unwrap_or(true),
-                anonymous_pkinit: provider.anonymous_pkinit_enabled.unwrap_or_default(),
-                realm_sid: realm_sid.clone(),
-                otp: otp_enabled,
-            },
-            &StoreSources {
-                master_key: &master_key,
-                services: &services,
-                trusts: &trusts,
-                iprop_spn: iprop_spn.as_deref(),
-            },
-        )?);
+    let realm = provider.realm_name.clone();
+    let enctypes = enctypes(provider);
+    let iprop_spn = provider
+        .iprop_enabled
+        .unwrap_or_default()
+        .then(|| provider.iprop_spn.clone())
+        .flatten()
+        .filter(|s| !s.is_empty());
+    let realm_sid = provider
+        .pac_enabled
+        .unwrap_or_default()
+        .then_some(provider.realm_sid.as_deref())
+        .flatten()
+        .filter(|s| !s.is_empty())
+        .and_then(|sid| {
+            pac::Sid::parse(sid)
+                .inspect_err(|err| warn!(?err, "ignoring invalid PAC realm SID"))
+                .ok()
+        });
+    let otp_enabled = provider.otp_enabled.unwrap_or_default();
+    let otp_indicators = provider.otp_indicators.clone().unwrap_or_default();
+    let store = Arc::new(ProviderStore::new(
+        api.clone(),
+        provider.pk,
+        StoreSettings {
+            realm: realm.clone(),
+            enctypes: enctypes.clone(),
+            base_attributes: base_attributes(provider),
+            require_preauth: provider.require_preauthentication.unwrap_or(true),
+            anonymous_pkinit: provider.anonymous_pkinit_enabled.unwrap_or_default(),
+            realm_sid: realm_sid.clone(),
+            otp: otp_enabled,
+        },
+        &StoreSources {
+            master_key: &master_key,
+            services: &services,
+            trusts: &trusts,
+            iprop_spn: iprop_spn.as_deref(),
+        },
+    )?);
 
-        let mut cfg = KdcConfig::new(realm.clone());
-        cfg.max_life = seconds(provider.maximum_ticket_lifetime);
-        cfg.max_renewable_life = seconds(provider.maximum_ticket_renew_lifetime);
-        if !enctypes.is_empty() {
-            cfg.supported_enctypes = enctypes;
-        }
-        if let Some(size) = provider.max_datagram_reply_size.filter(|s| *s > 0) {
-            cfg.max_dgram_reply_size = usize::try_from(size)?;
-        }
-        cfg.disable_pac = realm_sid.is_none();
-        cfg.spake_indicators = provider.spake_indicators.clone().unwrap_or_default();
-        cfg.encrypted_challenge_indicator = provider
-            .encrypted_challenge_indicator
-            .clone()
-            .filter(|s| !s.is_empty());
-        cfg.otp_token_types = otp_enabled.then(|| vec![otp::token_type(otp_indicators.clone())]);
-        cfg.pkinit = pkinit::server_config(api, &self.certificates, provider)
-            .await
-            .map_err(|err| eyre!("PKINIT: {err}"))?;
-        if !trusts.is_empty() {
-            cfg.realm_profile = Some(
-                Profile::parse(&capaths(&realm, &trusts))
-                    .map_err(|err| eyre!("capaths: {err:?}"))?,
-            );
-        }
-
-        let mut builder =
-            Kdc::builder(cfg, Arc::clone(&store)).kdcpolicy(vec![Arc::new(AccessPolicy {
-                store: Arc::clone(&store),
-            })]);
-        if provider.kdc_audit_enabled.unwrap_or_default() {
-            builder = builder.audit(vec![audit::ApiAudit::spawn(api.clone(), provider.pk)]);
-        }
-        if otp_enabled {
-            builder = builder.otp_verifier(Arc::new(otp::ApiOtp {
-                store: Arc::clone(&store),
-                indicators: otp_indicators,
-            }));
-        }
-        let kdc = builder.build();
-        Ok((kdc, store))
+    let mut cfg = KdcConfig::new(realm.clone());
+    cfg.max_life = seconds(provider.maximum_ticket_lifetime);
+    cfg.max_renewable_life = seconds(provider.maximum_ticket_renew_lifetime);
+    if !enctypes.is_empty() {
+        cfg.supported_enctypes = enctypes;
+    }
+    if let Some(size) = provider.max_datagram_reply_size.filter(|s| *s > 0) {
+        cfg.max_dgram_reply_size = usize::try_from(size)?;
+    }
+    cfg.disable_pac = realm_sid.is_none();
+    cfg.spake_indicators = provider.spake_indicators.clone().unwrap_or_default();
+    cfg.encrypted_challenge_indicator = provider
+        .encrypted_challenge_indicator
+        .clone()
+        .filter(|s| !s.is_empty());
+    cfg.otp_token_types = otp_enabled.then(|| vec![otp::token_type(otp_indicators.clone())]);
+    cfg.pkinit = pkinit::server_config(api, certificates, provider)
+        .await
+        .map_err(|err| eyre!("PKINIT: {err}"))?;
+    if !trusts.is_empty() {
+        cfg.realm_profile = Some(
+            Profile::parse(&capaths(&realm, &trusts)).map_err(|err| eyre!("capaths: {err:?}"))?,
+        );
     }
 
+    let mut builder =
+        Kdc::builder(cfg, Arc::clone(&store)).kdcpolicy(vec![Arc::new(AccessPolicy {
+            store: Arc::clone(&store),
+        })]);
+    if provider.kdc_audit_enabled.unwrap_or_default() {
+        builder = builder.audit(vec![audit::ApiAudit::spawn(api.clone(), provider.pk)]);
+    }
+    if otp_enabled {
+        builder = builder.otp_verifier(Arc::new(otp::ApiOtp {
+            store: Arc::clone(&store),
+            indicators: otp_indicators,
+        }));
+    }
+    let kdc = builder.build();
+    Ok((kdc, store))
+}
+
+impl KerberosOutpost {
     async fn kkdcp_certificate(
         &self,
         provider: &KerberosOutpostConfig,
@@ -458,7 +462,7 @@ impl Outpost for KerberosOutpost {
         let mut iprop_realm = None;
         let mut iprop_ids = Vec::new();
         for provider in &providers {
-            match self.build_provider(provider).await {
+            match build_provider(&self.controller.api_config, &self.certificates, provider).await {
                 Ok((kdc, store)) => {
                     if kadmin.is_none() && provider.kadmin_enabled.unwrap_or_default() {
                         match kadmin::KadminRealm::new(

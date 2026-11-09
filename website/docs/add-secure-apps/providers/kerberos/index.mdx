@@ -11,7 +11,7 @@ Create a Kerberos provider, associate it with an application, and select that ap
 
 ## How the Kerberos provider works
 
-The provider stores the realm configuration, user keys, service principals, and ticket policy in authentik. The Kerberos outpost retrieves this configuration from authentik and uses the go-kerberos library to process Kerberos requests.
+The provider stores the realm configuration, user keys, service principals, and ticket policy in authentik. The Kerberos outpost retrieves this configuration from authentik and uses the [krb5-rs](https://github.com/Exonical/krb5-rs) library to process Kerberos requests.
 
 The outpost listens on both UDP and TCP by default. Use **UDP enabled** and **TCP enabled** to disable either transport. At least one transport must remain enabled.
 
