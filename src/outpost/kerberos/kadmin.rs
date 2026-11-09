@@ -472,6 +472,7 @@ impl KadminRealm {
         let mut names: Vec<Vec<u8>> = self
             .store
             .entries()
+            .iter()
             .map(|e| unparse_name(&e.name, &e.realm))
             .collect();
         let users = fetch_all(
@@ -580,7 +581,10 @@ impl KadminRealm {
         )
         .await
         {
-            Ok(_) => code::OK,
+            Ok(principal) => {
+                self.store.apply_service(&principal);
+                code::OK
+            }
             Err(err) if status(&err) == Some(StatusCode::CONFLICT) => code::DUP,
             Err(err) => {
                 warn!(?err, spn, "kadmin create failed");
@@ -618,7 +622,10 @@ impl KadminRealm {
         )
         .await
         {
-            Ok(()) => code::OK,
+            Ok(()) => {
+                self.store.remove_service(&spn);
+                code::OK
+            }
             Err(err) if status(&err) == Some(StatusCode::NOT_FOUND) => code::UNK_PRINC,
             Err(err) => {
                 warn!(?err, spn, "kadmin delete failed");
@@ -665,7 +672,10 @@ impl KadminRealm {
         )
         .await
         {
-            Ok(_) => code::OK,
+            Ok(principal) => {
+                self.store.apply_service(&principal);
+                code::OK
+            }
             Err(err) if status(&err) == Some(StatusCode::NOT_FOUND) => code::UNK_PRINC,
             Err(err) => {
                 warn!(?err, spn, "kadmin modify failed");
@@ -760,7 +770,10 @@ impl KadminRealm {
         )
         .await
         {
-            Ok(response) => response,
+            Ok(response) => {
+                self.store.apply_service(&response);
+                response
+            }
             Err(err) => {
                 let c = if status(&err) == Some(StatusCode::NOT_FOUND) {
                     code::UNK_PRINC

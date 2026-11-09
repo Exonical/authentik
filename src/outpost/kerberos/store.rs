@@ -1,6 +1,10 @@
 //! Principal store backed by the authentik API.
 
-use std::{collections::HashMap, time::Duration};
+use std::{
+    collections::HashMap,
+    sync::{PoisonError, RwLock},
+    time::Duration,
+};
 
 use ak_client::{
     apis::{
@@ -61,6 +65,9 @@ pub(crate) struct ProviderStore {
     provider_id: i32,
     settings: StoreSettings,
     entries: HashMap<EntryKey, PrincipalEntry>,
+    /// Service principals changed through kadmin since the last refresh;
+    /// `None` marks a deletion.
+    changes: RwLock<HashMap<EntryKey, Option<PrincipalEntry>>>,
     users: SyncCache<String, Option<std::sync::Arc<UserRecord>>>,
     access: Cache<(bool, String, String), bool>,
 }
@@ -164,6 +171,27 @@ pub(crate) fn new_entry(
     }
 }
 
+fn service_entry(
+    spn: &KerberosServicePrincipalOutpost,
+    settings: &StoreSettings,
+) -> Result<PrincipalEntry> {
+    let (name, prealm) = parse(&spn.spn, &settings.realm)?;
+    let keys = decode_keys(&spn.keys, &settings.enctypes, spn.kvno, None)
+        .map_err(|err| eyre!("service principal {}: {err}", spn.spn))?;
+    let mut attrs = settings.base_attributes | ticket_flags(&spn.ticket_flags);
+    if spn.ok_to_auth_as_delegate {
+        attrs |= PrincipalAttributes::OK_TO_AUTH_AS_DELEGATE;
+    }
+    let mut entry = new_entry(name, &prealm, attrs, keys);
+    entry
+        .allowed_to_delegate_to
+        .clone_from(&spn.allowed_delegation_targets);
+    if !spn.required_auth_indicators.is_empty() {
+        entry.require_auth = Some(spn.required_auth_indicators.join(" "));
+    }
+    Ok(entry)
+}
+
 fn parse(name: &str, realm: &str) -> Result<(PrincipalName, String)> {
     parse_name_with_default(name, realm).map_err(|err| eyre!("parse principal {name}: {err:?}"))
 }
@@ -191,21 +219,7 @@ impl ProviderStore {
         };
 
         for spn in sources.services {
-            let (name, prealm) = parse(&spn.spn, &realm)?;
-            let keys = decode_keys(&spn.keys, &settings.enctypes, spn.kvno, None)
-                .map_err(|err| eyre!("service principal {}: {err}", spn.spn))?;
-            let mut attrs = base | ticket_flags(&spn.ticket_flags);
-            if spn.ok_to_auth_as_delegate {
-                attrs |= PrincipalAttributes::OK_TO_AUTH_AS_DELEGATE;
-            }
-            let mut entry = new_entry(name, &prealm, attrs, keys);
-            entry
-                .allowed_to_delegate_to
-                .clone_from(&spn.allowed_delegation_targets);
-            if !spn.required_auth_indicators.is_empty() {
-                entry.require_auth = Some(spn.required_auth_indicators.join(" "));
-            }
-            insert(entry);
+            insert(service_entry(spn, &settings)?);
         }
 
         let mut synthetic = vec![
@@ -273,6 +287,7 @@ impl ProviderStore {
             provider_id,
             settings,
             entries,
+            changes: RwLock::default(),
             users: SyncCache::builder()
                 .max_capacity(CACHE_CAPACITY)
                 .time_to_live(CACHE_TTL)
@@ -292,9 +307,44 @@ impl ProviderStore {
         self.provider_id
     }
 
-    /// Every principal loaded at refresh time.
-    pub(crate) fn entries(&self) -> impl Iterator<Item = &PrincipalEntry> {
-        self.entries.values()
+    /// Every service, synthetic and trust principal, including kadmin changes.
+    pub(crate) fn entries(&self) -> Vec<PrincipalEntry> {
+        let changes = self.changes.read().unwrap_or_else(PoisonError::into_inner);
+        let mut entries: Vec<PrincipalEntry> = self
+            .entries
+            .iter()
+            .filter(|(key, _)| !changes.contains_key(*key))
+            .map(|(_, entry)| entry.clone())
+            .collect();
+        entries.extend(changes.values().flatten().cloned());
+        entries
+    }
+
+    /// Apply a service principal created or changed through kadmin until the
+    /// next refresh reloads it.
+    pub(crate) fn apply_service(&self, spn: &KerberosServicePrincipalOutpost) {
+        match service_entry(spn, &self.settings) {
+            Ok(entry) => {
+                self.changes
+                    .write()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .insert((entry.realm.clone(), components(&entry.name)), Some(entry));
+            }
+            Err(err) => warn!(?err, spn = spn.spn, "failed to apply kadmin change"),
+        }
+    }
+
+    /// Hide a service principal deleted through kadmin until the next refresh.
+    pub(crate) fn remove_service(&self, spn: &str) {
+        match parse(spn, &self.settings.realm) {
+            Ok((name, realm)) => {
+                self.changes
+                    .write()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .insert((realm, components(&name)), None);
+            }
+            Err(err) => warn!(?err, spn, "failed to apply kadmin deletion"),
+        }
     }
 
     /// A principal loaded at refresh time (service, synthetic or trust).
@@ -465,7 +515,16 @@ impl PrincipalStore for ProviderStore {
         realm: &str,
     ) -> Result<Option<PrincipalEntry>, StoreError> {
         let comps = components(name);
-        if let Some(entry) = self.entries.get(&(realm.to_owned(), comps.clone())) {
+        let key = (realm.to_owned(), comps.clone());
+        if let Some(change) = self
+            .changes
+            .read()
+            .unwrap_or_else(PoisonError::into_inner)
+            .get(&key)
+        {
+            return Ok(change.clone());
+        }
+        if let Some(entry) = self.entries.get(&key) {
             return Ok(Some(entry.clone()));
         }
         if realm != self.settings.realm {

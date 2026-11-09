@@ -118,8 +118,8 @@ impl Source {
         entries.extend(
             self.store
                 .entries()
-                .filter(|e| !is_kadmin_admin(e))
-                .cloned(),
+                .into_iter()
+                .filter(|e| !is_kadmin_admin(e)),
         );
         let users = fetch_all(
             |page| {
