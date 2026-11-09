@@ -319,6 +319,10 @@ fn principal_ent(entry: &PrincipalEntry, mask: i32) -> PrincipalEnt {
     let kvno = entry.keys.iter().map(|k| k.kvno).max().unwrap_or(0);
     let mut ent = PrincipalEnt {
         principal: Some(unparse_name(&entry.name, &entry.realm)),
+        mod_name: Some(unparse_name(
+            &PrincipalName::new_srv_inst("kadmin", "admin"),
+            &entry.realm,
+        )),
         princ_expire_time: time_secs(entry.expiration),
         pw_expiration: time_secs(entry.pw_expiration),
         max_life: duration_secs(entry.max_life),
@@ -487,7 +491,10 @@ impl KadminRealm {
         )
         .await;
         match users {
-            Ok(users) => names.extend(users.into_iter().map(|u| u.principal.into_bytes())),
+            Ok(users) => names.extend(users.into_iter().filter_map(|u| {
+                self.parse(&u.principal)
+                    .map(|(name, realm)| unparse_name(&name, &realm))
+            })),
             Err(err) => {
                 warn!(?err, "kadmin failed to list users");
                 return kadm5::names_ret(api, code::FAILURE, &[]);
