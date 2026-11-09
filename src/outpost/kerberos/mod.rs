@@ -31,6 +31,7 @@ use self::{
 };
 use crate::outpost::{Outpost, OutpostController, event::EventSessionEnd};
 
+mod audit;
 mod kpasswd;
 mod otp;
 mod pac;
@@ -245,6 +246,9 @@ impl KerberosOutpost {
             Kdc::builder(cfg, Arc::clone(&store)).kdcpolicy(vec![Arc::new(AccessPolicy {
                 store: Arc::clone(&store),
             })]);
+        if provider.kdc_audit_enabled.unwrap_or_default() {
+            builder = builder.audit(vec![audit::ApiAudit::spawn(api.clone(), provider.pk)]);
+        }
         if otp_enabled {
             builder = builder.otp_verifier(Arc::new(otp::ApiOtp {
                 store: Arc::clone(&store),
