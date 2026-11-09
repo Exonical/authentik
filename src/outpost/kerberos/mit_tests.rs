@@ -24,7 +24,10 @@ use krb5_rs::{
 };
 use serde_json::{Value, json};
 use tokio::{
-    io::AsyncWriteExt as _, net::TcpListener, net::UdpSocket, process::Command, sync::watch,
+    io::AsyncWriteExt as _,
+    net::{TcpListener, UdpSocket},
+    process::Command,
+    sync::watch,
 };
 
 use super::{
@@ -471,19 +474,12 @@ impl Harness {
         std::fs::write(
             dir.path().join("krb5.conf"),
             format!(
-                "[libdefaults]\n\
-                 \tdefault_realm = {REALM}\n\
-                 \tdns_lookup_kdc = false\n\
-                 \tdns_lookup_realm = false\n\
-                 \trdns = false\n\
-                 \tudp_preference_limit = {udp_limit}\n\
-                 \tpermitted_enctypes = aes256-cts-hmac-sha1-96 aes128-cts-hmac-sha1-96\n\
-                 [realms]\n\
-                 \t{REALM} = {{\n\
-                 \t\tkdc = 127.0.0.1:{kdc_port}\n\
-                 \t\tkpasswd_server = 127.0.0.1:{kpasswd_port}\n\
-                 \t\tadmin_server = 127.0.0.1:{kadmin_port}\n\
-                 \t}}\n"
+                "[libdefaults]\n\tdefault_realm = {REALM}\n\tdns_lookup_kdc = \
+                 false\n\tdns_lookup_realm = false\n\trdns = false\n\tudp_preference_limit = \
+                 {udp_limit}\n\tpermitted_enctypes = aes256-cts-hmac-sha1-96 \
+                 aes128-cts-hmac-sha1-96\n[realms]\n\t{REALM} = {{\n\t\tkdc = \
+                 127.0.0.1:{kdc_port}\n\t\tkpasswd_server = \
+                 127.0.0.1:{kpasswd_port}\n\t\tadmin_server = 127.0.0.1:{kadmin_port}\n\t}}\n"
             ),
         )?;
         Ok(Some(Self {
@@ -1373,11 +1369,9 @@ async fn mit_interop_cross_realm() -> Result<()> {
     std::fs::write(
         h.path("kdc.conf"),
         format!(
-            "[kdcdefaults]\n\tkdc_ports = {port}\n\tkdc_tcp_ports = {port}\n\
-             [realms]\n\t{PEER_REALM} = {{\n\
-             \t\tdatabase_name = {db}\n\
-             \t\tacl_file = {acl}\n\
-             \t\tkey_stash_file = {stash}\n\t}}\n",
+            "[kdcdefaults]\n\tkdc_ports = {port}\n\tkdc_tcp_ports = \
+             {port}\n[realms]\n\t{PEER_REALM} = {{\n\t\tdatabase_name = {db}\n\t\tacl_file = \
+             {acl}\n\t\tkey_stash_file = {stash}\n\t}}\n",
             db = db.display(),
             acl = h.path("kadm5.acl").display(),
             stash = h.path("stash").display(),
@@ -1534,9 +1528,10 @@ async fn mit_interop_kprop() -> Result<()> {
     std::fs::write(
         &config,
         format!(
-            "[libdefaults]\n\tdefault_realm = {REALM}\n\tdns_lookup_kdc = false\n\
-             \tudp_preference_limit = 1\n\tdns_canonicalize_hostname = false\n\tqualify_shortname = \"\"\n\trdns = false\n\
-             [realms]\n\t{REALM} = {{\n\t\tkdc = 127.0.0.1:{kdc_port}\n\t}}\n"
+            "[libdefaults]\n\tdefault_realm = {REALM}\n\tdns_lookup_kdc = \
+             false\n\tudp_preference_limit = 1\n\tdns_canonicalize_hostname = \
+             false\n\tqualify_shortname = \"\"\n\trdns = false\n[realms]\n\t{REALM} = {{\n\t\tkdc \
+             = 127.0.0.1:{kdc_port}\n\t}}\n"
         ),
     )?;
     std::fs::write(h.path("kpropd.acl"), format!("host/kprop-client@{REALM}\n"))?;
@@ -1544,11 +1539,9 @@ async fn mit_interop_kprop() -> Result<()> {
     std::fs::write(
         &profile,
         format!(
-            "[kdcdefaults]\n\tkdc_ports = {kdc_port}\n\tkdc_tcp_ports = {kdc_port}\n\
-             [realms]\n\t{REALM} = {{\n\
-             \t\tdatabase_name = {db}\n\
-             \t\tacl_file = {acl}\n\
-             \t\tkey_stash_file = {stash}\n\t}}\n",
+            "[kdcdefaults]\n\tkdc_ports = {kdc_port}\n\tkdc_tcp_ports = \
+             {kdc_port}\n[realms]\n\t{REALM} = {{\n\t\tdatabase_name = {db}\n\t\tacl_file = \
+             {acl}\n\t\tkey_stash_file = {stash}\n\t}}\n",
             acl = h.path("kadm5.acl").display(),
             stash = h.path("replica-stash").display(),
         ),

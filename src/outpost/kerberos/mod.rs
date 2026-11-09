@@ -516,7 +516,8 @@ impl Outpost for KerberosOutpost {
                                 } else {
                                     warn!(
                                         name = provider.name,
-                                        "iprop is single-realm; ignoring additional enabled provider"
+                                        "iprop is single-realm; ignoring additional enabled \
+                                         provider"
                                     );
                                 }
                             }
