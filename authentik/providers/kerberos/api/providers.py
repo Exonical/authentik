@@ -21,6 +21,7 @@ from rest_framework.fields import (
     SerializerMethodField,
 )
 from rest_framework.mixins import ListModelMixin
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
@@ -33,6 +34,7 @@ from authentik.core.apps import AppAccessWithoutBindings
 from authentik.core.models import User
 from authentik.events.models import Event, EventAction
 from authentik.lib.utils.time import timedelta_from_string
+from authentik.outposts.permissions import is_outpost_service_account
 from authentik.policies.api.exec import PolicyTestResultSerializer
 from authentik.policies.engine import PolicyEngine
 from authentik.policies.expiry.models import PasswordExpiryPolicy
@@ -732,6 +734,16 @@ class KerberosOutpostConfigSerializer(ModelSerializer):
         ]
 
 
+class IsKerberosOutpost(BasePermission):
+    """Allow the outposts serving a provider, and superusers, to call its write actions"""
+
+    def has_permission(self, request: Request, view) -> bool:
+        return request.user.is_superuser or is_outpost_service_account(request.user)
+
+    def has_object_permission(self, request: Request, view, obj: KerberosProvider) -> bool:
+        return request.user.has_perm("authentik_providers_kerberos.view_kerberosprovider", obj)
+
+
 class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
     """Kerberos provider configuration viewset for outposts."""
 
@@ -808,7 +820,7 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
         responses={200: KerberosServicePrincipalOutpostSerializer()},
         operation_id="outposts_kerberos_service_principal_create",
     )
-    @action(detail=True, methods=["POST"])
+    @action(detail=True, methods=["POST"], permission_classes=[IsKerberosOutpost])
     @validate(KerberosServicePrincipalAdminSerializer)
     def service_principal_create(self, request: Request, pk=None, body=None) -> Response:
         """Create a service principal for kadm5."""
@@ -827,7 +839,7 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
         responses={204: None},
         operation_id="outposts_kerberos_service_principal_delete",
     )
-    @action(detail=True, methods=["POST"])
+    @action(detail=True, methods=["POST"], permission_classes=[IsKerberosOutpost])
     @validate(KerberosServicePrincipalAdminSerializer)
     def service_principal_delete(self, request: Request, pk=None, body=None) -> Response:
         """Delete a service principal for kadm5."""
@@ -846,7 +858,7 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
         responses={200: KerberosServicePrincipalOutpostSerializer()},
         operation_id="outposts_kerberos_service_principal_rotate",
     )
-    @action(detail=True, methods=["POST"])
+    @action(detail=True, methods=["POST"], permission_classes=[IsKerberosOutpost])
     @validate(KerberosServicePrincipalAdminSerializer)
     def service_principal_rotate(self, request: Request, pk=None, body=None) -> Response:
         """Rotate a service principal for kadm5."""
@@ -869,7 +881,7 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
         responses={200: KerberosServicePrincipalOutpostSerializer()},
         operation_id="outposts_kerberos_service_principal_update",
     )
-    @action(detail=True, methods=["POST"])
+    @action(detail=True, methods=["POST"], permission_classes=[IsKerberosOutpost])
     @validate(KerberosServicePrincipalUpdateSerializer)
     def service_principal_update(self, request: Request, pk=None, body=None) -> Response:
         """Update a service principal's ticket flags for kadm5."""
@@ -888,7 +900,7 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
         request=KerberosAuditEventSerializer,
         responses={204: None},
     )
-    @action(detail=True, methods=["POST"])
+    @action(detail=True, methods=["POST"], permission_classes=[IsKerberosOutpost])
     @validate(KerberosAuditEventSerializer)
     def audit_event(self, request: Request, pk=None, body=None) -> Response:
         """Record a KDC audit event."""
@@ -1002,7 +1014,7 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
         responses={200: KerberosOTPCheckSerializer()},
         operation_id="outposts_kerberos_otp_check",
     )
-    @action(detail=True, methods=["POST"])
+    @action(detail=True, methods=["POST"], permission_classes=[IsKerberosOutpost])
     @validate(KerberosOTPCheckRequestSerializer)
     def otp_check(self, request: Request, pk=None, body=None) -> Response:
         """Check a user's authentik TOTP or static authentication token."""
@@ -1036,7 +1048,7 @@ class KerberosOutpostConfigViewSet(ListModelMixin, GenericViewSet):
         request=KerberosSetPasswordSerializer,
         responses={204: None, 400: KerberosPasswordPolicyErrorSerializer()},
     )
-    @action(detail=True, methods=["POST"])
+    @action(detail=True, methods=["POST"], permission_classes=[IsKerberosOutpost])
     @validate(KerberosSetPasswordSerializer)
     def set_password(self, request: Request, pk=None, body=None) -> Response:
         """Set a user's password through the Kerberos outpost."""

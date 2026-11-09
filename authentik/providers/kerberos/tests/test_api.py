@@ -13,6 +13,7 @@ from authentik.core.tests.utils import create_test_admin_user, create_test_cert,
 from authentik.crypto.models import CertificateKeyPair
 from authentik.events.models import Event
 from authentik.lib.generators import generate_id
+from authentik.outposts.models import Outpost, OutpostType
 from authentik.policies.dummy.models import DummyPolicy
 from authentik.policies.expiry.models import PasswordExpiryPolicy
 from authentik.policies.models import PolicyBinding
@@ -548,6 +549,41 @@ class KerberosProviderAPITests(APITestCase):
         self.assertEqual(payload["results"][0]["username"], user.username)
         self.assertIn("keys", payload["results"][0])
         self.assertIn("salt", payload["results"][0])
+
+    def test_outpost_write_actions_require_assigned_outpost(self):
+        """Outpost write actions are limited to the outposts serving the provider."""
+        provider = KerberosProvider.objects.create(
+            name=generate_id(),
+            realm_name="EXAMPLE.COM",
+            kadmin_enabled=True,
+        )
+        Application.objects.create(name=generate_id(), slug=generate_id(), provider=provider)
+        create_url = reverse(
+            "authentik_api:kerberosprovideroutpost-service-principal-create",
+            kwargs={"pk": provider.pk},
+        )
+
+        other = Outpost.objects.create(name=generate_id(), type=OutpostType.KERBEROS)
+        self.client.force_login(other.user)
+        self.assertIn(
+            self.client.post(create_url, {"spn": "host/other"}).status_code,
+            (403, 404),
+        )
+
+        viewer = create_test_user()
+        viewer.assign_perms_to_managed_role(
+            "authentik_providers_kerberos.view_kerberosprovider", provider
+        )
+        self.client.force_login(viewer)
+        self.assertEqual(self.client.post(create_url, {"spn": "host/viewer"}).status_code, 403)
+
+        outpost = Outpost.objects.create(name=generate_id(), type=OutpostType.KERBEROS)
+        outpost.providers.add(provider)
+        outpost.build_user_permissions(outpost.user)
+        self.client.force_login(outpost.user)
+        response = self.client.post(create_url, {"spn": "host/outpost"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["spn"], "host/outpost")
 
     def test_kadmin_service_principal_actions_are_provider_scoped(self):
         """Kadm5 service-principal actions require the provider setting."""
