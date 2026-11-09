@@ -121,6 +121,7 @@ async fn user_key(
     Query(q): Params,
 ) -> Result<Json<Value>, StatusCode> {
     let name = q.get("username").ok_or(StatusCode::BAD_REQUEST)?;
+    let name = if name == ALIAS { USER } else { name.as_str() };
     api.users()
         .get(name)
         .cloned()
@@ -934,5 +935,29 @@ async fn mit_interop_otp() -> Result<()> {
     let out = h.ok("", "klist", &[]).await?;
     eyre::ensure!(out.contains(&format!("krbtgt/{REALM}@{REALM}")), "{out}");
     h.ok("", "kvno", &[SERVICE]).await?;
+    Ok(())
+}
+
+const ALIAS: &str = "alice@example.com";
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mit_interop_alias_canonicalization() -> Result<()> {
+    let Some(h) = Harness::start(json!({}), false).await? else {
+        return Ok(());
+    };
+    let alias = ALIAS.replace('@', "\\@");
+    let (ok, out) = h.run(&format!("{PASSWORD}\n"), "kinit", &[&alias]).await?;
+    let lower = out.to_lowercase();
+    eyre::ensure!(
+        !ok && lower.contains("client") && lower.contains("not found"),
+        "alias kinit without canonicalization: {out}"
+    );
+    h.ok(&format!("{PASSWORD}\n"), "kinit", &["-C", &alias])
+        .await?;
+    let out = h.ok("", "klist", &[]).await?;
+    eyre::ensure!(
+        out.contains(&format!("Default principal: {USER}@{REALM}")),
+        "klist does not show the canonical principal: {out}"
+    );
     Ok(())
 }

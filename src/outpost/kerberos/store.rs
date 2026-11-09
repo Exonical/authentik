@@ -549,7 +549,7 @@ impl PrincipalStore for ProviderStore {
         };
         let record = self.user(username).await?;
         Ok(record
-            .filter(|r| r.identity.principal == *username && !r.entry.keys.is_empty())
+            .filter(|r| !r.entry.keys.is_empty())
             .map(|r| r.entry.clone()))
     }
 

@@ -258,6 +258,7 @@ async fn build_provider(
         cfg.spake_groups = vec![krb5_rs::spake::Group::Edwards25519];
     }
     cfg.spake_indicators = provider.spake_indicators.clone().unwrap_or_default();
+    cfg.alias_requires_canonicalize = true;
     cfg.encrypted_challenge_indicator = provider
         .encrypted_challenge_indicator
         .clone()
