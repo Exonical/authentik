@@ -46,6 +46,7 @@ struct Api {
     services: Mutex<Vec<Value>>,
     denied: Mutex<Vec<String>>,
     rule: Mutex<Option<Rule>>,
+    certs: Mutex<HashMap<String, (String, Option<String>)>>,
     key_seed: std::sync::atomic::AtomicU8,
     audit: Mutex<Vec<Value>>,
 }
@@ -224,6 +225,34 @@ async fn spn_delete(State(api): State<Arc<Api>>, Json(body): Json<Value>) -> Sta
     StatusCode::NO_CONTENT
 }
 
+async fn keypair(axum::extract::Path(id): axum::extract::Path<String>) -> Json<Value> {
+    Json(json!({
+        "pk": id, "name": id, "fingerprint_sha256": format!("fp-{id}"), "fingerprint_sha1": null,
+        "cert_expiry": null, "cert_subject": null, "private_key_available": true, "key_type": null,
+        "certificate_download_url": "", "private_key_download_url": "", "managed": null,
+    }))
+}
+
+async fn view_certificate(
+    State(api): State<Arc<Api>>,
+    axum::extract::Path(id): axum::extract::Path<String>,
+) -> Result<Json<Value>, StatusCode> {
+    let certs = api.certs.lock().unwrap_or_else(PoisonError::into_inner);
+    let (cert, _) = certs.get(&id).ok_or(StatusCode::NOT_FOUND)?;
+    Ok(Json(json!({"data": cert})))
+}
+
+async fn view_private_key(
+    State(api): State<Arc<Api>>,
+    axum::extract::Path(id): axum::extract::Path<String>,
+) -> Result<Json<Value>, StatusCode> {
+    let certs = api.certs.lock().unwrap_or_else(PoisonError::into_inner);
+    let (_, Some(key)) = certs.get(&id).ok_or(StatusCode::NOT_FOUND)? else {
+        return Err(StatusCode::NOT_FOUND);
+    };
+    Ok(Json(json!({"data": key})))
+}
+
 const OTP_CODE: &str = "424242";
 
 async fn otp_check(Json(body): Json<Value>) -> Json<Value> {
@@ -265,6 +294,15 @@ fn router(api: Arc<Api>) -> Router {
         .route("/outposts/kerberos/{id}/audit_event/", post(audit_event))
         .route("/outposts/kerberos/{id}/set_password/", post(set_password))
         .route("/outposts/kerberos/{id}/otp_check/", post(otp_check))
+        .route("/crypto/certificatekeypairs/{id}/", get(keypair))
+        .route(
+            "/crypto/certificatekeypairs/{id}/view_certificate/",
+            get(view_certificate),
+        )
+        .route(
+            "/crypto/certificatekeypairs/{id}/view_private_key/",
+            get(view_private_key),
+        )
         .route(
             "/outposts/kerberos/{id}/service_principal_create/",
             post(spn_create),
@@ -346,7 +384,20 @@ impl Harness {
             eprintln!("skipping: MIT client tools not installed");
             return Ok(None);
         }
+        drop(rustls::crypto::aws_lc_rs::default_provider().install_default());
         let api = Arc::new(Api::default());
+        if let Some(certs) = extra.get("mock_certificates").and_then(Value::as_object) {
+            let mut map = api.certs.lock().unwrap_or_else(PoisonError::into_inner);
+            for (id, pair) in certs {
+                map.insert(
+                    id.clone(),
+                    (
+                        pair["certificate"].as_str().unwrap_or_default().to_owned(),
+                        pair["key"].as_str().map(str::to_owned),
+                    ),
+                );
+            }
+        }
         let mut alice = user(USER, PASSWORD, 1)?;
         user_setup(&mut alice);
         api.users().insert(USER.to_owned(), alice);
@@ -1000,7 +1051,6 @@ async fn mit_interop_kkdcp() -> Result<()> {
 
     let kkdcp = Arc::new(super::kkdcp::Kkdcp::new(Arc::new(certified)));
     kkdcp.realms.store(kdc_realms(vec![Arc::clone(&h.kdc)]));
-    drop(rustls::crypto::aws_lc_rs::default_provider().install_default());
     let resolver: Arc<dyn rustls::server::ResolvesServerCert> =
         Arc::<super::kkdcp::Kkdcp>::clone(&kkdcp);
     let tls = rustls::ServerConfig::builder()
@@ -1022,17 +1072,7 @@ async fn mit_interop_kkdcp() -> Result<()> {
     );
 
     let anchors = h.path("kkdcp-ca.pem");
-    let b64 = STANDARD.encode(ca.der());
-    let body = b64
-        .as_bytes()
-        .chunks(64)
-        .map(|c| String::from_utf8_lossy(c).into_owned())
-        .collect::<Vec<_>>()
-        .join("\n");
-    std::fs::write(
-        &anchors,
-        format!("-----BEGIN CERTIFICATE-----\n{body}\n-----END CERTIFICATE-----\n"),
-    )?;
+    std::fs::write(&anchors, pem("CERTIFICATE", ca.der()))?;
     let conf = std::fs::read_to_string(h.path("krb5.conf"))?
         .lines()
         .map(|line| {
@@ -1058,5 +1098,199 @@ async fn mit_interop_kkdcp() -> Result<()> {
         trace.contains("HTTPS"),
         "KDC was not reached over HTTPS:\n{trace}"
     );
+    Ok(())
+}
+
+fn pem(label: &str, der: &[u8]) -> String {
+    let b64 = STANDARD.encode(der);
+    let body = b64
+        .as_bytes()
+        .chunks(64)
+        .map(|c| String::from_utf8_lossy(c).into_owned())
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!("-----BEGIN {label}-----\n{body}\n-----END {label}-----\n")
+}
+
+fn der_tlv(tag: u8, content: &[u8]) -> Vec<u8> {
+    let mut out = vec![tag];
+    match u8::try_from(content.len()) {
+        Ok(len) if len < 0x80 => out.push(len),
+        _ => {
+            let len = content
+                .len()
+                .to_be_bytes()
+                .into_iter()
+                .skip_while(|b| *b == 0)
+                .collect::<Vec<u8>>();
+            out.push(0x80 | u8::try_from(len.len()).unwrap_or_default());
+            out.extend_from_slice(&len);
+        }
+    }
+    out.extend_from_slice(content);
+    out
+}
+
+/// A subjectAltName holding an id-pkinit-san `KRB5PrincipalName` (RFC 4556).
+fn pkinit_san(name_type: u8, components: &[&str]) -> Vec<u8> {
+    let names: Vec<u8> = components
+        .iter()
+        .flat_map(|c| der_tlv(0x1b, c.as_bytes()))
+        .collect();
+    let name = der_tlv(
+        0x30,
+        &[
+            der_tlv(0xa0, &der_tlv(0x02, &[name_type])),
+            der_tlv(0xa1, &der_tlv(0x30, &names)),
+        ]
+        .concat(),
+    );
+    let principal = der_tlv(
+        0x30,
+        &[
+            der_tlv(0xa0, &der_tlv(0x1b, REALM.as_bytes())),
+            der_tlv(0xa1, &name),
+        ]
+        .concat(),
+    );
+    let other_name = der_tlv(
+        0xa0,
+        &[
+            vec![0x06, 0x06, 0x2b, 0x06, 0x01, 0x05, 0x02, 0x02],
+            der_tlv(0xa0, &principal),
+        ]
+        .concat(),
+    );
+    der_tlv(0x30, &other_name)
+}
+
+struct PkinitCerts {
+    ca: String,
+    kdc: (String, String),
+    client: (String, String),
+}
+
+fn pkinit_certificates() -> Result<PkinitCerts> {
+    use rcgen::{
+        BasicConstraints, CertificateParams, CustomExtension, DnType, ExtendedKeyUsagePurpose,
+        IsCa, Issuer, KeyPair, KeyUsagePurpose, PKCS_RSA_SHA256,
+    };
+    let ca_key = KeyPair::generate_for(&PKCS_RSA_SHA256)?;
+    let mut ca_params = CertificateParams::new(Vec::<String>::new())?;
+    ca_params.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
+    ca_params.key_usages = vec![KeyUsagePurpose::KeyCertSign];
+    ca_params
+        .distinguished_name
+        .push(DnType::CommonName, "PKINIT CA");
+    let ca = ca_params.self_signed(&ca_key)?;
+    let issuer = Issuer::new(ca_params, ca_key);
+    let leaf =
+        |cn: &str, name_type: u8, components: &[&str], eku: u64| -> Result<(String, String)> {
+            let key = KeyPair::generate_for(&PKCS_RSA_SHA256)?;
+            let mut params = CertificateParams::new(Vec::<String>::new())?;
+            params.distinguished_name.push(DnType::CommonName, cn);
+            params.key_usages = vec![KeyUsagePurpose::DigitalSignature];
+            params.extended_key_usages = vec![ExtendedKeyUsagePurpose::Other(vec![
+                1, 3, 6, 1, 5, 2, 3, eku,
+            ])];
+            params.custom_extensions = vec![CustomExtension::from_oid_content(
+                &[2, 5, 29, 17],
+                pkinit_san(name_type, components),
+            )];
+            let cert = params.signed_by(&key, &issuer)?;
+            Ok((
+                pem("CERTIFICATE", cert.der()),
+                pem("PRIVATE KEY", &key.serialize_der()),
+            ))
+        };
+    Ok(PkinitCerts {
+        ca: pem("CERTIFICATE", ca.der()),
+        kdc: leaf("krbtgt", 2, &["krbtgt", REALM], 5)?,
+        client: leaf(USER, 1, &[USER], 4)?,
+    })
+}
+
+/// A harness whose provider has PKINIT set up, with the `kinit -X` options
+/// for the client's trust anchor and identity.
+async fn pkinit_harness(extra: Value) -> Result<Option<(Harness, [String; 2])>> {
+    if !std::path::Path::new("/usr/lib/x86_64-linux-gnu/krb5/plugins/preauth/pkinit.so").exists()
+        && !std::path::Path::new("/usr/lib64/krb5/plugins/preauth/pkinit.so").exists()
+    {
+        return Ok(None);
+    }
+    let certs = pkinit_certificates()?;
+    let mut cfg = json!({
+        "pkinit_certificate": "00000000-0000-0000-0000-00000000000a",
+        "pkinit_client_ca": "00000000-0000-0000-0000-00000000000b",
+        "mock_certificates": {
+            "00000000-0000-0000-0000-00000000000a": {"certificate": certs.kdc.0, "key": certs.kdc.1},
+            "00000000-0000-0000-0000-00000000000b": {"certificate": certs.ca},
+        },
+    });
+    if let (Some(cfg), Some(extra)) = (cfg.as_object_mut(), extra.as_object()) {
+        cfg.extend(extra.clone());
+    }
+    let Some(h) = Harness::start(cfg, false).await? else {
+        return Ok(None);
+    };
+    let (ca, cert, key) = (h.path("ca.pem"), h.path("client.pem"), h.path("client.key"));
+    std::fs::write(&ca, &certs.ca)?;
+    std::fs::write(&cert, &certs.client.0)?;
+    std::fs::write(&key, &certs.client.1)?;
+    let options = [
+        format!("X509_anchors=FILE:{}", ca.display()),
+        format!(
+            "X509_user_identity=FILE:{},{}",
+            cert.display(),
+            key.display()
+        ),
+    ];
+    Ok(Some((h, options)))
+}
+
+async fn pkinit_kinit(extra: Value) -> Result<()> {
+    let Some((h, [anchors, identity])) = pkinit_harness(extra).await? else {
+        return Ok(());
+    };
+    h.ok("", "kinit", &["-X", &anchors, "-X", &identity, USER])
+        .await?;
+    let out = h.ok("", "klist", &[]).await?;
+    eyre::ensure!(out.contains(&format!("krbtgt/{REALM}@{REALM}")), "{out}");
+    let trace = std::fs::read_to_string(h.path("trace.log"))?;
+    eyre::ensure!(
+        trace.contains("PKINIT"),
+        "kinit did not use PKINIT:\n{trace}"
+    );
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mit_interop_pkinit() -> Result<()> {
+    pkinit_kinit(json!({})).await
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mit_interop_pkinit_freshness() -> Result<()> {
+    pkinit_kinit(json!({"pkinit_require_freshness": true})).await
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mit_interop_anonymous_pkinit() -> Result<()> {
+    let Some((h, [anchors, _])) = pkinit_harness(json!({"anonymous_pkinit_enabled": true})).await?
+    else {
+        return Ok(());
+    };
+    h.ok("", "kinit", &["-n", "-X", &anchors]).await?;
+    let out = h.ok("", "klist", &[]).await?;
+    eyre::ensure!(
+        out.contains("Default principal: WELLKNOWN/ANONYMOUS@"),
+        "anonymous klist: {out}"
+    );
+
+    let Some((h, [anchors, _])) = pkinit_harness(json!({})).await? else {
+        return Ok(());
+    };
+    let (ok, out) = h.run("", "kinit", &["-n", "-X", &anchors]).await?;
+    eyre::ensure!(!ok, "anonymous PKINIT succeeded while disabled: {out}");
     Ok(())
 }

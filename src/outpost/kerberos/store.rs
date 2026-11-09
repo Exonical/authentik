@@ -242,6 +242,13 @@ impl ProviderStore {
         if let Some(iprop) = sources.iprop_spn {
             synthetic.push((iprop.to_owned(), "kiprop", PrincipalAttributes::empty()));
         }
+        if settings.anonymous_pkinit {
+            synthetic.push((
+                "WELLKNOWN/ANONYMOUS".to_owned(),
+                "anonymous",
+                PrincipalAttributes::empty(),
+            ));
+        }
         for (spn, prefix, attrs) in synthetic {
             let (name, prealm) = parse(&spn, &realm)?;
             let keys = settings
