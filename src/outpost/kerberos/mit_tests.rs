@@ -327,6 +327,7 @@ async fn bind_pair() -> Result<(UdpSocket, TcpListener, u16)> {
 struct Harness {
     dir: tempfile::TempDir,
     api: Arc<Api>,
+    kdc: Arc<super::ProviderKdc>,
     _shutdown: watch::Sender<bool>,
 }
 
@@ -380,7 +381,7 @@ impl Harness {
         let kdc = Arc::new(kdc);
         let dispatcher = Arc::new(Dispatcher::default());
         dispatcher.udp.store(kdc_realms(vec![Arc::clone(&kdc)]));
-        dispatcher.tcp.store(kdc_realms(vec![kdc]));
+        dispatcher.tcp.store(kdc_realms(vec![Arc::clone(&kdc)]));
         let (udp, tcp, kdc_port) = bind_pair().await?;
         tokio::spawn(serve_udp_with(
             Arc::clone(&dispatcher),
@@ -426,6 +427,7 @@ impl Harness {
         Ok(Some(Self {
             dir,
             api,
+            kdc,
             _shutdown: tx,
         }))
     }
@@ -958,6 +960,103 @@ async fn mit_interop_alias_canonicalization() -> Result<()> {
     eyre::ensure!(
         out.contains(&format!("Default principal: {USER}@{REALM}")),
         "klist does not show the canonical principal: {out}"
+    );
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn mit_interop_kkdcp() -> Result<()> {
+    use rcgen::{
+        BasicConstraints, CertificateParams, ExtendedKeyUsagePurpose, IsCa, Issuer, KeyPair,
+        KeyUsagePurpose,
+    };
+    use rustls::pki_types::{CertificateDer, PrivateKeyDer};
+
+    let Some(h) = Harness::start(json!({}), false).await? else {
+        return Ok(());
+    };
+    let ca_key = KeyPair::generate()?;
+    let mut ca_params = CertificateParams::new(Vec::<String>::new())?;
+    ca_params.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
+    ca_params
+        .distinguished_name
+        .push(rcgen::DnType::CommonName, "KKDCP test CA");
+    ca_params.key_usages = vec![KeyUsagePurpose::KeyCertSign];
+    let ca = ca_params.self_signed(&ca_key)?;
+    let issuer = Issuer::new(ca_params, ca_key);
+    let leaf_key = KeyPair::generate()?;
+    let mut leaf_params =
+        CertificateParams::new(vec!["localhost".to_owned(), "127.0.0.1".to_owned()])?;
+    leaf_params.extended_key_usages = vec![ExtendedKeyUsagePurpose::ServerAuth];
+    leaf_params
+        .distinguished_name
+        .push(rcgen::DnType::CommonName, "localhost");
+    let leaf = leaf_params.signed_by(&leaf_key, &issuer)?;
+    let private_key = PrivateKeyDer::try_from(leaf_key.serialize_der()).map_err(|e| eyre!(e))?;
+    let certified = rustls::sign::CertifiedKey::new(
+        vec![CertificateDer::from(leaf.der().to_vec())],
+        rustls::crypto::aws_lc_rs::sign::any_supported_type(&private_key)?,
+    );
+
+    let kkdcp = Arc::new(super::kkdcp::Kkdcp::new(Arc::new(certified)));
+    kkdcp.realms.store(kdc_realms(vec![Arc::clone(&h.kdc)]));
+    drop(rustls::crypto::aws_lc_rs::default_provider().install_default());
+    let resolver: Arc<dyn rustls::server::ResolvesServerCert> =
+        Arc::<super::kkdcp::Kkdcp>::clone(&kkdcp);
+    let tls = rustls::ServerConfig::builder()
+        .with_no_client_auth()
+        .with_cert_resolver(resolver);
+    let listener = std::net::TcpListener::bind("127.0.0.1:0")?;
+    listener.set_nonblocking(true)?;
+    let port = listener.local_addr()?.port();
+    let server = axum_server::from_tcp_rustls(
+        listener,
+        axum_server::tls_rustls::RustlsConfig::from_config(Arc::new(tls)),
+    )?;
+    tokio::spawn(
+        server.serve(
+            kkdcp
+                .router()
+                .into_make_service_with_connect_info::<std::net::SocketAddr>(),
+        ),
+    );
+
+    let anchors = h.path("kkdcp-ca.pem");
+    let b64 = STANDARD.encode(ca.der());
+    let body = b64
+        .as_bytes()
+        .chunks(64)
+        .map(|c| String::from_utf8_lossy(c).into_owned())
+        .collect::<Vec<_>>()
+        .join("\n");
+    std::fs::write(
+        &anchors,
+        format!("-----BEGIN CERTIFICATE-----\n{body}\n-----END CERTIFICATE-----\n"),
+    )?;
+    let conf = std::fs::read_to_string(h.path("krb5.conf"))?
+        .lines()
+        .map(|line| {
+            if line.trim_start().starts_with("kdc = ") {
+                format!(
+                    "\t\tkdc = https://127.0.0.1:{port}/KdcProxy\n\t\thttp_anchors = FILE:{}",
+                    anchors.display()
+                )
+            } else {
+                line.to_owned()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    std::fs::write(h.path("krb5.conf"), conf)?;
+
+    h.ok(&format!("{PASSWORD}\n"), "kinit", &[USER]).await?;
+    let out = h.ok("", "klist", &[]).await?;
+    eyre::ensure!(out.contains(&format!("krbtgt/{REALM}@{REALM}")), "{out}");
+    h.ok("", "kvno", &[SERVICE]).await?;
+    let trace = std::fs::read_to_string(h.path("trace.log"))?;
+    eyre::ensure!(
+        trace.contains("HTTPS"),
+        "KDC was not reached over HTTPS:\n{trace}"
     );
     Ok(())
 }
