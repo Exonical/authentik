@@ -32,6 +32,7 @@ use self::{
 use crate::outpost::{Outpost, OutpostController, event::EventSessionEnd};
 
 mod audit;
+mod kadmin;
 mod kkdcp;
 mod kpasswd;
 mod otp;
@@ -97,6 +98,7 @@ pub(crate) struct KerberosOutpost {
     controller: Arc<OutpostController>,
     dispatcher: Arc<Dispatcher>,
     kpasswd: Arc<Kpasswd>,
+    kadmin: Arc<kadmin::Kadmin>,
     kkdcp: Arc<kkdcp::Kkdcp>,
     certificates: ak_common::tls::store::CertificateStore,
 }
@@ -351,6 +353,17 @@ impl KerberosOutpost {
                 .spawn(kpasswd::serve_tcp(svc, tcp, rx))?;
             info!(%addr, "kpasswd listening");
         }
+        for addr in config::get().listen.kadmin.iter().copied() {
+            let tcp = std::net::TcpListener::bind(addr)?;
+            tcp.set_nonblocking(true)?;
+            let tcp = tokio::net::TcpListener::from_std(tcp)?;
+            let (svc, rx) = (Arc::clone(&self.kadmin), shutdown.clone());
+            tasks
+                .build_task()
+                .name(&format!("{}::kadmin::{addr}", module_path!()))
+                .spawn(kadmin::serve_tcp(svc, tcp, rx))?;
+            info!(%addr, "kadmin listening");
+        }
         for addr in config::get().listen.kkdcp.iter().copied() {
             let resolver: Arc<dyn rustls::server::ResolvesServerCert> =
                 Arc::<kkdcp::Kkdcp>::clone(&self.kkdcp);
@@ -381,6 +394,7 @@ impl Outpost for KerberosOutpost {
             controller,
             dispatcher: Arc::new(Dispatcher::default()),
             kpasswd: Arc::new(Kpasswd::default()),
+            kadmin: Arc::new(kadmin::Kadmin::default()),
             kkdcp: Arc::new(kkdcp::Kkdcp::new(Arc::new(
                 ak_common::tls::self_signed::generate_certifiedkey()?,
             ))),
@@ -422,9 +436,24 @@ impl Outpost for KerberosOutpost {
         let (mut udp, mut tcp, mut kkdcp) = (Vec::new(), Vec::new(), Vec::new());
         let mut kkdcp_cert = None;
         let mut kpasswd = std::collections::HashMap::new();
+        let mut kadmin = None;
         for provider in &providers {
             match self.build_provider(provider).await {
                 Ok((kdc, store)) => {
+                    if kadmin.is_none() && provider.kadmin_enabled.unwrap_or_default() {
+                        match kadmin::KadminRealm::new(
+                            Arc::clone(&store),
+                            provider.kadmin_acl.as_deref().unwrap_or_default(),
+                        ) {
+                            Ok(realm) => kadmin = Some(Arc::new(realm)),
+                            Err(err) => warn!(?err, name = provider.name, "kadmin disabled"),
+                        }
+                    } else if provider.kadmin_enabled.unwrap_or_default() {
+                        warn!(
+                            name = provider.name,
+                            "kadmin is single-realm; ignoring additional enabled provider"
+                        );
+                    }
                     if provider.kpasswd_enabled.unwrap_or_default() {
                         kpasswd.insert(
                             provider.realm_name.clone(),
@@ -460,6 +489,7 @@ impl Outpost for KerberosOutpost {
             }
         }
         self.kpasswd.realms.store(Arc::new(kpasswd));
+        self.kadmin.realm.store(kadmin);
         self.dispatcher.udp.store(kdc_realms(udp));
         self.dispatcher.tcp.store(kdc_realms(tcp));
         self.kkdcp.realms.store(kdc_realms(kkdcp));

@@ -86,7 +86,7 @@ fn derive_key(master: &[u8], etype: i32, prefix: &str) -> Result<EncryptionKey> 
     Ok(EncryptionKey::new(etype, out))
 }
 
-fn decode_keys(
+pub(crate) fn decode_keys(
     values: &HashMap<String, serde_json::Value>,
     enctypes: &[i32],
     kvno: i32,
@@ -290,6 +290,11 @@ impl ProviderStore {
 
     pub(crate) fn provider_id(&self) -> i32 {
         self.provider_id
+    }
+
+    /// Every principal loaded at refresh time.
+    pub(crate) fn entries(&self) -> impl Iterator<Item = &PrincipalEntry> {
+        self.entries.values()
     }
 
     /// A principal loaded at refresh time (service, synthetic or trust).

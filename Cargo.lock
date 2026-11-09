@@ -2390,7 +2390,7 @@ dependencies = [
 [[package]]
 name = "krb5-rs"
 version = "0.1.0"
-source = "git+https://github.com/Exonical/krb5-rs?rev=60a3b1a671c6913629d268cfa039aa601ef5eb46#60a3b1a671c6913629d268cfa039aa601ef5eb46"
+source = "git+https://github.com/Exonical/krb5-rs?rev=7a3e443c04e628a3ccc9f9074fde78a75e8c82a1#7a3e443c04e628a3ccc9f9074fde78a75e8c82a1"
 dependencies = [
  "aes",
  "bitflags 2.11.0",
