@@ -16,15 +16,21 @@ use hkdf::Hkdf;
 use krb5_rs::{
     crypto::find_etype,
     kdc::{
-        KeyEntry, PrincipalAttributes, PrincipalEntry, PrincipalStore, StoreError,
+        IssuePac, KeyEntry, PrincipalAttributes, PrincipalEntry, PrincipalStore, StoreError,
         kdb::mit::parse_name_with_default,
+    },
+    pac::{
+        PAC_CLIENT_INFO, PAC_DELEGATION_INFO, PAC_FULL_CHECKSUM, PAC_LOGON_INFO,
+        PAC_PRIVSVR_CHECKSUM, PAC_SERVER_CHECKSUM, PAC_TICKET_CHECKSUM, PAC_UPN_DNS_INFO,
     },
     types::{EncryptionKey, PrincipalName},
 };
-use moka::future::Cache;
+use moka::{future::Cache, sync::Cache as SyncCache};
 use reqwest::StatusCode;
 use sha2::Sha256;
 use tracing::{info, warn};
+
+use super::pac::{PacIdentity, Sid};
 
 const CACHE_TTL: Duration = Duration::from_mins(1);
 const CACHE_CAPACITY: u64 = 10_000;
@@ -39,6 +45,7 @@ pub(crate) struct StoreSettings {
     pub(crate) base_attributes: PrincipalAttributes,
     pub(crate) require_preauth: bool,
     pub(crate) anonymous_pkinit: bool,
+    pub(crate) realm_sid: Option<Sid>,
 }
 
 /// The identity authentik returned for a user, kept for PAC generation.
@@ -53,7 +60,7 @@ pub(crate) struct ProviderStore {
     provider_id: i32,
     settings: StoreSettings,
     entries: HashMap<EntryKey, PrincipalEntry>,
-    users: Cache<String, Option<std::sync::Arc<UserRecord>>>,
+    users: SyncCache<String, Option<std::sync::Arc<UserRecord>>>,
     access: Cache<(bool, String, String), bool>,
 }
 
@@ -265,7 +272,7 @@ impl ProviderStore {
             provider_id,
             settings,
             entries,
-            users: Cache::builder()
+            users: SyncCache::builder()
                 .max_capacity(CACHE_CAPACITY)
                 .time_to_live(CACHE_TTL)
                 .build(),
@@ -343,20 +350,18 @@ impl ProviderStore {
         &self,
         username: &str,
     ) -> Result<Option<std::sync::Arc<UserRecord>>, StoreError> {
-        if let Some(cached) = self.users.get(username).await {
+        if let Some(cached) = self.users.get(username) {
             return Ok(cached);
         }
         let record = self.fetch_user(username).await?;
-        self.users.insert(username.to_owned(), record.clone()).await;
+        self.users.insert(username.to_owned(), record.clone());
         if let Some(record) = &record
             && record.identity.principal != username
         {
-            self.users
-                .insert(
-                    record.identity.principal.clone(),
-                    Some(std::sync::Arc::clone(record)),
-                )
-                .await;
+            self.users.insert(
+                record.identity.principal.clone(),
+                Some(std::sync::Arc::clone(record)),
+            );
         }
         Ok(record)
     }
@@ -422,7 +427,7 @@ impl ProviderStore {
 
 #[expect(
     clippy::missing_trait_methods,
-    reason = "S4U X.509 lookup and PAC issuance use the krb5-rs defaults"
+    reason = "S4U X.509 lookup uses the krb5-rs default"
 )]
 impl PrincipalStore for ProviderStore {
     async fn lookup(
@@ -444,6 +449,73 @@ impl PrincipalStore for ProviderStore {
         Ok(record
             .filter(|r| r.identity.principal == *username && !r.entry.keys.is_empty())
             .map(|r| r.entry.clone()))
+    }
+
+    fn issue_pac(&self, req: IssuePac<'_>) -> Result<(), StoreError> {
+        let pac_err = |err: &dyn std::fmt::Display| StoreError::corrupt(format!("PAC: {err}"));
+        if let Some(old) = req.old_pac
+            && !(req.client.is_some() && req.protocol_transition)
+        {
+            for ty in old.types() {
+                if matches!(
+                    ty,
+                    PAC_SERVER_CHECKSUM
+                        | PAC_PRIVSVR_CHECKSUM
+                        | PAC_TICKET_CHECKSUM
+                        | PAC_FULL_CHECKSUM
+                        | PAC_CLIENT_INFO
+                        | PAC_DELEGATION_INFO
+                ) {
+                    continue;
+                }
+                let data = old
+                    .get_buffer(ty)
+                    .map_err(|err| pac_err(&format!("{err:?}")))?;
+                req.new_pac
+                    .add_buffer(ty, data)
+                    .map_err(|err| pac_err(&format!("{err:?}")))?;
+            }
+            return Ok(());
+        }
+        let (Some(client), Some(domain_sid)) = (req.client, &self.settings.realm_sid) else {
+            return Ok(());
+        };
+        let comps = components(&client.name);
+        let [username] = comps.as_slice() else {
+            return Ok(());
+        };
+        if client.realm != self.settings.realm {
+            return Ok(());
+        }
+        let Some(Some(record)) = self.users.get(username) else {
+            return Ok(());
+        };
+        let identity = &record.identity;
+        let id = |v: i32| u32::try_from(v).map_err(|err| pac_err(&err));
+        let pac = PacIdentity {
+            username: &identity.username,
+            full_name: &identity.pac_name,
+            user_id: id(identity.pac_user_id)?,
+            primary_group_id: id(identity.pac_primary_group_id)?,
+            group_ids: identity
+                .pac_group_ids
+                .iter()
+                .map(|g| id(*g))
+                .collect::<Result<_, _>>()?,
+            upn: &identity.pac_upn,
+            realm: &self.settings.realm,
+            domain_sid,
+        };
+        for (ty, data) in [
+            (PAC_LOGON_INFO, pac.logon_info()),
+            (PAC_UPN_DNS_INFO, pac.upn_dns_info()),
+        ] {
+            let data = data.map_err(|err| pac_err(&err))?;
+            req.new_pac
+                .add_buffer(ty, &data)
+                .map_err(|err| pac_err(&format!("{err:?}")))?;
+        }
+        Ok(())
     }
 }
 

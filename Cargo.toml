@@ -70,6 +70,7 @@ metrics = "= 0.24.6"
 metrics-exporter-prometheus = { version = "= 0.18.3", default-features = false }
 moka = { version = "= 0.12.16", default-features = false, features = [
   "future",
+  "sync",
 ] }
 nix = { version = "= 0.31.3", features = [
   "fs",

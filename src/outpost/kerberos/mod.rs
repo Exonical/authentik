@@ -30,6 +30,7 @@ use self::{
 };
 use crate::outpost::{Outpost, OutpostController, event::EventSessionEnd};
 
+mod pac;
 mod policy;
 mod store;
 
@@ -177,6 +178,17 @@ impl KerberosOutpost {
             .then(|| provider.iprop_spn.clone())
             .flatten()
             .filter(|s| !s.is_empty());
+        let realm_sid = provider
+            .pac_enabled
+            .unwrap_or_default()
+            .then_some(provider.realm_sid.as_deref())
+            .flatten()
+            .filter(|s| !s.is_empty())
+            .and_then(|sid| {
+                pac::Sid::parse(sid)
+                    .inspect_err(|err| warn!(?err, "ignoring invalid PAC realm SID"))
+                    .ok()
+            });
         let store = Arc::new(ProviderStore::new(
             api.clone(),
             provider.pk,
@@ -186,6 +198,7 @@ impl KerberosOutpost {
                 base_attributes: base_attributes(provider),
                 require_preauth: provider.require_preauthentication.unwrap_or(true),
                 anonymous_pkinit: provider.anonymous_pkinit_enabled.unwrap_or_default(),
+                realm_sid: realm_sid.clone(),
             },
             &StoreSources {
                 master_key: &master_key,
@@ -204,7 +217,7 @@ impl KerberosOutpost {
         if let Some(size) = provider.max_datagram_reply_size.filter(|s| *s > 0) {
             cfg.max_dgram_reply_size = usize::try_from(size)?;
         }
-        cfg.disable_pac = true;
+        cfg.disable_pac = realm_sid.is_none();
         cfg.spake_indicators = provider.spake_indicators.clone().unwrap_or_default();
         cfg.encrypted_challenge_indicator = provider
             .encrypted_challenge_indicator
