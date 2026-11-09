@@ -51,10 +51,16 @@ pub(crate) struct Cli {}
 
 type ProviderKdc = Kdc<Arc<ProviderStore>>;
 
-/// Routes requests to the realms of the most recent refresh.
+/// Routes requests to the realms of the most recent refresh that accept the
+/// request's transport.
 #[derive(Default)]
 struct Dispatcher {
-    realms: ArcSwapOption<KdcRealms<Arc<ProviderStore>>>,
+    udp: ArcSwapOption<KdcRealms<Arc<ProviderStore>>>,
+    tcp: ArcSwapOption<KdcRealms<Arc<ProviderStore>>>,
+}
+
+fn kdc_realms(realms: Vec<Arc<ProviderKdc>>) -> Option<Arc<KdcRealms<Arc<ProviderStore>>>> {
+    (!realms.is_empty()).then(|| Arc::new(KdcRealms::new(realms)))
 }
 
 impl KdcService for Dispatcher {
@@ -64,7 +70,11 @@ impl KdcService for Dispatcher {
         transport: Transport,
         peer: Option<SocketAddr>,
     ) -> (Vec<u8>, Option<RequestSummary>) {
-        let Some(realms) = self.realms.load_full() else {
+        let realms = match transport {
+            Transport::Udp => &self.udp,
+            Transport::Tcp => &self.tcp,
+        };
+        let Some(realms) = realms.load_full() else {
             return (Vec::new(), None);
         };
         realms
@@ -73,8 +83,9 @@ impl KdcService for Dispatcher {
     }
 
     fn bare_error(&self, code: i32, now: chrono::DateTime<chrono::Utc>) -> Vec<u8> {
-        self.realms
+        self.tcp
             .load_full()
+            .or_else(|| self.udp.load_full())
             .map(|realms| realms.bare_error(code, now))
             .unwrap_or_default()
     }
@@ -354,7 +365,7 @@ impl Outpost for KerberosOutpost {
             );
         }
 
-        let mut realms = Vec::with_capacity(providers.len());
+        let (mut udp, mut tcp) = (Vec::new(), Vec::new());
         let mut kpasswd = std::collections::HashMap::new();
         for provider in &providers {
             match self.build_provider(provider).await {
@@ -374,7 +385,13 @@ impl Outpost for KerberosOutpost {
                         realm = provider.realm_name,
                         "loaded provider"
                     );
-                    realms.push(Arc::new(kdc));
+                    let kdc = Arc::new(kdc);
+                    if provider.udp_enabled.unwrap_or_default() {
+                        udp.push(Arc::clone(&kdc));
+                    }
+                    if provider.tcp_enabled.unwrap_or_default() {
+                        tcp.push(kdc);
+                    }
                 }
                 Err(err) => warn!(
                     ?err,
@@ -384,9 +401,8 @@ impl Outpost for KerberosOutpost {
             }
         }
         self.kpasswd.realms.store(Arc::new(kpasswd));
-        self.dispatcher
-            .realms
-            .store((!realms.is_empty()).then(|| Arc::new(KdcRealms::new(realms))));
+        self.dispatcher.udp.store(kdc_realms(udp));
+        self.dispatcher.tcp.store(kdc_realms(tcp));
         Ok(())
     }
 
