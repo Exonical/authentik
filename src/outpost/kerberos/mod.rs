@@ -32,6 +32,7 @@ use self::{
 use crate::outpost::{Outpost, OutpostController, event::EventSessionEnd};
 
 mod audit;
+mod kkdcp;
 mod kpasswd;
 mod otp;
 mod pac;
@@ -95,6 +96,8 @@ pub(crate) struct KerberosOutpost {
     controller: Arc<OutpostController>,
     dispatcher: Arc<Dispatcher>,
     kpasswd: Arc<Kpasswd>,
+    kkdcp: Arc<kkdcp::Kkdcp>,
+    certificates: ak_common::tls::store::CertificateStore,
 }
 
 fn seconds(value: i32) -> Duration {
@@ -270,6 +273,34 @@ impl KerberosOutpost {
         Ok((kdc, store))
     }
 
+    async fn kkdcp_certificate(
+        &self,
+        provider: &KerberosOutpostConfig,
+    ) -> Option<Arc<rustls::sign::CertifiedKey>> {
+        if !provider.kkdcp_enabled.unwrap_or_default() {
+            return None;
+        }
+        let Some(uuid) = provider.kkdcp_certificate.flatten() else {
+            warn!(
+                provider = provider.name,
+                "KKDCP is enabled but no TLS certificate is configured"
+            );
+            return None;
+        };
+        self.certificates
+            .ensure_keypair(&self.controller.api_config, uuid)
+            .await
+            .inspect_err(|err| {
+                warn!(
+                    ?err,
+                    provider = provider.name,
+                    "failed to fetch KKDCP TLS certificate"
+                );
+            })
+            .ok()
+            .map(|cert| Arc::clone(&cert.certified_key))
+    }
+
     fn spawn_listeners(&self, tasks: &mut Tasks, shutdown: &watch::Receiver<bool>) -> Result<()> {
         for addr in config::get().listen.kerberos.iter().copied() {
             let options = ServeOptions {
@@ -316,6 +347,21 @@ impl KerberosOutpost {
                 .spawn(kpasswd::serve_tcp(svc, tcp, rx))?;
             info!(%addr, "kpasswd listening");
         }
+        for addr in config::get().listen.kkdcp.iter().copied() {
+            let resolver: Arc<dyn rustls::server::ResolvesServerCert> =
+                Arc::<kkdcp::Kkdcp>::clone(&self.kkdcp);
+            let tls = rustls::ServerConfig::builder()
+                .with_no_client_auth()
+                .with_cert_resolver(resolver);
+            ak_axum::server::start_tls(
+                tasks,
+                "kerberos-kkdcp",
+                Arc::clone(&self.kkdcp).router(),
+                addr,
+                axum_server::tls_rustls::RustlsConfig::from_config(Arc::new(tls)),
+            )?;
+            info!(%addr, "KKDCP listening");
+        }
         Ok(())
     }
 }
@@ -331,6 +377,10 @@ impl Outpost for KerberosOutpost {
             controller,
             dispatcher: Arc::new(Dispatcher::default()),
             kpasswd: Arc::new(Kpasswd::default()),
+            kkdcp: Arc::new(kkdcp::Kkdcp::new(Arc::new(
+                ak_common::tls::self_signed::generate_certifiedkey()?,
+            ))),
+            certificates: ak_common::tls::store::CertificateStore::new(),
         })
     }
 
@@ -365,7 +415,8 @@ impl Outpost for KerberosOutpost {
             );
         }
 
-        let (mut udp, mut tcp) = (Vec::new(), Vec::new());
+        let (mut udp, mut tcp, mut kkdcp) = (Vec::new(), Vec::new(), Vec::new());
+        let mut kkdcp_cert = None;
         let mut kpasswd = std::collections::HashMap::new();
         for provider in &providers {
             match self.build_provider(provider).await {
@@ -386,6 +437,10 @@ impl Outpost for KerberosOutpost {
                         "loaded provider"
                     );
                     let kdc = Arc::new(kdc);
+                    if let Some(cert) = self.kkdcp_certificate(provider).await {
+                        kkdcp_cert.get_or_insert(cert);
+                        kkdcp.push(Arc::clone(&kdc));
+                    }
                     if provider.udp_enabled.unwrap_or_default() {
                         udp.push(Arc::clone(&kdc));
                     }
@@ -403,6 +458,8 @@ impl Outpost for KerberosOutpost {
         self.kpasswd.realms.store(Arc::new(kpasswd));
         self.dispatcher.udp.store(kdc_realms(udp));
         self.dispatcher.tcp.store(kdc_realms(tcp));
+        self.kkdcp.realms.store(kdc_realms(kkdcp));
+        self.kkdcp.certificate.store(kkdcp_cert);
         Ok(())
     }
 
