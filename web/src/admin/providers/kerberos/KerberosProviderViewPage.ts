@@ -6,13 +6,19 @@ import "#admin/rbac/ak-rbac-object-permission-page";
 import "#admin/events/ObjectChangelog";
 import "#elements/Tabs";
 import "#elements/buttons/ModalButton";
+import PFButton from "@patternfly/patternfly/components/Button/button.css";
+import PFCard from "@patternfly/patternfly/components/Card/card.css";
+import PFContent from "@patternfly/patternfly/components/Content/content.css";
+import PFDescriptionList from "@patternfly/patternfly/components/DescriptionList/description-list.css";
+import PFPage from "@patternfly/patternfly/components/Page/page.css";
+import PFDisplay from "@patternfly/patternfly/utilities/Display/display.css";
+import PFSizing from "@patternfly/patternfly/utilities/Sizing/sizing.css";
 
 import { aki } from "#common/api/client";
 
 import { AKElement } from "#elements/Base";
+import { setPageDetails } from "#elements/router/meta";
 import { SlottedTemplateResult } from "#elements/types";
-
-import { setPageDetails } from "#components/ak-page-navbar";
 
 import {
     enctypeName,
@@ -30,14 +36,6 @@ import {
 import { msg } from "@lit/localize";
 import { CSSResult, html, nothing, PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-
-import PFButton from "@patternfly/patternfly/components/Button/button.css";
-import PFCard from "@patternfly/patternfly/components/Card/card.css";
-import PFContent from "@patternfly/patternfly/components/Content/content.css";
-import PFDescriptionList from "@patternfly/patternfly/components/DescriptionList/description-list.css";
-import PFPage from "@patternfly/patternfly/components/Page/page.css";
-import PFDisplay from "@patternfly/patternfly/utilities/Display/display.css";
-import PFSizing from "@patternfly/patternfly/utilities/Sizing/sizing.css";
 
 const descriptionLabels: Record<string, string> = {
     "kerberos.provider-name.term": msg("Name", { id: "kerberos.provider-name.term" }),
@@ -202,16 +200,19 @@ export class KerberosProviderViewPage extends AKElement {
             .providersKerberosRetrieve({ id })
             .then((provider) => {
                 this.provider = provider;
+
                 if (!provider.pkinitCertificate) {
                     this.pkinitCertificate = null;
                 } else {
                     this.fetchPkinitCertificate(provider.pkinitCertificate);
                 }
+
                 if (!provider.pkinitClientCa) {
                     this.pkinitClientCa = null;
                 } else {
                     this.fetchPkinitClientCa(provider.pkinitClientCa);
                 }
+
                 if (!provider.kkdcpCertificate) {
                     this.kkdcpCertificate = null;
                 } else {
@@ -382,7 +383,8 @@ export class KerberosProviderViewPage extends AKElement {
                                             )}
                                             ${this.renderDescription(
                                                 "Allowed iprop replicas",
-                                                this.provider.ipropAllowedReplicas?.join(", ") || "-",
+                                                this.provider.ipropAllowedReplicas?.join(", ") ||
+                                                    "-",
                                                 "kerberos.iprop-allowed-replicas.term",
                                             )}
                                             ${this.renderDescription(

@@ -1,21 +1,16 @@
-import "#admin/common/ak-flow-search/ak-flow-search";
-import "#admin/common/ak-flow-search/ak-branded-flow-search";
-import "#admin/common/ak-crypto-certificate-search";
 import "#components/ak-switch-input";
 import "#components/ak-text-input";
 import "#elements/ak-array-input";
 import "#elements/forms/FormGroup";
 import "#elements/forms/HorizontalFormElement";
 import "#elements/utils/TimeDeltaHelp";
-
-import { ifPresent } from "#elements/utils/attributes";
-
+import { AKCertificateSearch } from "#admin/common/AKCertificateSearch";
 import {
-    CurrentBrand,
-    FlowDesignationEnum,
-    KerberosProvider,
-    ValidationError,
-} from "@goauthentik/api";
+    AKAuthenticationFlowField,
+    AKAuthorizationFlowField,
+} from "#admin/providers/components/flow-fields";
+
+import { CurrentBrand, KerberosProvider, ValidationError } from "@goauthentik/api";
 
 import { msg } from "@lit/localize";
 import { html } from "lit";
@@ -68,26 +63,18 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
 
         <ak-form-group open label=${msg("Flow settings", { id: "kerberos.flow-settings.label" })}>
             <div class="pf-c-form">
-                <ak-form-element-horizontal
-                    label=${msg("Authentication flow", {
-                        id: "kerberos.authentication-flow.label",
-                    })}
-                    name="authenticationFlow"
-                    .errorMessages=${errors.authenticationFlow}
-                >
-                    <ak-branded-flow-search
-                        label=${msg("Authentication flow", {
-                            id: "kerberos.authentication-flow.search-label",
-                        })}
-                        placeholder=${msg("Select an authentication flow...", {
-                            id: "kerberos.authentication-flow.placeholder",
-                        })}
-                        flowType=${FlowDesignationEnum.Authentication}
-                        .currentFlow=${provider.authenticationFlow}
-                        .brandFlow=${brand?.flowAuthentication}
-                        required
-                    ></ak-branded-flow-search>
-                </ak-form-element-horizontal>
+                ${AKAuthenticationFlowField({
+                    label: msg("Authentication flow", {
+                        id: "kerberos.authentication-flow.search-label",
+                    }),
+                    placeholder: msg("Select an authentication flow...", {
+                        id: "kerberos.authentication-flow.placeholder",
+                    }),
+                    value: provider.authenticationFlow,
+                    defaultFlowSlug: brand?.flowAuthentication,
+                    required: true,
+                    errors: errors.authenticationFlow,
+                })}
                 <ak-form-element-horizontal
                     label=${msg("PKINIT authentication indicators", {
                         id: "kerberos.pkinit-indicators.label",
@@ -110,10 +97,9 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                         `}
                     ></ak-array-input>
                     <p class="pf-c-form__helper-text">
-                        ${msg(
-                            "Authentication indicators asserted after successful PKINIT.",
-                            { id: "kerberos.pkinit-indicators.help" },
-                        )}
+                        ${msg("Authentication indicators asserted after successful PKINIT.", {
+                            id: "kerberos.pkinit-indicators.help",
+                        })}
                     </p>
                 </ak-form-element-horizontal>
                 <ak-form-element-horizontal
@@ -138,10 +124,9 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                         `}
                     ></ak-array-input>
                     <p class="pf-c-form__helper-text">
-                        ${msg(
-                            "Indicators asserted after SPAKE preauthentication.",
-                            { id: "kerberos.spake-indicators.help" },
-                        )}
+                        ${msg("Indicators asserted after SPAKE preauthentication.", {
+                            id: "kerberos.spake-indicators.help",
+                        })}
                     </p>
                 </ak-form-element-horizontal>
                 <ak-text-input
@@ -159,25 +144,17 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                         { id: "kerberos.encrypted-challenge-indicator.help" },
                     )}
                 ></ak-text-input>
-                <ak-form-element-horizontal
-                    label=${msg("Authorization flow", {
-                        id: "kerberos.authorization-flow.label",
-                    })}
-                    name="authorizationFlow"
-                    .errorMessages=${errors.authorizationFlow}
-                >
-                    <ak-flow-search
-                        label=${msg("Authorization flow", {
-                            id: "kerberos.authorization-flow.search-label",
-                        })}
-                        placeholder=${msg("Select an authorization flow...", {
-                            id: "kerberos.authorization-flow.placeholder",
-                        })}
-                        flowType=${FlowDesignationEnum.Authorization}
-                        .currentFlow=${provider.authorizationFlow}
-                        required
-                    ></ak-flow-search>
-                </ak-form-element-horizontal>
+                ${AKAuthorizationFlowField({
+                    label: msg("Authorization flow", {
+                        id: "kerberos.authorization-flow.search-label",
+                    }),
+                    placeholder: msg("Select an authorization flow...", {
+                        id: "kerberos.authorization-flow.placeholder",
+                    }),
+                    value: provider.authorizationFlow,
+                    required: true,
+                    errors: errors.authorizationFlow,
+                })}
             </div>
         </ak-form-group>
 
@@ -366,9 +343,12 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                         min="0"
                     ></ak-text-input>
                     <p class="pf-c-form__helper-text">
-                        ${msg("Concurrent UDP request handlers; 0 uses the built-in default of 1024.", {
-                            id: "kerberos.max-udp-workers.help",
-                        })}
+                        ${msg(
+                            "Concurrent UDP request handlers; 0 uses the built-in default of 1024.",
+                            {
+                                id: "kerberos.max-udp-workers.help",
+                            },
+                        )}
                     </p>
                 </ak-form-element-horizontal>
                 <ak-form-element-horizontal
@@ -385,9 +365,12 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                         min="0"
                     ></ak-text-input>
                     <p class="pf-c-form__helper-text">
-                        ${msg("Concurrent KDC TCP connections; 0 uses the built-in default of 45.", {
-                            id: "kerberos.max-tcp-connections.help",
-                        })}
+                        ${msg(
+                            "Concurrent KDC TCP connections; 0 uses the built-in default of 45.",
+                            {
+                                id: "kerberos.max-tcp-connections.help",
+                            },
+                        )}
                     </p>
                 </ak-form-element-horizontal>
                 <ak-form-element-horizontal
@@ -404,9 +387,12 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                         min="0"
                     ></ak-text-input>
                     <p class="pf-c-form__helper-text">
-                        ${msg("TCP read/write timeout in seconds; 0 uses the built-in default of 60 seconds.", {
-                            id: "kerberos.tcp-idle-timeout.help",
-                        })}
+                        ${msg(
+                            "TCP read/write timeout in seconds; 0 uses the built-in default of 60 seconds.",
+                            {
+                                id: "kerberos.tcp-idle-timeout.help",
+                            },
+                        )}
                     </p>
                 </ak-form-element-horizontal>
                 <ak-form-element-horizontal
@@ -423,18 +409,18 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                         min="0"
                     ></ak-text-input>
                     <p class="pf-c-form__helper-text">
-                        ${msg("UDP reply size in bytes; 0 uses the built-in default of 65536 bytes.", {
-                            id: "kerberos.max-datagram-reply-size.help",
-                        })}
+                        ${msg(
+                            "UDP reply size in bytes; 0 uses the built-in default of 65536 bytes.",
+                            {
+                                id: "kerberos.max-datagram-reply-size.help",
+                            },
+                        )}
                     </p>
                 </ak-form-element-horizontal>
             </div>
         </ak-form-group>
 
-        <ak-form-group
-            open
-            label=${msg("Incremental propagation", { id: "kerberos.iprop.label" })}
-        >
+        <ak-form-group open label=${msg("Incremental propagation", { id: "kerberos.iprop.label" })}>
             <div class="pf-c-form">
                 <ak-switch-input
                     name="ipropEnabled"
@@ -496,10 +482,7 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
             ?checked=${provider.traceEnabled ?? false}
         ></ak-switch-input>
 
-        <ak-form-group
-            open
-            label=${msg("MIT replica propagation", { id: "kerberos.kprop.label" })}
-        >
+        <ak-form-group open label=${msg("MIT replica propagation", { id: "kerberos.kprop.label" })}>
             <div class="pf-c-form">
                 <ak-switch-input
                     name="kpropEnabled"
@@ -662,9 +645,12 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                         `}
                     ></ak-array-input>
                     <p class="pf-c-form__helper-text">
-                        ${msg("Authentication indicators asserted after successful OTP preauthentication.", {
-                            id: "kerberos.otp-indicators.help",
-                        })}
+                        ${msg(
+                            "Authentication indicators asserted after successful OTP preauthentication.",
+                            {
+                                id: "kerberos.otp-indicators.help",
+                            },
+                        )}
                     </p>
                 </ak-form-element-horizontal>
                 <ak-switch-input
@@ -686,9 +672,12 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                         input-hint="code"
                     ></ak-text-input>
                     <p class="pf-c-form__helper-text">
-                        ${msg("Domain SID used to construct PAC identities; generated when blank and PAC is enabled.", {
-                            id: "kerberos.pac.realm-sid.description",
-                        })}
+                        ${msg(
+                            "Domain SID used to construct PAC identities; generated when blank and PAC is enabled.",
+                            {
+                                id: "kerberos.pac.realm-sid.description",
+                            },
+                        )}
                     </p>
                 </ak-form-element-horizontal>
                 <ak-switch-input
@@ -732,8 +721,9 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                     <select class="pf-c-form-control" name="principalUsernameAttribute" required>
                         <option
                             value="username"
-                            ?selected=${(provider.principalUsernameAttribute ?? "username") ===
-                            "username"}
+                            ?selected=${
+                                (provider.principalUsernameAttribute ?? "username") === "username"
+                            }
                         >
                             ${msg("Username", {
                                 id: "kerberos.principal-username-attribute.username",
@@ -765,16 +755,16 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                     name="pkinitCertificate"
                     .errorMessages=${errors.pkinitCertificate}
                 >
-                    <ak-crypto-certificate-search
-                        label=${msg("KDC signing certificate", {
+                    ${AKCertificateSearch({
+                        name: "pkinitCertificate",
+                        label: msg("KDC signing certificate", {
                             id: "kerberos.pkinit.kdc-certificate.search-label",
-                        })}
-                        placeholder=${msg("Select a certificate with a private key...", {
+                        }),
+                        placeholder: msg("Select a certificate with a private key...", {
                             id: "kerberos.pkinit.kdc-certificate.placeholder",
-                        })}
-                        certificate=${ifPresent(provider.pkinitCertificate)}
-                        name="pkinitCertificate"
-                    ></ak-crypto-certificate-search>
+                        }),
+                        value: provider.pkinitCertificate,
+                    })}
                     <p class="pf-c-form__helper-text">
                         ${msg("Certificate/key pair used to sign PKINIT replies.", {
                             id: "kerberos.pkinit.kdc-certificate.description",
@@ -788,17 +778,17 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                     name="pkinitClientCa"
                     .errorMessages=${errors.pkinitClientCa}
                 >
-                    <ak-crypto-certificate-search
-                        label=${msg("Client CA certificate", {
+                    ${AKCertificateSearch({
+                        name: "pkinitClientCa",
+                        label: msg("Client CA certificate", {
                             id: "kerberos.pkinit.client-ca.search-label",
-                        })}
-                        placeholder=${msg("Select a CA certificate...", {
+                        }),
+                        placeholder: msg("Select a CA certificate...", {
                             id: "kerberos.pkinit.client-ca.placeholder",
-                        })}
-                        certificate=${ifPresent(provider.pkinitClientCa)}
-                        noKey
-                        name="pkinitClientCa"
-                    ></ak-crypto-certificate-search>
+                        }),
+                        value: provider.pkinitClientCa,
+                        noKey: true,
+                    })}
                     <p class="pf-c-form__helper-text">
                         ${msg("CA certificate used to validate PKINIT client certificates.", {
                             id: "kerberos.pkinit.client-ca.description",
@@ -812,16 +802,16 @@ export function renderForm({ provider, errors, brand }: KerberosProviderFormProp
                     name="kkdcpCertificate"
                     .errorMessages=${errors.kkdcpCertificate}
                 >
-                    <ak-crypto-certificate-search
-                        label=${msg("KDC Proxy TLS certificate", {
+                    ${AKCertificateSearch({
+                        name: "kkdcpCertificate",
+                        label: msg("KDC Proxy TLS certificate", {
                             id: "kerberos.kkdcp.certificate.search-label",
-                        })}
-                        placeholder=${msg("Select a certificate with a private key...", {
+                        }),
+                        placeholder: msg("Select a certificate with a private key...", {
                             id: "kerberos.kkdcp.certificate.placeholder",
-                        })}
-                        certificate=${ifPresent(provider.kkdcpCertificate)}
-                        name="kkdcpCertificate"
-                    ></ak-crypto-certificate-search>
+                        }),
+                        value: provider.kkdcpCertificate,
+                    })}
                     <p class="pf-c-form__helper-text">
                         ${msg("Certificate/key pair used by the KDC Proxy HTTPS listener.", {
                             id: "kerberos.kkdcp.certificate.description",
